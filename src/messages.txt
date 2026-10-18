@@ -1,0 +1,341 @@
+# our own messages, the ones that are the same every time they are shown, kept in the strings database with Moria's
+# tables of text so that they take no room in the pages of code: one to a line, its name, then its text
+# a page shows one with s_core_message( UW_MSG_<name> ), the numbers are in constants.bas, and create-data.ps1, which
+# puts these into the database, checks that the two agree, so a new message is added at the END of this list
+# N.B: a message with something spliced into it, a name or a number, cannot be kept here
+
+RUBBLE_BLOCKS   There is rubble blocking your way.
+DOOR_BLOCKS     There is a closed door blocking your way.
+NO_DOWN_STAIR   I see no down staircase here.
+MAZE_DOWN       You enter a maze of down staircases.
+NO_UP_STAIR     I see no up staircase here.
+MAZE_UP         You enter a maze of up staircases.
+ONE_WAY_DOOR    You pass through a one-way door.
+LIGHT_OUT       Your light has gone out!
+LIGHT_FAINT     Your light is growing faint.
+CATCH_BREATH    You stop running to catch your breath.
+WHICH_DIRECTION                     Which direction?
+YOU_FELL_INTO_A_PIT                 You fell into a pit!
+YOU_GENTLY_FLOAT_DOWN               You gently float down.
+AN_ARROW_HITS_YOU                   An arrow hits you.
+AN_ARROW_BARELY_MISSES_YOU          An arrow barely misses you.
+YOU_FELL_INTO_A_COVERED_PIT         You fell into a covered pit.
+YOU_FELL_THROUGH_A_TRAP_DOOR        You fell through a trap door!
+A_STRANGE_WHITE_MIST_SURROUNDS_YOU  A strange white mist surrounds you!
+YOU_ARE_UNAFFECTED                  You are unaffected.
+YOU_FALL_ASLEEP                     You fall asleep.
+HMMM_THERE_WAS_SOMETHING_UNDER      Hmmm, there was something under this rock.
+A_SMALL_DART_WEAKENS_YOU            A small dart weakens you!
+A_SMALL_DART_HITS_YOU               A small dart hits you.
+A_SMALL_DART_BARELY_MISSES_YOU      A small dart barely misses you.
+YOU_HIT_A_TELEPORT_TRAP             You hit a teleport trap!
+YOU_ARE_HIT_BY_FALLING_ROCK         You are hit by falling rock.
+A_STRANGE_RED_GAS_SURROUNDS_YOU     A strange red gas surrounds you.
+YOU_ARE_ENVELOPED_IN_FLAMES         You are enveloped in flames!
+YOU_ARE_SPLASHED_WITH_ACID          You are splashed with acid!
+A_PUNGENT_GREEN_GAS_SURROUNDS_YOU   A pungent green gas surrounds you!
+A_BLACK_GAS_SURROUNDS_YOU           A black gas surrounds you!
+A_GAS_OF_SCINTILLATING_COLORS       A gas of scintillating colors surrounds you!
+A_SMALL_DART_HITS_YOU_2             A small dart hits you!
+A_SMALL_DART_SAPS_YOUR_HEALTH       A small dart saps your health!
+UNKNOWN_TRAP_VALUE                  Unknown trap value.
+I_DO_NOT_SEE_ANYTHING_TO_DISARM     I do not see anything to disarm there.
+YOU_HAVE_DISARMED_THE_TRAP          You have disarmed the trap.
+YOU_SET_THE_TRAP_OFF                You set the trap off!
+YOU_HAVE_FOUND_SOMETHING            You have found something!
+YOU_HAVE_FINISHED_THE_TUNNEL        You have finished the tunnel.
+TUNNEL_THROUGH_WHAT_EMPTY_AIR       Tunnel through what?  Empty air?!?
+YOU_CANT_TUNNEL_THROUGH_THAT        You can't tunnel through that.
+SOMETHING_IS_IN_YOUR_WAY            Something is in your way!
+YOU_DIG_WITH_YOUR_HANDS_MAKING_NO   You dig with your hands, making no progress.
+THIS_SEEMS_TO_BE_PERMANENT_ROCK     This seems to be permanent rock.
+YOU_HAVE_REMOVED_THE_RUBBLE         You have removed the rubble.
+YOU_RESIST_THE_EFFECTS_OF_THE       You resist the effects of the spell.
+CONGRATULATIONS_YOU_HAVE_WON_THE    *** CONGRATULATIONS *** You have won the game.
+YOU_CANNOT_SAVE_THIS_GAME_BUT_YOU   You cannot save this game, but you may retire when ready.
+YOU_ARE_TOO_AFRAID                  You are too afraid!
+YOUR_HANDS_STOP_GLOWING             Your hands stop glowing.
+BUT_YOU_ARE_NOT_CARRYING_ANYTHING   But you are not carrying anything.
+A_VEIL_OF_DARKNESS_SURROUNDS_YOU    A veil of darkness surrounds you.
+YOU_FEEL_TERRIFIED                  You feel terrified!
+YOU_FEEL_DRUGGED                    You feel drugged.
+INTERNAL_ERROR_IN_PLAYEREAT         Internal error in playerEat()
+YOU_FEEL_MORE_EXPERIENCED           You feel more experienced.
+YOU_ARE_COVERED_BY_A_VEIL_OF        You are covered by a veil of darkness.
+HEY_THIS_IS_GOOD_STUFF_HICK         Hey!  This is good stuff!  * Hick! *
+YOU_FEEL_VERY_SICK                  You feel very sick.
+YOU_FEEL_YOUR_MEMORIES_FADE         You feel your memories fade.
+THE_POTION_MAKES_YOU_VOMIT          The potion makes you vomit!
+THE_EFFECT_OF_THE_POISON_HAS_BEEN   The effect of the poison has been reduced.
+YOUR_FEEL_YOUR_HEAD_CLEAR           Your feel your head clear.
+YOUR_EYES_BEGIN_TO_TINGLE           Your eyes begin to tingle.
+INTERNAL_ERROR_IN_POTION            Internal error in potion()
+YOU_FEEL_LESS_THIRSTY               You feel less thirsty.
+YOU_ARE_TOO_CONFUSED                You are too confused.
+YOU_CANT_SEE_TO_READ_YOUR_SPELL     You can't see to read your spell book!
+YOU_HAVE_NO_LIGHT_TO_READ_BY        You have no light to read by.
+YOU_SEEM_TO_BE_MISSING_A_BOOK       You seem to be missing a book.
+YOU_ARE_NOT_CARRYING_ANY_BOOKS      You are not carrying any books.
+YOU_DO_NOT_UNDERSTAND_THE_LANGUAGE  You do not understand the language.
+YOU_CANT_LEARN_ANY_NEW_SPELLS       You can't learn any new spells!
+IT_WAS_A_GOOD_HIT_X2_DAMAGE         It was a good hit! (x2 damage)
+IT_WAS_AN_EXCELLENT_HIT_X3_DAMAGE   It was an excellent hit! (x3 damage)
+IT_WAS_A_SUPERB_HIT_X4_DAMAGE       It was a superb hit! (x4 damage)
+IT_WAS_A_GREAT_HIT_X5_DAMAGE        It was a *GREAT* hit! (x5 damage)
+YOU_ARE_CONFUSED                    You are confused.
+PRAY_HARD_ENOUGH_AND_YOUR_PRAYERS   Pray hard enough and your prayers may be answered.
+BUT_YOU_ARE_NOT_CARRYING_ANYTHING_2 But you are not carrying anything!
+YOU_CANT_CAST_SPELLS                You can't cast spells!
+YOU_DONT_KNOW_ANY_PRAYERS_IN_THAT   You don't know any prayers in that book.
+YOU_DONT_KNOW_ANY_SPELLS_IN_THAT    You don't know any spells in that book.
+YOU_LOST_YOUR_CONCENTRATION         You lost your concentration!
+YOU_FAILED_TO_GET_THE_SPELL_OFF     You failed to get the spell off!
+YOU_FAINT_FROM_FATIGUE              You faint from fatigue!
+YOU_FAINT_FROM_THE_EFFORT           You faint from the effort!
+YOU_HAVE_DAMAGED_YOUR_HEALTH        You have damaged your health!
+A_SMALL_NEEDLE_HAS_PRICKED_YOU      A small needle has pricked you!
+YOU_FEEL_WEAKENED                   You feel weakened!
+A_PUFF_OF_YELLOW_GAS_SURROUNDS_YOU  A puff of yellow gas surrounds you!
+YOU_CHOKE_AND_PASS_OUT              You choke and pass out.
+THERE_IS_A_SUDDEN_EXPLOSION         There is a sudden explosion!
+YOU_ARE_TOO_CONFUSED_TO_PICK_THE    You are too confused to pick the lock.
+YOU_HAVE_PICKED_THE_LOCK            You have picked the lock.
+I_DONT_SEE_A_TRAP                   I don't see a trap.
+THE_CHEST_WAS_NOT_TRAPPED           The chest was not trapped.
+YOU_HAVE_DISARMED_THE_CHEST         You have disarmed the chest.
+YOU_SET_A_TRAP_OFF                  You set a trap off!
+YOU_HAVE_DESTROYED_THE_CHEST        You have destroyed the chest.
+AND_ITS_CONTENTS                    and its contents!
+THE_LOCK_BREAKS_OPEN                The lock breaks open!
+CLICK                               Click!
+YOU_HAVE_DISCOVERED_A_TRAP_ON_THE   You have discovered a trap on the chest!
+THE_CHEST_IS_TRAPPED                The chest is trapped!
+INVALID_COMMAND_WITH_A_COUNT        Invalid command with a count.
+YOU_ARE_NOT_CARRYING_ANYTHING_TO    You are not carrying anything to inscribe.
+BUT_YOU_ARE_NOT_USING_A_LAMP        But you are not using a lamp.
+YOU_HAVE_NO_OIL                     You have no oil.
+YOUR_LAMP_OVERFLOWS_SPILLING_OIL    Your lamp overflows, spilling oil on the ground.
+YOUR_LAMP_IS_FULL                   Your lamp is full.
+YOUR_LAMP_IS_MORE_THAN_HALF_FULL    Your lamp is more than half full.
+YOUR_LAMP_IS_HALF_FULL              Your lamp is half full.
+YOUR_LAMP_IS_LESS_THAN_HALF_FULL    Your lamp is less than half full.
+INVALID_REST_COUNT                  Invalid rest count.
+BUT_YOURE_NOT_CARRYING_ANYTHING     But you're not carrying anything.
+THERES_NO_ROOM_TO_DROP_ANYTHING     There's no room to drop anything here.
+YOU_ARE_A_TOTAL_WINNER_YOUR         You are a Total Winner,  your character must be retired.
+USE_Q_WHEN_YOU_ARE_READY_TO_QUIT    Use 'Q' when you are ready to quit.
+COMPACTING_OBJECTS                  Compacting objects...
+COMPACTING_MONSTERS                 Compacting monsters...
+THE_STAFF_GLOWS_BLUE_FOR_A_MOMENT   The staff glows blue for a moment..
+INTERNAL_ERROR_IN_STAFFS            Internal error in staffs()
+A_LINE_OF_BLUE_SHIMMERING_LIGHT     A line of blue shimmering light appears.
+INTERNAL_ERROR_IN_WANDS             Internal error in wands()
+YOU_FEEL_SICK_FOR_A_MOMENT_IT       You feel sick for a moment,  it passes.
+YOU_BECOME_DIZZY_FOR_A_MOMENT_IT    You become dizzy for a moment,  it passes.
+YOU_BECOME_VERY_DIZZY               You become very dizzy.
+YOU_FEEL_NAIVE_FOR_A_MOMENT_IT      You feel naive for a moment,  it passes.
+YOU_FEEL_VERY_NAIVE                 You feel very naive.
+YOU_FEEL_SORE_FOR_A_MOMENT_IT       You feel sore for a moment,  it passes.
+YOU_FEEL_VERY_SORE                  You feel very sore.
+YOUR_SKIN_STARTS_TO_ITCH_BUT        Your skin starts to itch, but feels better now.
+YOUR_SKIN_STARTS_TO_ITCH            Your skin starts to itch.
+YOU_FEEL_A_LITTLE_BETTER            You feel a little better.
+YOU_FEEL_BETTER                     You feel better.
+YOU_FEEL_MUCH_BETTER                You feel much better.
+YOU_FEEL_VERY_GOOD                  You feel very good.
+YOU_ARE_BLOATED_FROM_OVEREATING     You are bloated from overeating.
+YOU_ARE_FULL                        You are full.
+YOU_FEEL_YOUR_LIFE_ENERGIES         You feel your life energies returning.
+IMPOSSIBLE_I_DONT_SEE_HOW_YOU_CAN   IMPOSSIBLE: I don't see how you can use that.
+YOU_WILL_HAVE_TO_DROP_SOMETHING     You will have to drop something first.
+OOPS_IT_FEELS_DEATHLY_COLD          Oops! It feels deathly cold!
+HMMM_IT_SEEMS_TO_BE_CURSED          Hmmm, it seems to be cursed.
+YOU_CANT_CARRY_IT                   You can't carry it.
+BUT_YOU_ARE_WIELDING_NO_WEAPONS     But you are wielding no weapons.
+NO_PRIMARY_WEAPON                   No primary weapon.
+YOU_ARE_NOT_CARRYING_ANYTHING       You are not carrying anything.
+YOU_ARE_NOT_USING_ANY_EQUIPMENT     You are not using any equipment.
+YOU_HAVE_NOTHING_TO_WEAR_OR_WIELD   You have nothing to wear or wield.
+YOU_ARE_AFRAID                      You are afraid!
+THE_DOOR_CRASHES_OPEN               The door crashes open!
+YOU_ARE_OFF_BALANCE                 You are off-balance.
+THE_DOOR_HOLDS_FIRM                 The door holds firm.
+YOU_BASH_IT_BUT_NOTHING             You bash it, but nothing interesting happens.
+YOU_BASH_AT_EMPTY_SPACE             You bash at empty space.
+THAT_ISNT_A_DOOR                    That isn't a door!
+THE_DOOR_MUST_BE_CLOSED_FIRST       The door must be closed first.
+BUT_YOU_HAVE_NO_SPIKES              But you have no spikes.
+I_AM_SORRY_BUT_I_HAVE_NOT_THE       I am sorry, but I have not the money to afford such a fine item.
+AFTER_A_LONG_BARGAINING_SESSION     After a long bargaining session, you agree upon the price.
+YOU_HAVENT_EVEN_MADE_YOUR_FIRST     You haven't even made your first offer yet!
+YOU_CANT_SEE_YOUR_MAP               You can't see your map.
+YOUVE_GONE_PAST_THE_END_OF_YOUR     You've gone past the end of your map.
+YOU_HAVE_TROUBLE_WIELDING_SUCH_A    You have trouble wielding such a heavy weapon.
+YOU_ARE_STRONG_ENOUGH_TO_WIELD      You are strong enough to wield your weapon.
+YOUR_PACK_IS_SO_HEAVY_THAT_IT       Your pack is so heavy that it slows you down.
+YOU_MOVE_MORE_EASILY_UNDER_THE      You move more easily under the weight of your pack.
+YOU_COMBINE_SIMILAR_OBJECTS_FROM    You combine similar objects from the shop and dungeon.
+I_DO_NOT_BUY_SUCH_ITEMS             I do not buy such items.
+YOU_CANT_SEE_A_DAMN_THING           You can't see a damn thing!
+YOU_CANT_BELIEVE_WHAT_YOU_ARE       You can't believe what you are seeing! It's like a dream!
+ABORTING_LOOK                       --Aborting look--
+THATS_ALL_YOU_SEE                   That's all you see.
+THATS_ALL_YOU_SEE_IN_THAT           That's all you see in that direction.
+YOU_SEE_NOTHING_OF_INTEREST         You see nothing of interest.
+YOU_SEE_NOTHING_OF_INTEREST_IN      You see nothing of interest in that direction.
+THERE_IS_SMOKE_COMING_FROM_YOUR     There is smoke coming from your pack!
+YOU_ARE_COVERED_IN_ACID             You are covered in acid!
+THERE_IS_AN_ACRID_SMELL_COMING      There is an acrid smell coming from your pack!
+YOU_ARE_COVERED_WITH_FROST          You are covered with frost!
+SOMETHING_SHATTERS_INSIDE_YOUR      Something shatters inside your pack!
+LIGHTNING_STRIKES_YOU               Lightning strikes you!
+THERE_ARE_SPARKS_COMING_FROM_YOUR   There are sparks coming from your pack!
+A_STINGING_RED_GAS_SWIRLS_ABOUT     A stinging red gas swirls about you.
+THERE_IS_AN_ACRID_SMELL_COMING_2    There is an acrid smell coming from your pack.
+YOU_QUICKLY_PROTECT_YOUR_MONEY      You quickly protect your money pouch!
+YOUR_PURSE_FEELS_LIGHTER            Your purse feels lighter.
+THERE_IS_A_PUFF_OF_SMOKE            There is a puff of smoke!
+YOU_GRAB_HOLD_OF_YOUR_BACKPACK      You grab hold of your backpack!
+YOUR_BACKPACK_FEELS_LIGHTER         Your backpack feels lighter.
+THERE_IS_A_STATIC_FEELING_IN_THE    There is a static feeling in the air.
+IT_GOT_AT_YOUR_RATIONS              It got at your rations!
+YOUR_LIGHT_DIMS                     Your light dims.
+ENERGY_DRAINS_FROM_YOUR_PACK        Energy drains from your pack!
+YOUVE_BEEN_SLIMED                   You've been slimed!
+YOU_HEAR_A_SUDDEN_STIRRING_IN_THE   You hear a sudden stirring in the distance!
+YOU_FEEL_WEAKER_FOR_A_MOMENT_BUT    You feel weaker for a moment, but it passes.
+YOU_FEEL_WEAKER                     You feel weaker.
+YOU_FEEL_CONFUSED                   You feel confused.
+YOU_RESIST_THE_EFFECTS              You resist the effects!
+YOU_ARE_SUDDENLY_AFRAID             You are suddenly afraid!
+YOUR_EYES_BEGIN_TO_STING            Your eyes begin to sting.
+YOU_ARE_PARALYZED                   You are paralyzed.
+YOU_FEEL_CLUMSY_FOR_A_MOMENT_BUT    You feel clumsy for a moment, but it passes.
+YOU_FEEL_MORE_CLUMSY                You feel more clumsy.
+YOUR_BODY_RESISTS_THE_EFFECTS_OF    Your body resists the effects of the disease.
+YOUR_HEALTH_IS_DAMAGED              Your health is damaged!
+YOU_HAVE_TROUBLE_THINKING_CLEARLY   You have trouble thinking clearly.
+BUT_YOUR_MIND_QUICKLY_CLEARS        But your mind quickly clears.
+YOUR_WISDOM_IS_SUSTAINED            Your wisdom is sustained.
+YOUR_WISDOM_IS_DRAINED              Your wisdom is drained.
+YOU_FEEL_YOUR_LIFE_DRAINING_AWAY    You feel your life draining away!
+HITS_YOU                            hits you.
+BITES_YOU                           bites you.
+CLAWS_YOU                           claws you.
+STINGS_YOU                          stings you.
+TOUCHES_YOU                         touches you.
+GAZES_AT_YOU                        gazes at you.
+BREATHES_ON_YOU                     breathes on you.
+SPITS_ON_YOU                        spits on you.
+MAKES_A_HORRIBLE_WAIL               makes a horrible wail.
+CRAWLS_ON_YOU                       crawls on you.
+RELEASES_A_CLOUD_OF_SPORES          releases a cloud of spores.
+BEGS_YOU_FOR_MONEY                  begs you for money.
+CRUSHES_YOU                         crushes you.
+TRAMPLES_YOU                        tramples you.
+DROOLS_ON_YOU                       drools on you.
+INSULTS_YOU                         insults you!
+INSULTS_YOUR_MOTHER                 insults your mother!
+GIVES_YOU_THE_FINGER                gives you the finger!
+HUMILIATES_YOU                      humiliates you!
+WETS_ON_YOUR_LEG                    wets on your leg!
+DEFILES_YOU                         defiles you!
+DANCES_AROUND_YOU                   dances around you!
+MAKES_OBSCENE_GESTURES              makes obscene gestures!
+MOONS_YOU                           moons you!!!
+IS_REPELLED                         is repelled.
+IS_UNAFFECTED                       is unaffected.
+APPEARS_CONFUSED                    appears confused.
+MISSES_YOU                          misses you.
+YOU_HEAR_A_DOOR_BURST_OPEN          You hear a door burst open!
+YOU_HEAR_A_SCREAM_MUFFLED_BY_ROCK   You hear a scream muffled by rock!
+A_CREATURE_DIGS_ITSELF_OUT_FROM     A creature digs itself out from the rock!
+THE_RUNE_OF_PROTECTION_IS_BROKEN    The rune of protection is broken!
+MAGICALLY_SUMMONS_A_MONSTER         magically summons a monster!
+MAGICALLY_SUMMONS_AN_UNDEAD         magically summons an undead!
+DRAWS_PSYCHIC_ENERGY_FROM_YOU       draws psychic energy from you!
+APPEARS_HEALTHIER                   appears healthier.
+BREATHES_LIGHTNING                  breathes lightning.
+BREATHES_GAS                        breathes gas.
+BREATHES_ACID                       breathes acid.
+BREATHES_FROST                      breathes frost.
+BREATHES_FIRE                       breathes fire.
+CAST_UNKNOWN_SPELL                  cast unknown spell.
+CASTS_A_SPELL                       casts a spell.
+I_DO_NOT_SEE_ANYTHING_YOU_CAN       I do not see anything you can open there.
+IT_APPEARS_TO_BE_STUCK              It appears to be stuck.
+I_DO_NOT_SEE_ANYTHING_YOU_CAN_2     I do not see anything you can close there.
+THE_DOOR_APPEARS_TO_BE_BROKEN       The door appears to be broken.
+YOU_HAVE_FOUND_A_SECRET_DOOR        You have found a secret door.
+YOU_FEEL_SOMETHING_ROLL_BENEATH     You feel something roll beneath your feet.
+THE_ENCHANTMENT_FAILS               The enchantment fails.
+YOU_CANT_SEE_TO_READ_THE_SCROLL     You can't see to read the scroll.
+YOU_ARE_TOO_CONFUSED_TO_READ_A      You are too confused to read a scroll.
+YOU_ARE_NOT_CARRYING_ANYTHING_2     You are not carrying anything!
+YOU_ARE_NOT_CARRYING_ANY_SCROLLS    You are not carrying any scrolls!
+THIS_IS_AN_IDENTIFY_SCROLL          This is an identify scroll.
+YOU_FEEL_AS_IF_SOMEONE_IS           You feel as if someone is watching over you.
+YOUR_HANDS_BEGIN_TO_GLOW            Your hands begin to glow.
+THIS_IS_A_MASS_GENOCIDE_SCROLL      This is a mass genocide scroll.
+THERE_IS_A_HIGH_PITCHED_HUMMING     There is a high pitched humming noise.
+THIS_IS_A_RECHARGE_ITEM_SCROLL      This is a Recharge-Item scroll.
+THIS_IS_A_GENOCIDE_SCROLL           This is a genocide scroll.
+THE_AIR_ABOUT_YOU_BECOMES_CHARGED   The air about you becomes charged.
+INTERNAL_ERROR_IN_SCROLL            Internal error in scroll()
+YOU_HAVE_NOTHING_TO_RECHARGE        You have nothing to recharge.
+THERE_IS_A_BRIGHT_FLASH_OF_LIGHT    There is a bright flash of light.
+THERE_IS_A_SCREAM_OF_AGONY          There is a scream of agony!
+THERE_ARE_SEVERAL_SCREAMS_OF_AGONY  There are several screams of agony!
+THE_END_OF_THE_STAFF_BURSTS_INTO    The end of the staff bursts into a blue shimmering light.
+YOU_SENSE_THE_PRESENCE_OF_MONSTERS  You sense the presence of monsters!
+YOU_SENSE_THE_PRESENCE_OF_EVIL      You sense the presence of evil!
+THE_WALL_TURNS_INTO_MUD             The wall turns into mud.
+THERE_IS_A_BRIGHT_FLASH_OF_LIGHT_2  There is a bright flash of light!
+YOU_ARE_SURROUNDED_BY_A_WHITE       You are surrounded by a white light.
+DARKNESS_SURROUNDS_YOU              Darkness surrounds you.
+YOU_SENSE_THE_PRESENCE_OF           You sense the presence of invisible creatures!
+THERE_IS_ALREADY_AN_OBJECT_UNDER    There is already an object under you.
+THERE_IS_A_SEARING_BLAST_OF_LIGHT   There is a searing blast of light!
+YOU_HAVE_KILLED_SOMETHING           You have killed something!
+YOU_FEEL_LIKE_A_HERO                You feel like a HERO!
+THE_HEROISM_WEARS_OFF               The heroism wears off.
+YOU_FEEL_LIKE_A_SUPER_HERO          You feel like a SUPER HERO!
+THE_SUPER_HEROISM_WEARS_OFF         The super heroism wears off.
+YOU_FEEL_YOURSELF_MOVING_FASTER     You feel yourself moving faster.
+YOU_FEEL_YOURSELF_SLOW_DOWN         You feel yourself slow down.
+YOU_FEEL_YOURSELF_MOVING_SLOWER     You feel yourself moving slower.
+YOU_FEEL_YOURSELF_SPEED_UP          You feel yourself speed up.
+YOU_NO_LONGER_FEEL_SAFE_FROM_EVIL   You no longer feel safe from evil.
+YOUR_SKIN_TURNS_INTO_STEEL          Your skin turns into steel!
+YOUR_SKIN_RETURNS_TO_NORMAL         Your skin returns to normal.
+YOU_FEEL_RIGHTEOUS                  You feel righteous!
+THE_PRAYER_HAS_EXPIRED              The prayer has expired.
+YOU_NO_LONGER_FEEL_SAFE_FROM_FLAME  You no longer feel safe from flame.
+YOU_NO_LONGER_FEEL_SAFE_FROM_COLD   You no longer feel safe from cold.
+YOU_FEEL_YOURSELF_YANKED_UPWARDS    You feel yourself yanked upwards!
+YOU_FEEL_YOURSELF_YANKED_DOWNWARDS  You feel yourself yanked downwards!
+THE_VEIL_OF_DARKNESS_LIFTS          The veil of darkness lifts.
+YOU_FEEL_LESS_CONFUSED_NOW          You feel less confused now.
+YOU_FEEL_BOLDER_NOW                 You feel bolder now.
+YOU_ARE_GETTING_WEAK_FROM_HUNGER    You are getting weak from hunger.
+YOU_FAINT_FROM_THE_LACK_OF_FOOD     You faint from the lack of food.
+YOU_ARE_GETTING_HUNGRY              You are getting hungry.
+WARNING_THIS_ROUTINE_CAN_CAUSE_A    Warning: This routine can cause a fatal error.
+ALLOCATED                           Allocated.
+ABORTED                             Aborted.
+WIZARD_MODE_OFF                     Wizard mode off.
+WIZARD_MODE_IS_FOR_DEBUGGING_AND    Wizard mode is for debugging and experimenting.
+WIZARD_MODE_ON                      Wizard mode on.
+TYPE_FOR_HELP                       Type '?' for help.
+NOT_IN_THIS_VERSION_RANDOM          Not in this version: random objects sample to file.
+TYPE_OR_H_FOR_HELP                  Type '?' or ^H for help.
+THIS_SAVE_FILE_CANNOT_BE_USED_TO    This save file cannot be used to get on the score board.
+I_AM_CURRENTLY_OUT_OF_STOCK         I am currently out of stock.
+LIAR_YOU_HAVE_NOT_THE_GOLD          Liar!  You have not the gold!
+YOU_HAVE_NOTHING_TO_SELL_TO_THIS    You have nothing to sell to this store!
+I_HAVE_NOT_THE_ROOM_IN_MY_STORE     I have not the room in my store to keep it.
+HOW_DARE_YOU                        How dare you!
+I_WILL_NOT_BUY_THAT                 I will not buy that!
+THE_DOORS_ARE_LOCKED                The doors are locked.
+ENTIRE_INVENTORY_IS_SHOWN           Entire inventory is shown.
+USE_CONTROL_K_WHEN_YOU_ARE_READY_TO_QUIT Use <Control>-K when you are ready to quit.

@@ -1,0 +1,38 @@
+; the opening screen, create-data.ps1 turns this into the first screen of build\data\screens.bin
+; it is Umoria's own splash screen (src\splash.txt.in in the Umoria source) with ZXMoria's lines added
+; a line starting with ; is a comment, every other line is one row of the screen, starting from row 0
+; each row is a colour letter, a |, and the text...
+;   W bright white   w white   Y bright yellow   y yellow   C bright cyan   G bright green   R bright red   D dark grey
+; ...text starting with ^ is centred, anything else goes on the screen exactly where it is typed
+; ${umoria_version} is replaced by the version number in the Umoria source
+w|
+w|
+w|
+w|                    Robert A. Koeneke's classic roguelike
+w|
+W|                            D U N G E O N S   O F
+w|
+Y|             ##     ##    #######    ########    ####      ###
+Y|             ###   ###   ##     ##   ##     ##    ##      ## ##
+Y|             #### ####   ##     ##   ##     ##    ##     ##   ##
+Y|             ## ### ##   ##     ##   ########     ##    ##     ##
+Y|             ##     ##   ##     ##   ##   ##      ##    #########
+Y|             ##     ##   ##     ##   ##    ##     ##    ##     ##
+Y|             ##     ##    #######    ##     ##   ####   ##     ##
+w|
+C|^ZXMoria for the ZX Spectrum Next
+w|^a port of Umoria ${umoria_version}
+w|
+w|
+w|^Moria   Copyright (c) 1981-86 Robert A. Koeneke
+w|^Umoria  Copyright (c) 1987-94 James E. Wilson
+w|^Umoria 5.7 restoration project by Michael R. Cook
+w|
+w|
+w|^ZXMoria is free software released under GPL-3.0-or-later
+w|^and comes with ABSOLUTELY NO WARRANTY
+w|
+D|^The original: https://github.com/dungeons-of-moria/umoria
+w|
+w|
+G|^[ press any key for the credits, or Q to go straight on ]

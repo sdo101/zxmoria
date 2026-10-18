@@ -1,0 +1,26 @@
+# everything the build makes goes in here, all of it is recreated by build.ps1
+build/
+
+# the build log, and the dated copies of it in logs/
+*.log
+
+# the nex file, made beside build.ps1
+*.nex
+
+# the SD card images, 128MB each: the base holds the NextZXOS installation, the others are copies of it with the game on them
+*.mmc
+
+# a file the start up test saves to the SD card, if it has been copied back off the card
+zxmoriatest.bin
+
+# files ZEsarUX writes for itself
+*.idx
+
+# the lock file Excel makes while the spreadsheet is open
+~$*
+# what the game itself writes when it is run from this folder: the saved game, the scores, and character files
+zxmoria.sav
+zxmoria.sc
+scores.dat
+scores.txt
+player-*.txt
