@@ -3,11 +3,11 @@
 ZXMoria is a port of *Umoria* 5.7.15, *The Dungeons of Moria*, to the ZX Spectrum Next.
 It aims to play exactly as Umoria plays: the same dungeon, monsters, objects, spells and rules.
 
-> **This is a beta.** The game can be played from the town to the depths, saved and reloaded, but not everything is
-> finished, and **it has not yet been tested on a real ZX Spectrum Next**: so far it has only been run in the ZEsarUX
-> emulator. A test on real hardware is coming soon. `not-yet.md` lists what is not finished and what has not been
-> tested, and `umoria-oddities.md` lists the slips found in Umoria's own source while matching it, and what ZXMoria
-> does about each.
+> **This is version 1.0.** The whole game can be played, from the town to the depths, saved and reloaded, and it has
+> been compared turn for turn with the real Umoria (see "Fidelity and testing" below). **It has not yet been tested on
+> a real ZX Spectrum Next**: so far it has only been run in the ZEsarUX emulator. A test on real hardware is coming
+> soon. `not-yet.md` lists what has not been tested yet and the ideas for later, and `umoria-oddities.md` lists the
+> slips found in Umoria's own source while matching it, and what ZXMoria does about each.
 
 **Just want to try it?** Download `zxmoria.nex` from the
 [latest release](https://github.com/sdo101/zxmoria/releases/latest) and run it in ZEsarUX (as a Next, with Smart Load)
@@ -41,6 +41,37 @@ ZXMoria was made by sdo working with Claude, Anthropic's AI model, in Claude Cod
   the real Umoria, which play the same game with the same random numbers in both and compare what comes out.
 
 The history in more detail is at the top of `src\goals.bas`.
+
+## Fidelity and testing
+
+Every effort has gone into making ZXMoria a full and faithful port of Umoria 5.7.15: the same dungeons, monsters,
+objects, spells and rules, and the same game turn for turn.
+
+ZXMoria uses the same random number generator as Umoria and calls it at exactly the same moments, in the same order.
+So given the same seed, both games make the same character, the same town and the same dungeon levels. Play the same
+keys in each, and the same things happen: the same monsters move to the same squares, the same blows land for the same
+damage, and the same messages appear.
+
+This is checked by machine, not by eye. A test harness plays the same game in ZXMoria, running in the ZEsarUX
+emulator, and in the real Umoria 5.7.15 side by side. It then compares everything the two games hold: the character,
+the pack and equipment, every monster on the level, the dungeon map, the stores, the timed effects, the monster memory
+and the message history. The cases cover the town and the deep dungeon, resting, searching, running, fighting,
+slaying weapons and brands, spells and prayers, wands and staffs, throwing, traps, breeding monsters, experience drain,
+monster spells, hunger and starvation, buying and selling.
+
+Close to 40 hours of automated testing have been run so far:
+
+- **About 30 hours of comparisons with the real Umoria**, in 10 full runs. The last, on the build being released, ran
+  96 comparisons covering 1,805 sections of game state, and every one came out identical to Umoria's.
+- **About 9 hours of soak and overnight testing**: characters of every class playing thousands of random actions
+  across dungeon levels 2 to 49, saving, reloading and dying, with no crash, no hang and nothing stuck.
+
+Where Umoria itself has a slip, `umoria-oddities.md` records it, along with whether ZXMoria copies it or departs from
+it, and why.
+
+**Bug reports are welcome.** If you find anything that plays differently from Umoria 5.7.15, or anything that simply
+goes wrong, please open an issue at <https://github.com/sdo101/zxmoria/issues>. Say what you did, what you expected
+and what happened instead. A saved game (`zxmoria.sav`) helps a great deal.
 
 ## Copyright and licence
 
