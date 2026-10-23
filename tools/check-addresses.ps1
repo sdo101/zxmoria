@@ -14,6 +14,10 @@
 #   a block, a #define with a size, may hold the variables that make it up (A_PLAYER holds the player's), so a
 #   variable inside a block is not an overlap, but two blocks that partly overlap are, and so are two variables
 #   two that are meant to share bytes say so: one of them names the other on its own line
+#   a library's private storage, or a stage's use of a scratch area, kept in a shared file (globals.bas) goes under a
+#   heading that says whose it is, "' --- private to stage-lib-scores.bas", and is checked with that module, as if
+#   it were in its own file; the heading holds until the next "' ---" line (added 22 October 2026, so that every
+#   definition could live in constants.bas and globals.bas)
 #   the size of a #define is in its comment, 'size n, or the comment begins with n bytes
 #   a #define with no size is a name for an address and nothing more, unless it is in the core data page, where it is
 #   reported, it must be given a size: that is how A_CORE_MMU2_KINDS went unseen
@@ -48,16 +52,19 @@ $size = @{ byte = 1; ubyte = 1; integer = 2; uinteger = 2; long = 4; ulong = 4; 
 $items = @()
 foreach($f in $files){
     $n = 0
+    $owner = $null
     foreach($line in [IO.File]::ReadAllLines($f.FullName)){
         $n++
+        if($line -match "^\s*'\s*---\s*private to\s+(\S+\.bas)"){ $owner = $Matches[1]; continue }
+        if($line -match "^\s*'\s*---"){ $owner = $null; continue }
         if($line -match "^\s*Dim\s+(\w+)\s+As\s+(\w+)\s+At\s+([^']+?)\s*(?:'.*)?$"){
             $a = Evaluate $Matches[3]; $s = $size[$Matches[2].ToLower()]
-            if($null -ne $a -and $s){ $items += [pscustomobject]@{ Name = $Matches[1]; From = $a; To = $a + $s - 1; Block = $false; File = $f.Name; Line = $n; Expr = $Matches[3]; Text = $line } }
+            if($null -ne $a -and $s){ $items += [pscustomobject]@{ Name = $Matches[1]; From = $a; To = $a + $s - 1; Block = $false; File = $f.Name; Line = $n; Expr = $Matches[3]; Text = $line; Owner = $owner } }
         } elseif($line -match "^\s*#define\s+(A_\w+)\s+([^']+?)\s*(?:'(.*))?$"){
             $a = Value $Matches[1]; $comment = $Matches[3]
             if($null -eq $a){ continue }
-            if($comment -match '(?i)\bsize\s+(\d+)' -or $comment -match '^\s*(?:\.\.\.)?(\d+)\s+bytes\b'){ $items += [pscustomobject]@{ Name = $Matches[1]; From = $a; To = $a + [int]$Matches[1] - 1; Block = $true; File = $f.Name; Line = $n; Expr = ''; Text = $line } ; $items[-1].Name = ($line -replace '^\s*#define\s+(\w+).*$','$1') }
-            elseif($a -ge 0xC000 -and $a -le 0xDFFF -and $comment -notmatch '(?i)no size|a point') { $items += [pscustomobject]@{ Name = ($line -replace '^\s*#define\s+(\w+).*$','$1'); From = $a; To = $a - 1; Block = $true; File = $f.Name; Line = $n; Expr = 'NOSIZE'; Text = $line } }
+            if($comment -match '(?i)\bsize\s+(\d+)' -or $comment -match '^\s*(?:\.\.\.)?(\d+)\s+bytes\b'){ $items += [pscustomobject]@{ Name = $Matches[1]; From = $a; To = $a + [int]$Matches[1] - 1; Block = $true; File = $f.Name; Line = $n; Expr = ''; Text = $line; Owner = $owner } ; $items[-1].Name = ($line -replace '^\s*#define\s+(\w+).*$','$1') }
+            elseif($a -ge 0xC000 -and $a -le 0xDFFF -and $comment -notmatch '(?i)no size|a point') { $items += [pscustomobject]@{ Name = ($line -replace '^\s*#define\s+(\w+).*$','$1'); From = $a; To = $a - 1; Block = $true; File = $f.Name; Line = $n; Expr = 'NOSIZE'; Text = $line; Owner = $owner } }
         }
     }
 }
@@ -105,6 +112,6 @@ Check ($sized | Where-Object { -not (InScratch $_) -and -not (InPrivate $_) -and
 # each module on its own: its scratch area uses and its private storage
 foreach($m in $modules){
     $seen = New-Object Collections.Generic.HashSet[string]; Closure $m $seen
-    Check ($sized | Where-Object { $seen.Contains($_.File) -and $_.File -notin $shared -and ((InScratch $_) -or (InPrivate $_)) }) $m
+    Check ($sized | Where-Object { (($seen.Contains($_.File) -and $_.File -notin $shared) -or ($_.Owner -and $seen.Contains($_.Owner))) -and ((InScratch $_) -or (InPrivate $_)) }) $m
 }
 $faults | Select-Object -Unique

@@ -26,24 +26,7 @@ End Asm
 '   (making room when a level's item list is full is the compact library's, stage-lib-compact.bas, called by
 '   fub_gen_new_item(), Moria's popt(), in stage-level-include.bas)
 
-' --- the stage's own working storage ---
-' Moria keeps its working lists in arrays, we cannot have arrays in a stage (they would sit in front of the code),
-' so they live in the corridor scratchpad page, which this stage keeps in the first paged data slot (MMU 0) throughout...
-' ...each entry in a list is a row and a column, one byte each
-#define A_GEN_TUNNELS       A_MMU_SLOT_PAGED_CORRIDORS              ' 1000 entries, the squares of the tunnel being dug
-#define A_GEN_WALLS         A_MMU_SLOT_PAGED_CORRIDORS + 2000       ' 1000 entries, the room walls that tunnel has gone through
-#define A_GEN_DOORS         A_MMU_SLOT_PAGED_CORRIDORS + 4000       '  100 entries, where tunnels have met tunnels
-#define A_GEN_LOCATIONS     A_MMU_SLOT_PAGED_CORRIDORS + 4200       '  401 entries, the middle of each room
-#define A_GEN_ROOM_MAP      A_MMU_SLOT_PAGED_CORRIDORS + 5010       '  400 bytes, 20 by 20, which places on the grid get a room
-#define A_GEN_VARS          A_MMU_SLOT_PAGED_CORRIDORS + 5500
-
-Dim gub_gen_y               As UByte    At A_GEN_VARS           ' where the tunnel being dug has got to
-Dim gub_gen_x               As UByte    At A_GEN_VARS + 1
-Dim gub_gen_end_y           As UByte    At A_GEN_VARS + 2       ' where it is going
-Dim gub_gen_end_x           As UByte    At A_GEN_VARS + 3
-Dim gsb_gen_dir_y           As Byte     At A_GEN_VARS + 4       ' which way it is heading, -1, 0 or 1 each
-Dim gsb_gen_dir_x           As Byte     At A_GEN_VARS + 5
-Dim guw_gen_door_count      As UInteger At A_GEN_VARS + 6       ' how many entries are in the doors list
+' --- its working storage is in globals.bas, under "private to stage-create-dungeon.bas", moved there on 22 October 2026 ---
 
 
 '##################################################################################################################################

@@ -42,10 +42,10 @@ End Asm
 
 Function fuw_w3_table( pub_which As UByte ) As UInteger
     ' the two tables, see below
-    If pub_which = 1 Then Return @w3_pack
+    If pub_which = UB_W3_TABLE_PACK Then Return @w3_pack
     Return @w3_worn
 w3_worn:
-    ' what is worn, 12 bytes each: the equipment place (a UB_EQUIP_ value, 255 ends the table), the object, the
+    ' what is worn, 13 bytes each: the equipment place (a UB_EQUIP_ value, 255 ends the table), the object, the
     ' special name, + to hit, + to damage, + to armour, P1 (2 bytes), and the flags (4 bytes)
     Asm
         defb 0                      ; UB_EQUIP_WIELD: a two-handed sword (Zweihander), a Holy Avenger
@@ -171,14 +171,14 @@ Sub s_w3_super()
 
     ' --- the character ---
     For i = UB_STAT_STR To UB_STAT_CHR
-        Poke A_PLAYER_STATS_MAX + i , 118
+        Poke A_PLAYER_STATS_MAX + i , UB_W3_STAT
         gub_lib_param_1 = i
         s_core_call_library( UB_PAGED_CODE_LIB_EFFECTS , UB_LIB_EFFECTS_STAT_RESTORE )
     Next
     ' experience, and so the levels, one at a time, as far as level 39, the last but one, and then half way from
     ' there to level 40, so that the last level is still there to be gained
     lub_tries = 0
-    While guw_player_level < 39 And lub_tries < 60
+    While guw_player_level < UB_W3_LEVEL And lub_tries < UB_W3_LEVEL_TRIES
         ' just enough for the next level, Moria's player_base_exp_levels[] and the character's own factor
         gsl_player_exp = Peek( Long , A_EXP_LEVELS + ( guw_player_level - 1 ) * 4 ) * Cast( Long , gub_player_exp_factor ) / 100 + 1
         s_core_call_library( UB_PAGED_CODE_LIB_EFFECTS , UB_LIB_EFFECTS_DISPLAY_EXP )
@@ -188,19 +188,19 @@ Sub s_w3_super()
     End While
     ' N.B: level 40 is reached at the 39th entry of the table, level 39 at the 38th, each times the character's
     ' own factor, which goes by race and class
-    gsl_player_exp           = ( Peek( Long , A_EXP_LEVELS + 37 * 4 ) + Peek( Long , A_EXP_LEVELS + 38 * 4 ) ) / 2 * Cast( Long , gub_player_exp_factor ) / 100
+    gsl_player_exp           = ( Peek( Long , A_EXP_LEVELS + ( UB_W3_LEVEL - 2 ) * 4 ) + Peek( Long , A_EXP_LEVELS + ( UB_W3_LEVEL - 1 ) * 4 ) ) / 2 * Cast( Long , gub_player_exp_factor ) / 100
     gsl_player_max_exp       = gsl_player_exp
-    gsw_player_max_hp        = 30000
-    gsw_player_current_hp    = 30000
+    gsw_player_max_hp        = UW_W3_POINTS
+    gsw_player_current_hp    = UW_W3_POINTS
     guw_player_hp_fraction   = 0
-    gsw_player_mana          = 30000
-    gsw_player_current_mana  = 30000
+    gsw_player_mana          = UW_W3_POINTS
+    gsw_player_current_mana  = UW_W3_POINTS
     guw_player_mana_fraction = 0
-    gsl_player_gold          = 500000
+    gsl_player_gold          = UL_W3_GOLD
 
     ' --- what is worn ---
-    luw_at = fuw_w3_table( 0 )
-    While Peek( luw_at ) <> 255
+    luw_at = fuw_w3_table( UB_W3_TABLE_WORN )
+    While Peek( luw_at ) <> UB_W3_WORN_END
         lub_place  = UB_PACK_SIZE + Peek( luw_at )
         luw_record = A_INVENTORY + Cast( UInteger , lub_place ) * UB_RECORD_SIZE
         If Peek( luw_record + UB_ITEM_CATEGORY_OFFSET ) <> 0 Then
@@ -209,38 +209,38 @@ Sub s_w3_super()
         Else
             gsw_player_equipment_count = gsw_player_equipment_count + 1
         End If
-        s_w3_make( Peek( UInteger , luw_at + 1 ) )
-        gub_item_special_name = Peek( luw_at + 3 )
-        gsw_item_to_hit       = Peek( luw_at + 4 )
-        gsw_item_to_damage    = Peek( luw_at + 5 )
-        gsw_item_to_ac        = Peek( luw_at + 6 )
-        If Peek( UInteger , luw_at + 7 ) <> 0 Then gsw_item_misc_use = Peek( Integer , luw_at + 7 )
-        gul_item_flags        = gul_item_flags bOr Peek( ULong , luw_at + 9 )
+        s_w3_make( Peek( UInteger , luw_at + UB_W3_WORN_OBJECT ) )
+        gub_item_special_name = Peek( luw_at + UB_W3_WORN_NAME )
+        gsw_item_to_hit       = Peek( luw_at + UB_W3_WORN_TO_HIT )
+        gsw_item_to_damage    = Peek( luw_at + UB_W3_WORN_TO_DAM )
+        gsw_item_to_ac        = Peek( luw_at + UB_W3_WORN_TO_AC )
+        If Peek( UInteger , luw_at + UB_W3_WORN_P1 ) <> 0 Then gsw_item_misc_use = Peek( Integer , luw_at + UB_W3_WORN_P1 )
+        gul_item_flags        = gul_item_flags bOr Peek( ULong , luw_at + UB_W3_WORN_FLAGS )
         If Peek( luw_at ) = UB_EQUIP_WIELD Then
-            gub_item_damage_dice  = 9
-            gub_item_damage_sides = 9
+            gub_item_damage_dice  = UB_W3_WEAPON_DICE
+            gub_item_damage_sides = UB_W3_WEAPON_DICE
         End If
         gub_item_identification = gub_item_identification bOr MB_ID_KNOWN2 bOr MB_ID_STORE_BOUGHT bOr MB_ID_SHOW_HIT_DAM
         s_core_ram_copy( A_ITEM , luw_record , UB_RECORD_SIZE )
         gsw_player_pack_weight = gsw_player_pack_weight + Cast( Integer , guw_item_weight )
-        luw_at = luw_at + 13
+        luw_at = luw_at + UB_W3_WORN_SIZE
     End While
     gub_player_weapon_heavy = false
     s_core_call_library( UB_PAGED_CODE_LIB_EQUIPMENT , UB_LIB_EQUIP_RECALC )
 
     ' --- the pack ---
-    luw_at = fuw_w3_table( 1 )
+    luw_at = fuw_w3_table( UB_W3_TABLE_PACK )
     i = 0
     While Peek( UInteger , luw_at ) <> 0
         luw_object = Peek( UInteger , luw_at )
         ' the first four are books, a priest or a paladin gets the prayer books instead of the mage's
-        If i < 4 And gub_class_spell_type = 2 Then luw_object = luw_object + 4
+        If i < UB_W3_BOOKS And gub_class_spell_type = UB_SPELL_TYPE_PRIEST Then luw_object = luw_object + UB_W3_BOOKS
         s_w3_make( luw_object )
-        gub_item_count = Peek( luw_at + 2 )
-        If Peek( UInteger , luw_at + 3 ) <> 0 Then gsw_item_misc_use = Peek( Integer , luw_at + 3 )
+        gub_item_count = Peek( luw_at + UB_W3_PACK_COUNT )
+        If Peek( UInteger , luw_at + UB_W3_PACK_P1 ) <> 0 Then gsw_item_misc_use = Peek( Integer , luw_at + UB_W3_PACK_P1 )
         s_core_call_library( UB_PAGED_CODE_LIB_INVENTORY , UB_LIB_INV_CAN_CARRY )
         If gsw_lib_result Then s_core_call_library( UB_PAGED_CODE_LIB_INVENTORY , UB_LIB_INV_CARRY )
-        luw_at = luw_at + 5
+        luw_at = luw_at + UB_W3_PACK_SIZE
         i = i + 1
     End While
     s_core_call_library( UB_PAGED_CODE_LIB_INVENTORY , UB_LIB_INV_STRENGTH )
@@ -248,17 +248,17 @@ Sub s_w3_super()
     s_core_call_library( UB_PAGED_CODE_LIB_MAGIC , UB_LIB_MAGIC_CALC )
     ' ...and every spell or prayer the character's level allows is learnt, in the order they come in the books, so
     ' that nothing has to be studied: the table has four bytes for each spell, the first is the level it comes at
-    If gub_class_spell_type <> 0 Then
+    If gub_class_spell_type <> UB_SPELL_TYPE_NONE Then
         lul_mask = 1
         For i = 0 To 30
             s_core_swap_paged_data( UB_SLOT_DB_MAPS , UB_PAGE_OBJECT_LEVELS )
-            If Peek( A_TABLE_SPELLS + Cast( UInteger , gub_player_class - 1 ) * 124 + Cast( UInteger , i ) * 4 ) <= guw_player_level Then
+            If Peek( A_TABLE_SPELLS + Cast( UInteger , gub_player_class - 1 ) * UB_CLASS_SPELLS_SIZE + Cast( UInteger , i ) * UB_SPELL_SIZE ) <= guw_player_level Then
                 If ( gul_player_spells_learnt bAnd lul_mask ) = 0 Then
                     gul_player_spells_learnt    = gul_player_spells_learnt bOr lul_mask
                     gul_player_spells_forgotten = gul_player_spells_forgotten bAnd ( $FFFFFFFF - lul_mask )
-                    ' the first free place in the order they were learnt in, 99 marks one
+                    ' the first free place in the order they were learnt in, UB_SPELL_ORDER_END marks one
                     lub_place = 0
-                    While lub_place < 31 And Peek( A_PLAYER_SPELL_ORDER + lub_place ) <> 99
+                    While lub_place < UB_W3_SPELL_PLACES And Peek( A_PLAYER_SPELL_ORDER + lub_place ) <> UB_SPELL_ORDER_END
                         lub_place = lub_place + 1
                     End While
                     Poke A_PLAYER_SPELL_ORDER + lub_place , i
@@ -268,10 +268,10 @@ Sub s_w3_super()
         Next
         s_core_call_library( UB_PAGED_CODE_LIB_MAGIC , UB_LIB_MAGIC_CALC )
     End If
-    gsw_player_mana         = 30000
-    gsw_player_current_mana = 30000
-    gsw_player_max_hp       = 30000
-    gsw_player_current_hp   = 30000
+    gsw_player_mana         = UW_W3_POINTS
+    gsw_player_current_mana = UW_W3_POINTS
+    gsw_player_max_hp       = UW_W3_POINTS
+    gsw_player_current_hp   = UW_W3_POINTS
     s_core_call_library( UB_PAGED_CODE_LIB_CHARACTER , UB_LIB_CHAR_PRINT_BLOCK )
     ' the words along the bottom, "Study" has gone
     gul_player_status = gul_player_status bOr UL_PY_STUDY
@@ -358,5 +358,5 @@ Sub s_lib_wizard_3()
     lub_saved_page_2 = gub_core_MMU2_page_number
     If gub_lib_function = UB_LIB_WIZARD_3_SUPER Then s_w3_super()
     If gub_lib_function = UB_LIB_WIZARD_3_SAMPLE Then s_w3_sample()
-    If lub_saved_page_2 <> 255 Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved_page_2 )
+    If lub_saved_page_2 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved_page_2 )
 End Sub

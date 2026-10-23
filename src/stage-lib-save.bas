@@ -62,15 +62,6 @@ End Asm
 ' an hour, before it goes back to NextZXOS
 
 
-#define UB_SAVE_VERSION     2       ' N.B: 2 since the table of creature levels came to live in the core data page, which a save holds: a save from before has no such table in it
-
-' where the marks of a saved game are in the core's data, counted from its start, see gub_save_letter_1 in globals.bas
-#define UW_SV_AT_MARKS      6995
-' how many of the file's pages are written when a character dies: up to and including the stores' stock, pages 40
-' and 41, the 9th and 10th, see sv_pages below
-#define UB_SV_DEAD_PAGES    10
-
-
 Function fub_sv_page( pub_index As UByte ) As UByte
     ' the pages of a saved game, in the order they are written, 0 after the last
     Return Peek( @sv_pages + pub_index )
@@ -95,7 +86,7 @@ Function fub_sv_transfer( pub_slot As UByte , pub_page As UByte , pub_write As U
     Else
         lub_result = fub_core_file_load_page( "zxmoria.sav" , pub_page )
     End If
-    gub_core_file_slot = 255
+    gub_core_file_slot = UB_FILE_SLOT_WHOLE
     Return lub_result
 End Function
 
@@ -103,15 +94,15 @@ End Function
 Sub s_sv_close()
     ' the saved game's file is finished with: the core keeps a file of many pages open from its first page until it
     ' is told this, see fub_core_file_transfer(), N.B: after a page that would not write as well
-    gub_core_file_slot = 254
+    gub_core_file_slot = UB_FILE_SLOT_DONE
     gub_shared_1 = fub_core_file_save_page( "zxmoria.sav" , UB_PAGE_TEST_FILE )
-    gub_core_file_slot = 255
+    gub_core_file_slot = UB_FILE_SLOT_WHOLE
 End Sub
 
 
 Sub s_sv_progress( pub_index As UByte )
     ' a dot for each page, the SD card takes a few seconds over this
-    s_core_print_char_at( 0 , 16 + pub_index , Code( "." ) , UB_WHITE )
+    s_core_print_char_at( 0 , UB_SV_DOTS_COL + pub_index , Code( "." ) , UB_WHITE )
 End Sub
 
 
@@ -121,7 +112,7 @@ Function fub_sv_ours() As UByte
     Dim luw_marks As UInteger
 
     luw_marks = A_MMU_SLOT_PAGED_DB_MAPS + UW_SV_AT_MARKS
-    If Peek( luw_marks ) <> Code( "Z" ) Or Peek( luw_marks + 1 ) <> Code( "M" ) Or Peek( luw_marks + 2 ) <> UB_SAVE_VERSION Then Return false
+    If Peek( luw_marks ) <> Code( "Z" ) Or Peek( luw_marks + UB_SV_MARK_LETTER_2 ) <> Code( "M" ) Or Peek( luw_marks + UB_SV_MARK_VERSION ) <> UB_SAVE_VERSION Then Return false
     Return true
 End Function
 
@@ -222,7 +213,7 @@ End Function
 Function fub_sv_bad( pub_version As UByte ) As UByte
     ' Moria's "goto error" in loadGame(): it says so, and the game ends, N.B: so the file is not written over by a
     ' new character's game, the player may yet put it right, 3 is what UB_LIB_SAVE_RESTORE answers, pub_version is
-    ' true when the save is ours but of another version: as the author put it on 16 October 2026, the version must match or
+    ' true when the save is ours but of another version: as sdo put it on 16 October 2026, the version must match or
     ' it is "a no go no show", we do not convert one save into another
     s_core_clear_screen()
     s_core_print_string_at( 0 , 0 , "Error during reading of file." , UB_WHITE )
@@ -231,13 +222,13 @@ Function fub_sv_bad( pub_version As UByte ) As UByte
     If pub_version Then s_core_print_string_at( 2 , 0 , "Sorry. This save file is from a different version of ZXMoria." , UB_WHITE )
     s_core_print_string_at( 23 , 23 , "[ press any key to continue ]" , UB_BRIGHT_WHITE )
     s_core_get_key()
-    Return 3
+    Return UB_RESTORE_BAD_FILE
 End Function
 
 Sub s_sv_core_data()
     ' the game's part of the core's data, from the spare page it was loaded into, and nothing left half done
     s_core_swap_paged_data( UB_SLOT_DB_MAPS , UB_PAGE_TEST_FILE )
-    s_core_ram_copy( A_MMU_SLOT_PAGED_DB_MAPS + 512 , A_MMU_SLOT_CORE_DATA + 512 , 6488 )
+    s_core_ram_copy( A_MMU_SLOT_PAGED_DB_MAPS + UW_SV_GAME_FROM , A_MMU_SLOT_CORE_DATA + UW_SV_GAME_FROM , UW_SV_GAME_SIZE )
     gub_save_used = true
     ' wizard mode is never brought back switched on, as in Moria, that it was ever used is (gub_game_noscore)
     gub_game_wizard = false
@@ -259,7 +250,7 @@ Function fub_sv_confirm( ps_prompt As String ) As UByte
     s_core_print_string_at( 0 , 0 , ps_prompt + " [y/n]" , UB_WHITE )
     Do
         s_core_get_key()
-    Loop While gub_key_char = 32
+    Loop While gub_key_char = UC_SPACE
     If gub_key_char = Code( "y" ) Or gub_key_char = Code( "Y" ) Then Return true
     Return false
 End Function
@@ -280,8 +271,8 @@ Function fub_sv_resurrect() As UByte
     ' the stores' stock, N.B: a character who died before 16 October 2026 left a save of two pages, without it, and
     ' their stores are emptied, the owners keep them and stock comes in with the turns, NOT Moria's, ours
     lub_stock = true
-    For i = 0 To 1
-        If fub_sv_transfer( UB_SV_DEAD_PAGES - 2 + i , UB_PAGE_STORE_ITEMS + i , false ) <> 0 Then lub_stock = false
+    For i = 0 To UB_SV_STOCK_PAGES - 1
+        If fub_sv_transfer( UB_SV_DEAD_PAGES - UB_SV_STOCK_PAGES + i , UB_PAGE_STORE_ITEMS + i , false ) <> 0 Then lub_stock = false
     Next
     s_sv_core_data()
     If lub_stock = false Then
@@ -322,7 +313,7 @@ Function fub_sv_resurrect() As UByte
     ' ...and nothing half done, again: the disturbance asked for things to be done on the next turn
     gub_game_disturb    = 0
     gub_game_turn_flags = 0
-    Return 2
+    Return UB_RESTORE_RESURRECTED
 End Function
 
 
@@ -335,18 +326,18 @@ Function fub_sv_restore() As UByte
 
     ' the core's data first, into a spare page, to see whether there is a save at all, and whose it is
     lub_error = fub_sv_transfer( 0 , UB_PAGE_TEST_FILE , false )
-    ' no save on the card: a new character, as in Moria, N.B: 5 is esxDOS's esx_enoent, "No such file or dir"
-    If lub_error = 5 Then Return false
+    ' no save on the card: a new character, as in Moria
+    If lub_error = UB_ESX_ENOENT Then Return false
     ' ...a file there that will not read, or is not ours, or not of this version, will not do
     If lub_error <> 0 Then Return fub_sv_bad( false )
     s_core_swap_paged_data( UB_SLOT_DB_MAPS , UB_PAGE_TEST_FILE )
-    If Peek( A_MMU_SLOT_PAGED_DB_MAPS + UW_SV_AT_MARKS ) <> Code( "Z" ) Or Peek( A_MMU_SLOT_PAGED_DB_MAPS + UW_SV_AT_MARKS + 1 ) <> Code( "M" ) Then Return fub_sv_bad( false )
+    If Peek( A_MMU_SLOT_PAGED_DB_MAPS + UW_SV_AT_MARKS ) <> Code( "Z" ) Or Peek( A_MMU_SLOT_PAGED_DB_MAPS + UW_SV_AT_MARKS + UB_SV_MARK_LETTER_2 ) <> Code( "M" ) Then Return fub_sv_bad( false )
     If fub_sv_ours() = false Then Return fub_sv_bad( true )
     ' ...and it is checked as Moria checks one, a dead character's too
     If fub_sv_sane() = false Then Return fub_sv_bad( false )
     ' a dead character stays dead, as in Moria, which then starts a new character with the monster memory alone...
     ' ...unless the game was started as a wizard, then they may be brought back, Moria's loadGame() with -w
-    If Peek( A_MMU_SLOT_PAGED_DB_MAPS + UW_SV_AT_MARKS + 3 ) = 0 Then
+    If Peek( A_MMU_SLOT_PAGED_DB_MAPS + UW_SV_AT_MARKS + UB_SV_MARK_ALIVE ) = 0 Then
         If gub_core_to_be_wizard = false Then Return false
         ' ...but not one who has won and retired, Moria: "It causes problems because the character level is out of
         ' the allowed range"
@@ -367,7 +358,7 @@ Function fub_sv_restore() As UByte
     ' whose death is in the high scores, and who is alive again and can never be scored anyway
     gsw_lib_result = false
     If ( Peek( A_MMU_SLOT_PAGED_DB_MAPS + ( @gub_game_noscore - A_MMU_SLOT_CORE_DATA ) ) bAnd 1 ) = 0 Then
-        gsl_lib_long_1 = Peek( ULong , A_MMU_SLOT_PAGED_DB_MAPS + ( A_PLAYER - A_MMU_SLOT_CORE_DATA ) + 28 )
+        gsl_lib_long_1 = Peek( ULong , A_MMU_SLOT_PAGED_DB_MAPS + ( @gsl_player_birth - A_MMU_SLOT_CORE_DATA ) )
         s_core_call_library( UB_PAGED_CODE_LIB_SCORES , UB_LIB_SCORES_DEAD )
     End If
     If gsw_lib_result Then
@@ -396,7 +387,6 @@ Function fub_sv_restore() As UByte
     s_sv_died_from( "(alive and well)" )
     Return true
 End Function
-
 
 
 '##################################################################################################################################
@@ -436,7 +426,7 @@ Sub s_sv_memory()
     If fub_sv_transfer( 1 , UB_PAGE_TEST_FILE , false ) <> 0 Then Return
     s_core_swap_paged_data( UB_SLOT_DB_MAPS , UB_PAGE_TEST_FILE )
     s_core_swap_paged_data( UB_SLOT_ITEMS , UB_PAGE_KNOWLEDGE )
-    s_core_ram_copy( A_MMU_SLOT_PAGED_DB_MAPS , A_MMU_SLOT_1 , 5580 )
+    s_core_ram_copy( A_MMU_SLOT_PAGED_DB_MAPS , A_MMU_SLOT_1 , UW_MONSTER_MEMORY_SIZE )
 End Sub
 
 
@@ -456,7 +446,7 @@ Sub s_lib_save()
     ElseIf gub_lib_function = UB_LIB_SAVE_MEMORY Then
         s_sv_memory()
     End If
-    If lub_saved_page_1 <> 255 Then s_core_swap_paged_data( UB_SLOT_ITEMS , lub_saved_page_1 )
-    If lub_saved_page_2 <> 255 Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved_page_2 )
+    If lub_saved_page_1 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_ITEMS , lub_saved_page_1 )
+    If lub_saved_page_2 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved_page_2 )
     gsw_lib_result = lub_answer
 End Sub

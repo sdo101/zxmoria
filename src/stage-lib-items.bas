@@ -35,13 +35,7 @@ End Asm
 ' whatever page the caller had in that slot is put back before returning
 
 
-' --- working storage, private to this page, see A_LIB_PRIVATE in constants.bas ---
-#define A_D_VAL             A_LIB_PRIVATE               ' 176 bytes, the description as it is built up
-#define A_D_TAIL            A_LIB_PRIVATE + 176         ' 176 bytes, the rest of the text, while something is inserted in front of it
-#define A_D_DAM             A_LIB_PRIVATE + 352         '  24 bytes, the damage part, e.g. " (2d5)"
-Dim guw_d_base              As UInteger At A_LIB_PRIVATE + 376      ' the text being added to...
-Dim gub_d_len               As UByte    At A_LIB_PRIVATE + 378      ' ...and how long it is so far
-Dim gub_d_saved_page        As UByte    At A_LIB_PRIVATE + 379      ' the page the caller had in the third data slot
+' --- its working storage is in globals.bas, under "private to stage-lib-items.bas", moved there on 22 October 2026 ---
 
 
 '##################################################################################################################################
@@ -195,13 +189,6 @@ End Function
 '##################################################################################################################################
 ' --- describing an item ---
 
-' what the misc use number of an item means, and so how it is shown...
-#define UB_MISC_IGNORED     0
-#define UB_MISC_LIGHT       1       ' turns of light left
-#define UB_MISC_FLAGS       2       ' to strength or to stealth, the item's flags say which
-#define UB_MISC_ZPLUSSES    3       ' a plus that is shown even when it is 0
-#define UB_MISC_PLUSSES     4       ' a plus
-#define UB_MISC_CHARGES     5       ' charges left
 Sub s_d_flavour( puw_order As UInteger , puw_names As UInteger , pub_index As UByte )
     ' adds the name this game has given to one of the unknown kinds, e.g. the colour of potion number pub_index...
     ' ...puw_order is this game's shuffled order for that family, in the knowledge page, puw_names is the list of
@@ -606,7 +593,7 @@ Sub s_items_from_object( puw_object As UInteger )
     For i = 0 To 31
         Poke A_ITEM + i , 0             ' no special name, nothing known about it, no inscription
     Next
-    s_core_ram_copy( A_OBJECT + 32 , A_ITEM + 32 , 32 )
+    s_core_ram_copy( A_OBJECT + UB_ITEM_OBJECT_FIELDS , A_ITEM + UB_ITEM_OBJECT_FIELDS , UB_RECORD_SIZE - UB_ITEM_OBJECT_FIELDS )
     guw_item_object = puw_object
 End Sub
 
@@ -808,5 +795,5 @@ Sub s_lib_items()
     End If
 
     ' the caller gets back the page it had in the third data slot, 255 means it had none of ours there yet
-    If gub_d_saved_page <> 255 Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , gub_d_saved_page )
+    If gub_d_saved_page <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , gub_d_saved_page )
 End Sub

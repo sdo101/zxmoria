@@ -38,15 +38,7 @@ End Asm
 ' N.B: the working item is used freely in here, a caller that needs it afterwards must keep its own copy
 
 
-' --- working storage, private to this page, see A_LIB_PRIVATE in constants.bas ---
-Dim gub_st_saved_page       As UByte    At A_LIB_PRIVATE            ' the page the caller had in the second data slot
-Dim gsl_st_price            As Long     At A_LIB_PRIVATE + 1        ' the three answers of the sell price routine...
-Dim gsl_st_min_price        As Long     At A_LIB_PRIVATE + 5
-Dim gsl_st_max_price        As Long     At A_LIB_PRIVATE + 9
-
-#define UB_ITEM_SINGLE_STACK_MIN    64      ' items with a sub category from here up can be stacked...
-#define UB_ITEM_SINGLE_STACK_MAX    192     ' ...up to here they stack singly...
-#define UB_ITEM_GROUP_MIN           192     ' ...and above this they are a batch, like arrows, that only stacks with itself
+' --- its working storage is in globals.bas, under "private to stage-lib-stores.bas", moved there on 22 October 2026 ---
 
 
 '##################################################################################################################################
@@ -500,5 +492,5 @@ Sub s_lib_stores()
     End If
 
     ' the caller gets back the page it had in the second data slot, 255 means it had none of ours there yet
-    If gub_st_saved_page <> 255 Then s_core_swap_paged_data( UB_SLOT_ITEMS , gub_st_saved_page )
+    If gub_st_saved_page <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_ITEMS , gub_st_saved_page )
 End Sub

@@ -1,8 +1,3 @@
-' what the fight library and the throw library share: asking for a direction, and stepping along it, stage-lib-fight.bas
-' and stage-lib-throw.bas include this file, each has its own copy of these routines
-' N.B: the page's own storage at A_LIB_PRIVATE + 64 and + 65 is used here
-Dim gub_ft_y                As UByte    At A_LIB_PRIVATE + 64       ' the square a direction leads to, or the thing in flight has reached
-Dim gub_ft_x                As UByte    At A_LIB_PRIVATE + 65
 
 
 Function fub_ft_call( pub_page As UByte , pub_function As UByte , pub_param As UByte , puw_param As UInteger ) As UByte
@@ -23,7 +18,7 @@ Function fub_ft_direction() As UByte
     ' a command that is being repeated uses the direction it had the first time, without asking, and asking
     ' does not end a count that has just been given, Moria's use_last_direction
     luw_count = guw_game_command_count
-    If gub_game_repeat_key >= 128 Then
+    If gub_game_repeat_key >= MB_REPEAT_DONE Then
         lub_direction = gub_player_prev_dir
     Else
         s_core_message( UW_MSG_WHICH_DIRECTION )
@@ -35,7 +30,11 @@ Function fub_ft_direction() As UByte
             If guw_key_code = UW_KEY_DOWN Then lub_direction = 2
             If guw_key_code = UW_KEY_LEFT Then lub_direction = 4
             If guw_key_code = UW_KEY_RIGHT Then lub_direction = 6
-        Loop Until lub_direction <> 0 Or gub_key_char = 27 Or guw_key_code = 0
+        Loop Until lub_direction <> 0 Or gub_key_char = UC_ESCAPE Or guw_key_code = 0
+        ' the question is not a message, Moria asks it with getCommand() and keeps nothing of it for Ctrl-P
+        Asm
+            call A_JUMP_HISTORY_FORGET
+        End Asm
         s_msg_clear()
     End If
     guw_game_command_count = luw_count

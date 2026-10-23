@@ -74,10 +74,9 @@ Sub s_core_get_key()
 End Sub
 
 
-Sub s_core_countdown( pub_x As UByte , pub_y As UByte , pub_stay_key As UByte , pub_flip_key As UByte )
+Sub s_core_beep()
     Asm
-        pop ix
-        jp A_JUMP_COUNTDOWN
+        jp A_JUMP_BEEP
     End Asm
 End Sub
 

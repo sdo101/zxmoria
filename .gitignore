@@ -11,7 +11,7 @@ build/
 *.mmc
 
 # a file the start up test saves to the SD card, if it has been copied back off the card
-zxmoriatest.bin
+*test.bin
 
 # files ZEsarUX writes for itself
 *.idx
@@ -24,3 +24,6 @@ zxmoria.sc
 scores.dat
 scores.txt
 player-*.txt
+
+# what Python leaves behind when it runs a script
+__pycache__/

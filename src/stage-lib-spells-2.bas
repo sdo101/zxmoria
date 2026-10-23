@@ -156,7 +156,7 @@ Function fub_s2_genocide( pub_mass As UByte ) As UByte
         s_core_print_string_at( 0 , 0 , "Which type of creature do you wish exterminated?" , UB_BRIGHT_WHITE )
         s_core_get_key()
         s_msg_clear()
-        If gub_key_char = 27 Or guw_key_code = 0 Then Return false
+        If gub_key_char = UC_ESCAPE Or guw_key_code = 0 Then Return false
         lub_symbol = gub_key_char
     End If
 
@@ -309,9 +309,9 @@ Function fub_s2_identify() As UByte
     If lsw_place >= UB_PACK_SIZE Then
         ' something that is being worn: what it does for the player may have changed, and it is spoken of by
         ' where it is worn, Moria's playerItemWearingDescription()
-        s_core_ram_copy( A_TEXT_BUFFER , A_LIB_PRIVATE + 256 , 160 )
+        s_core_ram_copy( A_TEXT_BUFFER , A_S2_TEXT , UB_TEXT_STRING_MAX )
         s_core_call_library( UB_PAGED_CODE_LIB_EQUIPMENT , UB_LIB_EQUIP_RECALC )
-        s_msg( fs_s2_wearing( lsw_place - UB_PACK_SIZE ) + ": " + fs_core_text_at( A_LIB_PRIVATE + 256 ) )
+        s_msg( fs_s2_wearing( lsw_place - UB_PACK_SIZE ) + ": " + fs_core_text_at( A_S2_TEXT ) )
     Else
         s_msg( fs_core_char( 97 + lsw_place ) + " " + fs_core_text_at( A_TEXT_BUFFER ) )
     End If
@@ -406,8 +406,8 @@ Sub s_lib_spells_2()
     ElseIf gub_lib_function = UB_LIB_SPELLS_2_REMOVE_CURSE Then
         lub_noticed = fub_s2_remove_curse()
     End If
-    If lub_saved_page_0 <> 255 Then s_core_swap_paged_data( UB_SLOT_MONSTERS , lub_saved_page_0 )
-    If lub_saved_page_1 <> 255 Then s_core_swap_paged_data( UB_SLOT_ITEMS , lub_saved_page_1 )
-    If lub_saved_page_2 <> 255 Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved_page_2 )
+    If lub_saved_page_0 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_MONSTERS , lub_saved_page_0 )
+    If lub_saved_page_1 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_ITEMS , lub_saved_page_1 )
+    If lub_saved_page_2 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved_page_2 )
     gsw_lib_result = lub_noticed
 End Sub

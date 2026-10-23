@@ -45,16 +45,6 @@ End Asm
 ' N.B: the order things are done in matters, each random number must be asked for exactly when Moria asks for it
 
 
-#define UB_SET_ROOMS        1       ' only on the floor of a room, Moria's setRooms()
-#define UB_SET_CORRIDORS    2       ' only in a corridor, Moria's setCorridors()
-#define UB_SET_FLOORS       3       ' on any floor, room or corridor, Moria's setFloors()
-
-#define UB_ALLOC_TRAP       1       ' Moria's own numbers for what to put down...
-#define UB_ALLOC_RUBBLE     3
-#define UB_ALLOC_GOLD       4
-#define UB_ALLOC_OBJECT     5
-
-
 Function fuw_ob_levels( puw_level As UInteger ) As UInteger
     ' how many of the sorted objects are found at this depth or above, Moria's treasure_levels[]
     s_core_swap_paged_data( UB_SLOT_DB_MAPS , UB_PAGE_OBJECT_LEVELS )
@@ -203,7 +193,53 @@ Sub s_ob_level()
     s_ob_allocate( UB_SET_FLOORS , UB_ALLOC_GOLD   , fsw_core_random_normal( UB_DUN_TOTAL_GOLD , 3 ) )
     s_ob_allocate( UB_SET_FLOORS , UB_ALLOC_TRAP , fuw_gen_random( luw_alloc_level ) )
 
-    If lub_saved_page <> 255 Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved_page )
+    If lub_saved_page <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved_page )
+End Sub
+
+
+Sub s_ob_flavour_colours()
+    ' ours: what colour each flavoured kind of thing is on the map in this game, its flavour's: the flavours are
+    ' shuffled for every game (UB_LIB_ITEMS_NEW_GAME in stage-lib-items.bas), so after that, and after a game is
+    ' brought back, each flavoured object's colour byte is set from this game's order and the flavours' colours, and
+    ' every item made from it from then on carries it, see colours.txt and create-data.ps1
+    ' N.B: the order is in the knowledge page and the colours in the game tables page, which use the same slot as the
+    ' objects, so both are copied to this page's own storage first
+    Dim luw_object , luw_record     As UInteger
+    Dim lub_category , lub_sub      As UByte
+    Dim lub_list                    As UByte
+
+    s_core_swap_paged_data( UB_SLOT_DB_MAPS , UB_PAGE_KNOWLEDGE )
+    s_core_ram_copy( A_KNOW_COLOURS , A_OB_ORDER + UB_FLAVOUR_POTIONS , UB_MAX_COLOURS )
+    s_core_ram_copy( A_KNOW_MUSHROOMS , A_OB_ORDER + UB_FLAVOUR_MUSHROOMS , UB_MAX_MUSHROOMS )
+    s_core_ram_copy( A_KNOW_WOODS , A_OB_ORDER + UB_FLAVOUR_WOODS , UB_MAX_WOODS )
+    s_core_ram_copy( A_KNOW_METALS , A_OB_ORDER + UB_FLAVOUR_METALS , UB_MAX_METALS )
+    s_core_ram_copy( A_KNOW_ROCKS , A_OB_ORDER + UB_FLAVOUR_ROCKS , UB_MAX_ROCKS )
+    s_core_ram_copy( A_KNOW_AMULETS , A_OB_ORDER + UB_FLAVOUR_AMULETS , UB_MAX_AMULETS )
+    s_core_swap_paged_data( UB_SLOT_DB_MAPS , UB_PAGE_GAME_TABLES )
+    s_core_ram_copy( A_TABLE_FLAVOUR_COLOURS , A_OB_COLOURS , UB_FLAVOUR_COUNT )
+    For luw_object = 0 To UW_OBJECTS_IN_GAME - 1
+        luw_record   = fuw_core_record_address( UB_SLOT_DB_MAPS , UB_PAGE_OBJECTS_DB , luw_object )
+        lub_category = Peek( luw_record + UB_ITEM_CATEGORY_OFFSET )
+        lub_sub      = Peek( luw_record + UB_ITEM_SUB_CATEGORY_OFFSET )
+        lub_list     = 255
+        If lub_category = UB_TV_POTION1 Or lub_category = UB_TV_POTION2 Then
+            lub_list = UB_FLAVOUR_POTIONS
+        ElseIf lub_category = UB_TV_WAND Then
+            lub_list = UB_FLAVOUR_METALS
+        ElseIf lub_category = UB_TV_STAFF Then
+            lub_list = UB_FLAVOUR_WOODS
+        ElseIf lub_category = UB_TV_RING Then
+            lub_list = UB_FLAVOUR_ROCKS
+        ElseIf lub_category = UB_TV_AMULET Then
+            lub_list = UB_FLAVOUR_AMULETS
+        ElseIf lub_category = UB_TV_FOOD And lub_sub >= UB_ITEM_SINGLE_STACK_MIN Then
+            ' mushrooms and hairy molds, as Moria's itemDescription() has them
+            If ( lub_sub bAnd 63 ) <= 20 Then lub_list = UB_FLAVOUR_MUSHROOMS
+        End If
+        If lub_list <> 255 Then
+            Poke luw_record + UB_ITEM_COLOUR_OFFSET , Peek( A_OB_COLOURS + lub_list + Peek( A_OB_ORDER + lub_list + ( lub_sub bAnd 63 ) ) )
+        End If
+    Next
 End Sub
 
 
@@ -220,7 +256,9 @@ Sub s_lib_objects()
             gsw_lib_result = fuw_ob_random_object( guw_lib_param_2 , gub_lib_param_1 )
         ElseIf gub_lib_function = UB_LIB_OBJECTS_PLACE_GOLD Then
             s_gen_place_gold( gub_lib_param_1 , guw_lib_param_2 bAnd 255 )
+        ElseIf gub_lib_function = UB_LIB_OBJECTS_FLAVOUR_COLOURS Then
+            s_ob_flavour_colours()
         End If
-        If lub_saved_page <> 255 Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved_page )
+        If lub_saved_page <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved_page )
     End If
 End Sub

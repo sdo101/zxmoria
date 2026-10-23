@@ -361,7 +361,7 @@ Function fub_sp_create_food() As UByte
     For i = 0 To 31
         Poke A_ITEM + i , 0
     Next
-    s_core_ram_copy( A_OBJECT + 32 , A_ITEM + 32 , 32 )
+    s_core_ram_copy( A_OBJECT + UB_ITEM_OBJECT_FIELDS , A_ITEM + UB_ITEM_OBJECT_FIELDS , UB_RECORD_SIZE - UB_ITEM_OBJECT_FIELDS )
     guw_item_object = UW_OBJ_MUSH
     s_core_store_record( UB_SLOT_ITEMS , gub_level_items_page , lub_item , A_ITEM )
     Return true
@@ -522,8 +522,8 @@ Sub s_lib_spells()
     ElseIf gub_lib_function = UB_LIB_SPELLS_DESTROY_AREA Then
         s_sp_destroy_area()
     End If
-    If lub_saved_page_0 <> 255 Then s_core_swap_paged_data( UB_SLOT_MONSTERS , lub_saved_page_0 )
-    If lub_saved_page_1 <> 255 Then s_core_swap_paged_data( UB_SLOT_ITEMS , lub_saved_page_1 )
-    If lub_saved_page_2 <> 255 Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved_page_2 )
+    If lub_saved_page_0 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_MONSTERS , lub_saved_page_0 )
+    If lub_saved_page_1 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_ITEMS , lub_saved_page_1 )
+    If lub_saved_page_2 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved_page_2 )
     gsw_lib_result = lub_noticed
 End Sub

@@ -82,10 +82,7 @@ End Sub
 '##################################################################################################################################
 ' --- a monster dying ---
 
-' --- working storage, private to this page, see A_LIB_PRIVATE in constants.bas, the first 128 bytes are a monster and its creature put aside ---
-Dim gub_pa_seen_objects     As UByte    At A_LIB_PRIVATE + 128      ' how many of the things a dead monster left the player could see...
-Dim gub_pa_seen_gold        As UByte    At A_LIB_PRIVATE + 129      ' ...and how many piles of its gold
-Dim gul_pa_treasure         As ULong    At A_LIB_PRIVATE + 130      ' what that teaches the player about its kind, the bits of its "movement", Moria's monsterDeath() answer
+' --- its working storage is in globals.bas, under "private to stage-lib-player-attack.bas", moved there on 22 October 2026 ---
 
 
 Sub s_pa_summon_object( pub_y As UByte , pub_x As UByte , psw_amount As Integer , pub_type As UByte )
@@ -191,7 +188,7 @@ Sub s_pa_monster_death()
         If ( lub_type bAnd 4 ) <> 0 Then gul_pa_treasure = gul_pa_treasure bOr UL_CM_SMALL_OBJ
     End If
     If gub_pa_seen_gold <> 0 Then gul_pa_treasure = gul_pa_treasure bOr UL_CM_CARRY_GOLD
-    gul_pa_treasure = gul_pa_treasure bOr ( Cast( ULong , gub_pa_seen_objects + gub_pa_seen_gold ) << 26 )
+    gul_pa_treasure = gul_pa_treasure bOr ( Cast( ULong , gub_pa_seen_objects + gub_pa_seen_gold ) << UB_CM_TR_SHIFT )
 End Sub
 
 
@@ -425,8 +422,8 @@ Sub s_lib_player_attack()
         ' the monster's own record and creature are fetched for this, and put back as they were afterwards
         lub_monster = gub_lib_param_1
         lsw_damage  = guw_lib_param_2
-        s_core_ram_copy( A_MONSTER , A_LIB_PRIVATE , UB_RECORD_SIZE )
-        s_core_ram_copy( A_CREATURE , A_LIB_PRIVATE + 64 , UB_RECORD_SIZE )
+        s_core_ram_copy( A_MONSTER , A_PA_MONSTER , UB_RECORD_SIZE )
+        s_core_ram_copy( A_CREATURE , A_PA_CREATURE , UB_RECORD_SIZE )
         s_core_fetch_record( UB_SLOT_MONSTERS , gub_level_monsters_page , lub_monster , A_MONSTER )
         s_core_fetch_record( UB_SLOT_CREATURES , UB_PAGE_CREATURES_DB , guw_monster_creature , A_CREATURE )
         s_pa_monster_death()
@@ -438,20 +435,20 @@ Sub s_lib_player_attack()
         Else
             s_core_call_library( UB_PAGED_CODE_LIB_MONSTER_MOVES , UB_LIB_MONSTER_MOVES_REMOVE )
         End If
-        s_core_ram_copy( A_LIB_PRIVATE , A_MONSTER , UB_RECORD_SIZE )
-        s_core_ram_copy( A_LIB_PRIVATE + 64 , A_CREATURE , UB_RECORD_SIZE )
+        s_core_ram_copy( A_PA_MONSTER , A_MONSTER , UB_RECORD_SIZE )
+        s_core_ram_copy( A_PA_CREATURE , A_CREATURE , UB_RECORD_SIZE )
         lub_died = true
     ElseIf gub_lib_function = UB_LIB_PLAYER_ATTACK_DROP Then
         ' a chest has been opened: what it holds falls out as if a creature with those "movement" bits had
         ' died on the square at row gub_lib_param_1 and column guw_lib_param_2, the bits are in gsl_lib_long_1
-        s_core_ram_copy( A_MONSTER , A_LIB_PRIVATE , UB_RECORD_SIZE )
-        s_core_ram_copy( A_CREATURE , A_LIB_PRIVATE + 64 , UB_RECORD_SIZE )
+        s_core_ram_copy( A_MONSTER , A_PA_MONSTER , UB_RECORD_SIZE )
+        s_core_ram_copy( A_CREATURE , A_PA_CREATURE , UB_RECORD_SIZE )
         gub_monster_row       = gub_lib_param_1
         gub_monster_col       = guw_lib_param_2
         gul_creature_movement = gsl_lib_long_1
         s_pa_monster_death()
-        s_core_ram_copy( A_LIB_PRIVATE , A_MONSTER , UB_RECORD_SIZE )
-        s_core_ram_copy( A_LIB_PRIVATE + 64 , A_CREATURE , UB_RECORD_SIZE )
+        s_core_ram_copy( A_PA_MONSTER , A_MONSTER , UB_RECORD_SIZE )
+        s_core_ram_copy( A_PA_CREATURE , A_CREATURE , UB_RECORD_SIZE )
     ElseIf gub_lib_function = UB_LIB_PLAYER_ATTACK_TAKE_HIT Then
         lub_monster = gub_lib_param_1
         lsw_damage  = guw_lib_param_2
@@ -460,8 +457,8 @@ Sub s_lib_player_attack()
         lub_died = fub_pa_monster_take_hit( lub_monster , lsw_damage )
         If lub_died = false Then s_core_store_record( UB_SLOT_MONSTERS , gub_level_monsters_page , lub_monster , A_MONSTER )
     End If
-    If lub_saved_page_0 <> 255 Then s_core_swap_paged_data( UB_SLOT_MONSTERS , lub_saved_page_0 )
-    If lub_saved_page_1 <> 255 Then s_core_swap_paged_data( UB_SLOT_ITEMS , lub_saved_page_1 )
-    If lub_saved_page_2 <> 255 Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved_page_2 )
+    If lub_saved_page_0 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_MONSTERS , lub_saved_page_0 )
+    If lub_saved_page_1 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_ITEMS , lub_saved_page_1 )
+    If lub_saved_page_2 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved_page_2 )
     gsw_lib_result = lub_died
 End Sub

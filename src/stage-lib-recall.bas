@@ -149,15 +149,13 @@ Function fub_rc_recall( puw_creature As UInteger ) As UByte
         If ( gul_creature_movement bAnd UL_CM_1D2_OBJ ) <> 0 Then lul_value = lul_value + 2
         If ( gul_creature_movement bAnd UL_CM_90_RANDOM ) <> 0 Then lul_value = lul_value + 1
         If ( gul_creature_movement bAnd UL_CM_60_RANDOM ) <> 0 Then lul_value = lul_value + 1
-        ' N.B: 26 is Moria's CM_TR_SHIFT, where the treasure bits begin
-        gul_rc_movement = ( gul_creature_movement bAnd ( $FFFFFFFF - UL_CM_TREASURE ) ) bOr ( lul_value << 26 )
+        gul_rc_movement = ( gul_creature_movement bAnd ( $FFFFFFFF - UL_CM_TREASURE ) ) bOr ( lul_value << UB_CM_TR_SHIFT )
         guw_rc_defenses = guw_creature_defenses
         gul_rc_spells   = gul_creature_spells
-        ' N.B: 15 is Moria's CS_FREQ, how often it casts
-        If ( gul_creature_spells bAnd 15 ) <> 0 Then gul_rc_spells = gul_creature_spells bOr 15
+        If ( gul_creature_spells bAnd UL_CS_FREQ ) <> 0 Then gul_rc_spells = gul_creature_spells bOr UL_CS_FREQ
         i = 0
         While i < 4
-            If Peek( A_CREATURE + 45 + i ) = 0 Then
+            If Peek( A_CREATURE + UB_CREATURE_ATTACKS_OFFSET + i ) = 0 Then
                 i = 4
             Else
                 Poke A_RC_ATTACKS + i , 255
@@ -298,16 +296,16 @@ Function fub_rc_recall( puw_creature As UInteger ) As UByte
     ' spells known, if have been used against us, breath weapons or resistance might be known only because we
     ' cast spells at it, Moria's memoryMagicSkills()
     ls_text = " It is resistant to "
-    If ( gul_rc_spells bAnd 15 ) <> 0 Then ls_text = " It can breathe "
+    If ( gul_rc_spells bAnd UL_CS_FREQ ) <> 0 Then ls_text = " It can breathe "
     lub_known = fub_rc_list( lul_spells >> 19 , 5 , 5 , ls_text , " and " )
     ls_text = " It is"
     If lub_known Then ls_text = ", and is also"
     If fub_rc_list( ( lul_spells >> 4 ) bAnd $1FFF , 15 , 4 , ls_text + " magical, casting spells which " , " or " ) Then lub_known = true
     If lub_known Then
         ' could offset by level
-        If ( gul_rc_spells bAnd 15 ) > 5 Then
+        If ( gul_rc_spells bAnd UL_CS_FREQ ) > 5 Then
             s_rc_print( "; 1 time in " )
-            s_rc_number( gul_creature_spells bAnd 15 )
+            s_rc_number( gul_creature_spells bAnd UL_CS_FREQ )
         End If
         s_rc_print( "." )
     End If
@@ -322,15 +320,15 @@ Sub s_rc_screen_save()
     ' puts the screen aside, in the corridor scratchpad page, Moria's terminalSaveScreen()
     gub_rc_saved_page = gub_core_MMU0_page_number
     s_core_swap_paged_data( UB_SLOT_CORRIDORS , UB_PAGE_CORRIDORS )
-    s_core_ram_copy( A_SCREEN_BASE , A_MMU_SLOT_PAGED_CORRIDORS , 5120 )
+    s_core_ram_copy( A_SCREEN_BASE , A_MMU_SLOT_PAGED_CORRIDORS , UW_SCREEN_CELLS_SIZE )
 End Sub
 
 
 Sub s_rc_screen_restore()
     ' Moria's terminalRestoreScreen()
     s_core_swap_paged_data( UB_SLOT_CORRIDORS , UB_PAGE_CORRIDORS )
-    s_core_ram_copy( A_MMU_SLOT_PAGED_CORRIDORS , A_SCREEN_BASE , 5120 )
-    If gub_rc_saved_page <> 255 Then s_core_swap_paged_data( UB_SLOT_CORRIDORS , gub_rc_saved_page )
+    s_core_ram_copy( A_MMU_SLOT_PAGED_CORRIDORS , A_SCREEN_BASE , UW_SCREEN_CELLS_SIZE )
+    If gub_rc_saved_page <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_CORRIDORS , gub_rc_saved_page )
 End Sub
 
 
@@ -346,8 +344,7 @@ Function fub_rc_symbol( pub_symbol As UByte ) As UByte
     lsw_creature = UW_CREATURES_IN_GAME - 1
     While lsw_creature >= 0
         luw_creature = lsw_creature
-        ' N.B: 42 is where a creature's record has its character, see gub_creature_sprite in globals.bas
-        If Peek( fuw_core_record_address( UB_SLOT_CREATURES , UB_PAGE_CREATURES_DB , luw_creature ) + 42 ) = pub_symbol Then
+        If Peek( fuw_core_record_address( UB_SLOT_CREATURES , UB_PAGE_CREATURES_DB , luw_creature ) + UB_CREATURE_SPRITE_OFFSET ) = pub_symbol Then
             ' do we know anything about this monster? Moria's memoryMonsterKnown()
             lub_known = false
             If gub_game_wizard Then lub_known = true
@@ -369,7 +366,7 @@ Function fub_rc_symbol( pub_symbol As UByte ) As UByte
                 s_rc_screen_save()
                 lub_key = fub_rc_recall( luw_creature )
                 s_rc_screen_restore()
-                If lub_key = 27 Then Return lub_key
+                If lub_key = UC_ESCAPE Then Return lub_key
             End If
         End If
         lsw_creature = lsw_creature - 1
@@ -398,7 +395,7 @@ Sub s_lib_recall()
         lub_key = fub_rc_symbol( lub_symbol )
     End If
     s_core_ram_copy( A_LIB_PRIVATE , A_CREATURE , UB_RECORD_SIZE )
-    If lub_saved_page_1 <> 255 Then s_core_swap_paged_data( UB_SLOT_ITEMS , lub_saved_page_1 )
-    If lub_saved_page_2 <> 255 Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved_page_2 )
+    If lub_saved_page_1 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_ITEMS , lub_saved_page_1 )
+    If lub_saved_page_2 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved_page_2 )
     gsw_lib_result = lub_key
 End Sub

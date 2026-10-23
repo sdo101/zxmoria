@@ -41,9 +41,7 @@ End Asm
 ' N.B: the order things are done in matters, each random number must be asked for exactly when Moria asks for it
 
 
-' --- working storage, private to this page, see A_LIB_PRIVATE in constants.bas ---
-Dim gub_tr_y                As UByte    At A_LIB_PRIVATE            ' the square a direction leads to
-Dim gub_tr_x                As UByte    At A_LIB_PRIVATE + 1
+' --- its working storage is in globals.bas, under "private to stage-lib-traps.bas", moved there on 22 October 2026 ---
 
 
 Function fuw_tr_random( puw_max As UInteger ) As UInteger
@@ -91,7 +89,7 @@ Sub s_tr_change_item( pub_item As UByte , puw_object As UInteger )
     For i = 0 To 31
         Poke A_ITEM + i , 0
     Next
-    s_core_ram_copy( A_OBJECT + 32 , A_ITEM + 32 , 32 )
+    s_core_ram_copy( A_OBJECT + UB_ITEM_OBJECT_FIELDS , A_ITEM + UB_ITEM_OBJECT_FIELDS , UB_RECORD_SIZE - UB_ITEM_OBJECT_FIELDS )
     guw_item_object = puw_object
     s_core_store_record( UB_SLOT_ITEMS , gub_level_items_page , pub_item , A_ITEM )
 End Sub
@@ -106,7 +104,7 @@ Function fub_tr_direction() As UByte
     ' a command that is being repeated uses the direction it had the first time, without asking, and asking
     ' does not end a count that has just been given, Moria's use_last_direction
     luw_count = guw_game_command_count
-    If gub_game_repeat_key >= 128 Then
+    If gub_game_repeat_key >= MB_REPEAT_DONE Then
         lub_direction = gub_player_prev_dir
     Else
         s_core_message( UW_MSG_WHICH_DIRECTION )
@@ -118,7 +116,11 @@ Function fub_tr_direction() As UByte
             If guw_key_code = UW_KEY_DOWN Then lub_direction = 2
             If guw_key_code = UW_KEY_LEFT Then lub_direction = 4
             If guw_key_code = UW_KEY_RIGHT Then lub_direction = 6
-        Loop Until lub_direction <> 0 Or gub_key_char = 27 Or guw_key_code = 0
+        Loop Until lub_direction <> 0 Or gub_key_char = UC_ESCAPE Or guw_key_code = 0
+        ' the question is not a message, Moria asks it with getCommand() and keeps nothing of it for Ctrl-P
+        Asm
+            call A_JUMP_HISTORY_FORGET
+        End Asm
         s_msg_clear()
     End If
     guw_game_command_count = luw_count
@@ -186,7 +188,7 @@ Sub s_tr_step()
     lsw_damage = fuw_core_dice_roll( Peek( luw_record + UB_ITEM_DAMAGE_OFFSET ) , Peek( luw_record + UB_ITEM_DAMAGE_OFFSET + 1 ) )
     s_tr_killer( lub_item )
 
-    If lub_kind = 1 Then
+    If lub_kind = UB_TRAP_OPEN_PIT Then
         ' open pit
         s_core_message( UW_MSG_YOU_FELL_INTO_A_PIT )
         If gub_player_free_fall Then
@@ -194,7 +196,7 @@ Sub s_tr_step()
         Else
             s_hit_player( lsw_damage )
         End If
-    ElseIf lub_kind = 2 Then
+    ElseIf lub_kind = UB_TRAP_ARROW_PIT Then
         ' arrow trap
         If fub_tr_being_hit() Then
             s_hit_player( lsw_damage )
@@ -202,7 +204,7 @@ Sub s_tr_step()
         Else
             s_core_message( UW_MSG_AN_ARROW_BARELY_MISSES_YOU )
         End If
-    ElseIf lub_kind = 3 Then
+    ElseIf lub_kind = UB_TRAP_COVERED_PIT Then
         ' covered pit, it is an open pit from now on
         s_core_message( UW_MSG_YOU_FELL_INTO_A_COVERED_PIT )
         If gub_player_free_fall Then
@@ -210,8 +212,11 @@ Sub s_tr_step()
         Else
             s_hit_player( lsw_damage )
         End If
+        ' N.B: NOT Moria's: its dungeonSetTrap() puts the open pit in a new place in the list, popt(), and leaves the
+        ' covered pit's record there on no square, a leak; ours turns the same record into the open pit (sdo, 21
+        ' October 2026), so the things made after it are numbered one lower than Umoria's, see umoria-oddities.md
         s_tr_change_item( lub_item , UW_OBJ_TRAP_LIST )
-    ElseIf lub_kind = 4 Then
+    ElseIf lub_kind = UB_TRAP_TRAP_DOOR Then
         ' trap door
         gub_game_turn_flags = gub_game_turn_flags bOr MB_TURN_NEW_LEVEL
         guw_dungeon_level   = guw_dungeon_level + 1
@@ -222,7 +227,7 @@ Sub s_tr_step()
             s_hit_player( lsw_damage )
         End If
         s_msg_flush()
-    ElseIf lub_kind = 5 Then
+    ElseIf lub_kind = UB_TRAP_SLEEPING_GAS Then
         ' sleeping gas
         If gsw_player_paralysis = 0 Then
             s_core_message( UW_MSG_A_STRANGE_WHITE_MIST_SURROUNDS_YOU )
@@ -233,12 +238,12 @@ Sub s_tr_step()
                 s_core_message( UW_MSG_YOU_FALL_ASLEEP )
             End If
         End If
-    ElseIf lub_kind = 6 Then
+    ElseIf lub_kind = UB_TRAP_HIDDEN_OBJECT Then
         ' a loose rock, with something under it
         s_tr_delete_object( gub_player_row , gub_player_col )
         gub_shared_1 = fub_tr_call( UB_PAGED_CODE_LIB_OBJECTS , UB_LIB_OBJECTS_PLACE_OBJECT , gub_player_row , gub_player_col )
         s_core_message( UW_MSG_HMMM_THERE_WAS_SOMETHING_UNDER )
-    ElseIf lub_kind = 7 Then
+    ElseIf lub_kind = UB_TRAP_DART_OF_STR Then
         ' dart of strength loss
         If fub_tr_being_hit() Then
             If gub_player_sustain_str = false Then
@@ -251,11 +256,11 @@ Sub s_tr_step()
         Else
             s_core_message( UW_MSG_A_SMALL_DART_BARELY_MISSES_YOU )
         End If
-    ElseIf lub_kind = 8 Then
+    ElseIf lub_kind = UB_TRAP_TELEPORT Then
         ' teleport, Moria does it at the end of the turn, playerTeleport( 100 )
         s_core_message( UW_MSG_YOU_HIT_A_TELEPORT_TRAP )
         gub_shared_1 = fub_tr_call( UB_PAGED_CODE_LIB_SPELLS , UB_LIB_SPELLS_TELEPORT , 0 , 100 )
-    ElseIf lub_kind = 9 Then
+    ElseIf lub_kind = UB_TRAP_ROCKFALL Then
         ' rockfall, the trap is gone and rubble lies where it was, the walking stage steps the player back off it
         s_hit_killer( "a falling rock" )
         s_hit_player( lsw_damage )
@@ -271,43 +276,43 @@ Sub s_tr_step()
             Poke luw_record + UB_SQUARE_FEATURE , UB_TILE_BLOCKED_FLOOR
         End If
         s_core_message( UW_MSG_YOU_ARE_HIT_BY_FALLING_ROCK )
-    ElseIf lub_kind = 10 Then
+    ElseIf lub_kind = UB_TRAP_CORRODING_GAS Then
         ' corrosion gas
         s_core_message( UW_MSG_A_STRANGE_RED_GAS_SURROUNDS_YOU )
         s_hit_killer( "corrosion gas" )
         gub_shared_1 = fub_tr_call( UB_PAGED_CODE_LIB_MONSTER_ATTACK_2 , UB_LIB_MONSTER_ATTACK_2_DAMAGE , 9 , 0 )
-    ElseIf lub_kind = 11 Then
+    ElseIf lub_kind = UB_TRAP_SUMMON_MONSTER Then
         ' summon monster, the rune is used up
         s_tr_delete_object( gub_player_row , gub_player_col )
         luw_count = 2 + fuw_tr_random( 3 )
         For i = 1 To luw_count
             gub_shared_1 = fub_tr_call( UB_PAGED_CODE_LIB_MONSTERS , UB_LIB_MONSTERS_SUMMON , 0 , 0 )
         Next
-    ElseIf lub_kind = 12 Then
+    ElseIf lub_kind = UB_TRAP_FIRE_TRAP Then
         ' fire
         s_core_message( UW_MSG_YOU_ARE_ENVELOPED_IN_FLAMES )
         s_hit_killer( "a fire trap" )
         gub_shared_1 = fub_tr_call( UB_PAGED_CODE_LIB_MONSTER_ATTACK_2 , UB_LIB_MONSTER_ATTACK_2_DAMAGE , 5 , lsw_damage )
-    ElseIf lub_kind = 13 Then
+    ElseIf lub_kind = UB_TRAP_ACID_TRAP Then
         ' acid
         s_core_message( UW_MSG_YOU_ARE_SPLASHED_WITH_ACID )
         s_hit_killer( "an acid trap" )
         gub_shared_1 = fub_tr_call( UB_PAGED_CODE_LIB_MONSTER_ATTACK_2 , UB_LIB_MONSTER_ATTACK_2_DAMAGE , 6 , lsw_damage )
-    ElseIf lub_kind = 14 Then
+    ElseIf lub_kind = UB_TRAP_POISON_GAS_TRAP Then
         ' poison gas, Moria's damagePoisonedGas()
         s_core_message( UW_MSG_A_PUNGENT_GREEN_GAS_SURROUNDS_YOU )
         s_hit_killer( "a poison gas trap" )
         s_hit_player( lsw_damage )
         gsw_player_poisoned = gsw_player_poisoned + 12 + fuw_tr_random( lsw_damage )
-    ElseIf lub_kind = 15 Then
+    ElseIf lub_kind = UB_TRAP_BLINDING_GAS Then
         ' blinding gas
         s_core_message( UW_MSG_A_BLACK_GAS_SURROUNDS_YOU )
         gsw_player_blind = gsw_player_blind + fuw_tr_random( 50 ) + 50
-    ElseIf lub_kind = 16 Then
+    ElseIf lub_kind = UB_TRAP_CONFUSE_GAS Then
         ' confusion gas
         s_core_message( UW_MSG_A_GAS_OF_SCINTILLATING_COLORS )
         gsw_player_confused = gsw_player_confused + fuw_tr_random( 15 ) + 15
-    ElseIf lub_kind = 17 Then
+    ElseIf lub_kind = UB_TRAP_SLOW_DART Then
         ' slow dart
         If fub_tr_being_hit() Then
             s_hit_player( lsw_damage )
@@ -320,7 +325,7 @@ Sub s_tr_step()
         Else
             s_core_message( UW_MSG_A_SMALL_DART_BARELY_MISSES_YOU )
         End If
-    ElseIf lub_kind = 18 Then
+    ElseIf lub_kind = UB_TRAP_DART_OF_CON Then
         ' dart of constitution loss
         If fub_tr_being_hit() Then
             If gub_player_sustain_con = false Then
@@ -404,7 +409,7 @@ Function fuw_tr_disarm() As UInteger
         gsl_player_exp = gsl_player_exp + lsw_misc_use
         s_tr_delete_object( gub_tr_y , gub_tr_x )
         ' the player steps on to the square, the walking stage does it, and shows the experience
-        Return $0100 bOr lub_direction
+        Return ( UB_STEP_DISARMED << 8 ) bOr lub_direction
     End If
     ' avoid random number call if ability is 5 or less
     If lsw_ability > 5 Then
@@ -414,7 +419,7 @@ Function fuw_tr_disarm() As UInteger
         End If
     End If
     s_core_message( UW_MSG_YOU_SET_THE_TRAP_OFF )
-    Return $0200 bOr lub_direction
+    Return ( UB_STEP_SET_OFF << 8 ) bOr lub_direction
 End Function
 
 
@@ -592,8 +597,8 @@ Sub s_lib_traps()
         gub_tr_x = guw_lib_param_2
         gub_shared_1 = fub_tr_tunnel_wall( 1 , 0 )
     End If
-    If lub_saved_page_0 <> 255 Then s_core_swap_paged_data( UB_SLOT_MONSTERS , lub_saved_page_0 )
-    If lub_saved_page_1 <> 255 Then s_core_swap_paged_data( UB_SLOT_ITEMS , lub_saved_page_1 )
-    If lub_saved_page_2 <> 255 Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved_page_2 )
+    If lub_saved_page_0 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_MONSTERS , lub_saved_page_0 )
+    If lub_saved_page_1 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_ITEMS , lub_saved_page_1 )
+    If lub_saved_page_2 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved_page_2 )
     gsw_lib_result = luw_result
 End Sub

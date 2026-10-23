@@ -339,3 +339,4 @@ I_WILL_NOT_BUY_THAT                 I will not buy that!
 THE_DOORS_ARE_LOCKED                The doors are locked.
 ENTIRE_INVENTORY_IS_SHOWN           Entire inventory is shown.
 USE_CONTROL_K_WHEN_YOU_ARE_READY_TO_QUIT Use <Control>-K when you are ready to quit.
+TYPE_OR_BACKSLASH_FOR_HELP          Type '?' or '\' for help.

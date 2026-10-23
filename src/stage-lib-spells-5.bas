@@ -162,10 +162,11 @@ End Function
 
 
 Function fub_s5_destroy_doors( pub_direction As UByte ) As UByte
-    ' Moria's spellDestroyDoorsTrapsInDirection(): it goes on past its range for as long as the way is open
+    ' Moria's spellDestroyDoorsTrapsInDirection(), but NOT Moria's in one respect (sdo, 22 October): it stops at the
+    ' first square that is not open, or at the end of its range, as the Wand of Disarming does, where Moria's carries
+    ' on while it is in range OR the way is open, through rock to the doors and traps beyond, see umoria-oddities.md
     Dim lub_category    As UByte
     Dim lub_destroyed   As UByte = false
-    Dim lub_guard       As UByte = 0
 
     s_aim_start()
     Do
@@ -183,9 +184,7 @@ Function fub_s5_destroy_doors( pub_direction As UByte ) As UByte
         If lub_category = UB_TV_CHEST Then
             If fub_s5_chest() Then lub_destroyed = true
         End If
-        ' N.B: the count stops at the edge of the map, where the spell can go no further, Moria relies on the rock there
-        lub_guard = lub_guard + 1
-    Loop While ( gub_aim_distance <= UB_AIM_MAX_RANGE Or Peek( fuw_aim_square() + UB_SQUARE_FEATURE ) <= UB_TILE_MAX_OPEN ) And lub_guard < 250
+    Loop While gub_aim_distance <= UB_AIM_MAX_RANGE And Peek( fuw_aim_square() + UB_SQUARE_FEATURE ) <= UB_TILE_MAX_OPEN
     Return lub_destroyed
 End Function
 
@@ -335,8 +334,8 @@ Sub s_lib_spells_5()
     ElseIf gub_lib_function = UB_LIB_SPELLS_5_EARTHQUAKE Then
         s_s5_earthquake()
     End If
-    If lub_saved_page_0 <> 255 Then s_core_swap_paged_data( UB_SLOT_MONSTERS , lub_saved_page_0 )
-    If lub_saved_page_1 <> 255 Then s_core_swap_paged_data( UB_SLOT_ITEMS , lub_saved_page_1 )
-    If lub_saved_page_2 <> 255 Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved_page_2 )
+    If lub_saved_page_0 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_MONSTERS , lub_saved_page_0 )
+    If lub_saved_page_1 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_ITEMS , lub_saved_page_1 )
+    If lub_saved_page_2 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved_page_2 )
     gsw_lib_result = lub_noticed
 End Sub

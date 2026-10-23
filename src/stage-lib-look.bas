@@ -31,17 +31,7 @@ End Asm
 '   - Moria puts the cursor on the thing being told of, we have no cursor
 
 
-' --- working storage, private to this page, see A_LIB_PRIVATE in constants.bas ---
-Dim gsb_lk_fxx              As Byte     At A_LIB_PRIVATE            ' how the cone's own x and y turn into columns and rows of the map
-Dim gsb_lk_fxy              As Byte     At A_LIB_PRIVATE + 1
-Dim gsb_lk_fyx              As Byte     At A_LIB_PRIVATE + 2
-Dim gsb_lk_fyy              As Byte     At A_LIB_PRIVATE + 3
-Dim gub_lk_no_query         As UByte    At A_LIB_PRIVATE + 4        ' a hack to prevent doubling up on direct lines of sight (los_hack_no_query)
-Dim gub_lk_transparent      As UByte    At A_LIB_PRIVATE + 5        ' whether the square last looked at can be seen past
-Dim gub_lk_seen             As UByte    At A_LIB_PRIVATE + 6        ' how many places something was seen at (los_num_places_seen)
-Dim gub_lk_rocks            As UByte    At A_LIB_PRIVATE + 7        ' 0 while looking at monsters and things, 1 on the second time round, for the kinds of rock (los_rocks_and_objects)
-
-#define SW_GRADF            10000       ' any sufficiently big number will do
+' --- its working storage is in globals.bas, under "private to stage-lib-look.bas", moved there on 22 October 2026 ---
 
 
 '##################################################################################################################################
@@ -144,7 +134,7 @@ Function fub_lk_see( psw_y As Integer , psw_x As Integer ) As UByte
 
     If lub_shown Then
         gub_lk_seen = gub_lk_seen + 1
-        If lub_key = 27 Then Return true
+        If lub_key = UC_ESCAPE Then Return true
     End If
     Return false
 End Function
@@ -282,7 +272,7 @@ Sub s_lk_look()
         If guw_key_code = UW_KEY_DOWN Then lub_direction = 2
         If guw_key_code = UW_KEY_LEFT Then lub_direction = 4
         If guw_key_code = UW_KEY_RIGHT Then lub_direction = 6
-    Loop Until lub_direction <> 0 Or gub_key_char = 27 Or guw_key_code = 0
+    Loop Until lub_direction <> 0 Or gub_key_char = UC_ESCAPE Or guw_key_code = 0
     s_msg_clear()
     If lub_direction = 0 Then Return
 
@@ -662,6 +652,10 @@ Sub s_lk_identify()
             luw_at  = luw_at + 1
             lub_col = lub_col + 1
         End While
+        ' the description is not a message, Moria shows it with putStringClearToEOL() and keeps nothing for Ctrl-P
+        Asm
+            call A_JUMP_HISTORY_FORGET
+        End Asm
     End If
     ' and what is remembered of the creatures drawn with it, the recall library asks first
     gub_lib_param_1 = lub_symbol
@@ -680,7 +674,7 @@ Sub s_lib_look()
     ElseIf gub_lib_function = UB_LIB_LOOK_IDENTIFY Then
         s_lk_identify()
     End If
-    If lub_saved_page_0 <> 255 Then s_core_swap_paged_data( UB_SLOT_MONSTERS , lub_saved_page_0 )
-    If lub_saved_page_1 <> 255 Then s_core_swap_paged_data( UB_SLOT_ITEMS , lub_saved_page_1 )
-    If lub_saved_page_2 <> 255 Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved_page_2 )
+    If lub_saved_page_0 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_MONSTERS , lub_saved_page_0 )
+    If lub_saved_page_1 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_ITEMS , lub_saved_page_1 )
+    If lub_saved_page_2 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved_page_2 )
 End Sub

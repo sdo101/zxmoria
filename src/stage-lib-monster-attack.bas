@@ -41,8 +41,7 @@ End Asm
 ' N.B: the order things are done in matters, each random number must be asked for exactly when Moria asks for it
 
 
-' --- working storage, private to this page, see A_LIB_PRIVATE in constants.bas ---
-#define A_MA_NAME           A_LIB_PRIVATE               ' 40 bytes, how the attacker is spoken of: "The Kobold " or "It "
+' --- its working storage is in globals.bas, under "private to stage-lib-monster-attack.bas", moved there on 22 October 2026 ---
 
 
 Function fuw_ma_random( puw_max As UInteger ) As UInteger

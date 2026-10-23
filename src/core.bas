@@ -25,7 +25,7 @@ Asm
     jp _s_core_print_char_at_logged     ; N.B: the stages' characters go through the message history first, the core's own do not
     jp _s_core_print_string_at
     jp _s_core_get_key
-    jp _s_core_countdown
+    jp _s_core_crash                    ; N.B: was s_core_countdown(), poc2demo's, taken out 21 October 2026, the entry kept so those after it keep their addresses
     jp _fs_core_number
     jp _fub_core_scan_key
     jp _fs_core_key_name
@@ -61,19 +61,16 @@ Asm
     jp _fuw_core_random_word
     jp _fs_core_char
     jp _s_core_clear_row
+    jp _s_core_history_forget
+    jp _s_core_beep
 
 core_start:
     di                          ; interrupts off, they stay off except while we are deliberately waiting for one
     ld sp, A_Z80_CPU_STACK      ; move the stack to the top of page 11, which the loader mapped into MMU 7
 
-    ; map the core data page (32, UB_PAGE_CORE_DATA in constants.bas) into MMU 6, nextreg $56...
+    ; map the core data page (32, UB_PAGE_CORE_DATA in constants.bas) into MMU 6, nextreg MMU_SLOT_6...
     ; ...the loader could not do this for us, because the loader itself was running in MMU 6, this is what discards it
-    ld bc, A_NEXTREG_SELECT
-    ld a, $56
-    out (c), a
-    ld bc, A_NEXTREG_DATA
-    ld a, 32
-    out (c), a
+    nextreg MMU_SLOT_6, UB_PAGE_CORE_DATA
 
     ; fill the whole stack area with a known byte, the stack is empty at this moment so nothing is lost...
     ; ...the memory monitor later counts how many of these bytes are still untouched, to show how deep the stack has ever been
@@ -167,8 +164,8 @@ core_reset_landing:
         jp _s_core_nothing_to_return_to
 core_reset_landing_end:
     End Asm
-    ' N.B: the soft reset bit lives in nextreg $02, not in nextreg $00 (which is the read only machine id)
-    s_core_next_reg( UB_NEXTREG_RESET_CONFIG , UB_NEXTREG_MACHINE_RESET )
+    ' N.B: the soft reset bit lives in nextreg NEXTREG_RESET, not in nextreg NEXTREG_MACHINE_ID (which is the read only machine id)
+    s_core_next_reg( NEXTREG_RESET , MB_RESET_SOFT )
 End Sub
 
 Sub s_core_print_char_at( pub_x As UByte , pub_y As UByte , pub_char As UByte , pub_colour As UByte )
@@ -213,7 +210,7 @@ Sub s_core_clear_row( pub_row As UByte , pub_from As UByte , pub_colour As UByte
     ' one call instead of eighty to s_core_print_char_at()
     ' N.B: clearing the top row from its first column says the message that was there is finished with, so it is
     ' first put away for Ctrl-P, exactly as s_core_print_char_at_logged() does for a plain space put there
-    If pub_row = 0 And pub_from = 0 And gub_log_length <> 0 Then s_core_message_push()
+    If pub_row = 0 And pub_from = 0 And gub_log_length <> 0 Then s_core_history_push()
 
     Asm
         ; guard: quietly ignore anything off screen, as s_core_print_char_at() does
@@ -265,7 +262,7 @@ Sub s_core_clear_screen()
         ld (hl), 0
         ld hl, A_SCREEN_BASE
         ld de, A_SCREEN_BASE + 2
-        ld bc, 5118
+        ld bc, UW_SCREEN_CELLS_SIZE - 2
         ldir
     End Asm
 End Sub
@@ -274,7 +271,7 @@ End Sub
 Sub s_core_pause()
     ' a crude delay so that the eye can follow the stages taking turns, somewhere around a second
     Dim i , luw_dummy   As UInteger
-    For i = 0 To 20000
+    For i = 0 To UW_PAUSE_COUNT
         luw_dummy = luw_dummy + 1
     Next
 End Sub
@@ -378,7 +375,7 @@ Function fub_core_scan_key() As UByte
     '   a classic 40 key Spectrum keyboard        = everything above, the special keys are typed as the combinations
     '   a real Next keyboard                      = the same, plus it has a dedicated key for each special key, and for ; " , .
     '   a PS/2 keyboard plugged into a Next       = the Next turns each of its keys into one of the above before we ever see it
-    ' the Next's dedicated keys are read first, from nextreg $B0 and $B1, so they are recognised for what they are...
+    ' the Next's dedicated keys are read first, from nextreg NEXTREG_EXT_KEYS_0 and $B1, so they are recognised for what they are...
     ' ...(the Next also presses the matching combination in the 8 x 5 matrix for us, which is why the modifiers are
     ' reported as 0 for these keys, we cannot tell a real caps shift from the one the Next added)
     Dim lub_row , lub_bit , lub_mask , lub_bits     As UByte
@@ -389,56 +386,56 @@ Function fub_core_scan_key() As UByte
     ' first the Next keyboard's dedicated keys, in both registers a bit is 1 while its key is down...
     ' ...on anything that does not have these registers they read as 0, so this part simply finds nothing...
     ' ...(a reading of 255 would mean all eight keys at once, so that is treated as "not there" as well)
-    Out A_NEXTREG_SELECT , UB_NEXTREG_EXT_KEYS_0
+    Out A_NEXTREG_SELECT , NEXTREG_EXT_KEYS_0
     lub_bits = In( A_NEXTREG_DATA )
-    If lub_bits <> 0 And lub_bits <> 255 Then
+    If lub_bits <> 0 And lub_bits <> UB_EXT_KEYS_ABSENT Then
         gub_key_modifiers = 0
-        If ( lub_bits bAnd %00001000 ) <> 0 Then Return Cast( UByte , UW_KEY_UP )
-        If ( lub_bits bAnd %00000100 ) <> 0 Then Return Cast( UByte , UW_KEY_DOWN )
-        If ( lub_bits bAnd %00000010 ) <> 0 Then Return Cast( UByte , UW_KEY_LEFT )
-        If ( lub_bits bAnd %00000001 ) <> 0 Then Return Cast( UByte , UW_KEY_RIGHT )
-        If ( lub_bits bAnd %10000000 ) <> 0 Then Return 59      ' ;
-        If ( lub_bits bAnd %01000000 ) <> 0 Then Return 34      ' "
-        If ( lub_bits bAnd %00100000 ) <> 0 Then Return 44      ' ,
-        If ( lub_bits bAnd %00010000 ) <> 0 Then Return 46      ' .
+        If ( lub_bits bAnd MB_EXT0_UP ) <> 0 Then Return Cast( UByte , UW_KEY_UP )
+        If ( lub_bits bAnd MB_EXT0_DOWN ) <> 0 Then Return Cast( UByte , UW_KEY_DOWN )
+        If ( lub_bits bAnd MB_EXT0_LEFT ) <> 0 Then Return Cast( UByte , UW_KEY_LEFT )
+        If ( lub_bits bAnd MB_EXT0_RIGHT ) <> 0 Then Return Cast( UByte , UW_KEY_RIGHT )
+        If ( lub_bits bAnd MB_EXT0_SEMICOLON ) <> 0 Then Return UC_SEMICOLON
+        If ( lub_bits bAnd MB_EXT0_QUOTE ) <> 0 Then Return UC_QUOTE
+        If ( lub_bits bAnd MB_EXT0_COMMA ) <> 0 Then Return UC_COMMA
+        If ( lub_bits bAnd MB_EXT0_FULL_STOP ) <> 0 Then Return UC_FULL_STOP
     End If
     lub_ctrl = false
-    Out A_NEXTREG_SELECT , UB_NEXTREG_EXT_KEYS_1
+    Out A_NEXTREG_SELECT , NEXTREG_EXT_KEYS_1
     lub_bits = In( A_NEXTREG_DATA )
-    If lub_bits = 255 Then lub_bits = 0
+    If lub_bits = UB_EXT_KEYS_ABSENT Then lub_bits = 0
     ' the EXTEND key is our Ctrl, so it is noted as a modifier and is not a key in its own right...
-    If ( lub_bits bAnd %00000001 ) <> 0 Then lub_ctrl = true
-    lub_bits = lub_bits bAnd %11111110
+    If ( lub_bits bAnd MB_EXT1_EXTEND ) <> 0 Then lub_ctrl = true
+    lub_bits = lub_bits bAnd ( 255 - MB_EXT1_EXTEND )
     If lub_bits <> 0 Then
         gub_key_modifiers = 0
-        If ( lub_bits bAnd %10000000 ) <> 0 Then Return 8       ' delete, the same code as caps shift + 0
-        If ( lub_bits bAnd %00100000 ) <> 0 Then Return 27      ' break, the same code as caps shift + space
-        If ( lub_bits bAnd %01000000 ) <> 0 Then Return Cast( UByte , UW_KEY_EDIT )
-        If ( lub_bits bAnd %00000010 ) <> 0 Then Return Cast( UByte , UW_KEY_CAPS_LOCK )
-        If ( lub_bits bAnd %00001000 ) <> 0 Then Return Cast( UByte , UW_KEY_TRUE_VIDEO )
-        If ( lub_bits bAnd %00010000 ) <> 0 Then Return Cast( UByte , UW_KEY_INV_VIDEO )
-        If ( lub_bits bAnd %00000100 ) <> 0 Then Return Cast( UByte , UW_KEY_GRAPH )
+        If ( lub_bits bAnd MB_EXT1_DELETE ) <> 0 Then Return UC_BACKSPACE         ' the same code as caps shift + 0
+        If ( lub_bits bAnd MB_EXT1_BREAK ) <> 0 Then Return UC_ESCAPE           ' the same code as caps shift + space
+        If ( lub_bits bAnd MB_EXT1_EDIT ) <> 0 Then Return Cast( UByte , UW_KEY_EDIT )
+        If ( lub_bits bAnd MB_EXT1_CAPS_LOCK ) <> 0 Then Return Cast( UByte , UW_KEY_CAPS_LOCK )
+        If ( lub_bits bAnd MB_EXT1_TRUE_VIDEO ) <> 0 Then Return Cast( UByte , UW_KEY_TRUE_VIDEO )
+        If ( lub_bits bAnd MB_EXT1_INV_VIDEO ) <> 0 Then Return Cast( UByte , UW_KEY_INV_VIDEO )
+        If ( lub_bits bAnd MB_EXT1_GRAPH ) <> 0 Then Return Cast( UByte , UW_KEY_GRAPH )
     End If
 
     ' now the 8 x 5 matrix that every keyboard has...
-    lub_found   = 255       ' 255 = no key found yet
+    lub_found   = UB_KEY_NONE
     lub_caps    = false
     lub_sym     = false
     luw_row_bit = 1
-    For lub_row = 0 To 7
+    For lub_row = 0 To UB_KEY_MATRIX_ROWS - 1
         ' build the port address for this row: the high byte is all 1s except for this row's bit, the low byte is $FE
-        luw_port = ( ( 255 - luw_row_bit ) << 8 ) bOr $FE
-        lub_bits = In( luw_port ) bAnd %00011111
-        If lub_bits <> %00011111 Then
+        luw_port = ( ( 255 - luw_row_bit ) << 8 ) bOr UB_ULA_PORT
+        lub_bits = In( luw_port ) bAnd MB_KEY_MATRIX_ROW
+        If lub_bits <> MB_KEY_MATRIX_ROW Then
             lub_mask = 1
-            For lub_bit = 0 To 4
+            For lub_bit = 0 To UB_KEY_MATRIX_COLS - 1
                 If ( lub_bits bAnd lub_mask ) = 0 Then
-                    lub_index = ( lub_row * 5 ) + lub_bit
-                    If lub_index = 0 Then
+                    lub_index = ( lub_row * UB_KEY_MATRIX_COLS ) + lub_bit
+                    If lub_index = UB_KEYPOS_CAPS_SHIFT Then
                         lub_caps = true
-                    ElseIf lub_index = 36 Then
+                    ElseIf lub_index = UB_KEYPOS_SYMBOL_SHIFT Then
                         lub_sym = true
-                    ElseIf lub_found = 255 Then
+                    ElseIf lub_found = UB_KEY_NONE Then
                         lub_found = lub_index       ' if several keys are down, the first one found wins
                     End If
                 End If
@@ -460,47 +457,47 @@ Function fub_core_scan_key() As UByte
     End If
 
     ' no ordinary key is down, only modifiers at most...
-    If lub_found = 255 Then Return 0
+    If lub_found = UB_KEY_NONE Then Return 0
 
     lub_code = Peek( @key_table_normal + lub_found )
     If lub_ctrl Then
         ' Ctrl + a letter gives the classic control code, Ctrl-A = 1 ... Ctrl-Z = 26, anything else keeps its normal code
-        If lub_code >= 97 And lub_code <= 122 Then lub_code = lub_code - 96
+        If lub_code >= UC_LOWER_A And lub_code <= UC_LOWER_Z Then lub_code = lub_code - UC_LOWER_TO_CONTROL
         Return lub_code
     End If
     If lub_sym Then
         lub_index = Peek( @key_table_symbol + lub_found )
         If lub_index <> 0 Then lub_code = lub_index
     ElseIf lub_caps Then
-        If lub_found = 19 Then                              ' caps shift + 5
+        If lub_found = UB_KEYPOS_5 Then
             lub_code = Cast( UByte , UW_KEY_LEFT )
-        ElseIf lub_found = 24 Then                          ' caps shift + 6
+        ElseIf lub_found = UB_KEYPOS_6 Then
             lub_code = Cast( UByte , UW_KEY_DOWN )
-        ElseIf lub_found = 23 Then                          ' caps shift + 7
+        ElseIf lub_found = UB_KEYPOS_7 Then
             lub_code = Cast( UByte , UW_KEY_UP )
-        ElseIf lub_found = 22 Then                          ' caps shift + 8
+        ElseIf lub_found = UB_KEYPOS_8 Then
             lub_code = Cast( UByte , UW_KEY_RIGHT )
-        ElseIf lub_found = 20 Then                          ' caps shift + 0
-            lub_code = 8
-        ElseIf lub_found = 35 Then                          ' caps shift + space
-            lub_code = 27
-        ElseIf lub_found = 15 Then                          ' caps shift + 1
+        ElseIf lub_found = UB_KEYPOS_0 Then
+            lub_code = UC_BACKSPACE
+        ElseIf lub_found = UB_KEYPOS_SPACE Then
+            lub_code = UC_ESCAPE
+        ElseIf lub_found = UB_KEYPOS_1 Then
             lub_code = Cast( UByte , UW_KEY_EDIT )
-        ElseIf lub_found = 16 Then                          ' caps shift + 2
+        ElseIf lub_found = UB_KEYPOS_2 Then
             lub_code = Cast( UByte , UW_KEY_CAPS_LOCK )
-        ElseIf lub_found = 17 Then                          ' caps shift + 3
+        ElseIf lub_found = UB_KEYPOS_3 Then
             lub_code = Cast( UByte , UW_KEY_TRUE_VIDEO )
-        ElseIf lub_found = 18 Then                          ' caps shift + 4
+        ElseIf lub_found = UB_KEYPOS_4 Then
             lub_code = Cast( UByte , UW_KEY_INV_VIDEO )
-        ElseIf lub_found = 21 Then                          ' caps shift + 9
+        ElseIf lub_found = UB_KEYPOS_9 Then
             lub_code = Cast( UByte , UW_KEY_GRAPH )
-        ElseIf lub_code >= 97 And lub_code <= 122 Then      ' a letter, make it upper case
-            lub_code = lub_code - 32
+        ElseIf lub_code >= UC_LOWER_A And lub_code <= UC_LOWER_Z Then      ' a letter, make it upper case
+            lub_code = lub_code - UC_LOWER_TO_UPPER
         End If
     End If
     ' for the special keys the caps shift was part of typing the key, not a modifier, so do not report it...
     ' ...this also makes a combination typed on a classic keyboard look exactly the same as the Next's dedicated key
-    If lub_code = 8 Or lub_code = 27 Or lub_code >= 130 Then gub_key_modifiers = 0
+    If lub_code = UC_BACKSPACE Or lub_code = UC_ESCAPE Or lub_code >= Cast( UByte , UW_KEY_UP ) Then gub_key_modifiers = 0
     Return lub_code
 
     ' the two lookup tables, one byte per key, in key index order, i.e. five keys per row...
@@ -540,16 +537,16 @@ Function fs_core_key_name( pub_code As UByte , pub_modifiers As UByte ) As Strin
     msg = ""
     If ( pub_modifiers bAnd MB_KEY_CTRL )  <> 0 Then msg = msg + "Ctrl-"
     If ( pub_modifiers bAnd MB_KEY_SHIFT ) <> 0 Then msg = msg + "Shift-"
-    If ( pub_modifiers bAnd MB_KEY_CTRL ) <> 0 And pub_code >= 1 And pub_code <= 26 Then
-        msg = msg + fs_core_char( pub_code + 64 )       ' a control code, show it as its letter, 1 = "A"
-    ElseIf pub_code >= 33 And pub_code <= 126 Then
+    If ( pub_modifiers bAnd MB_KEY_CTRL ) <> 0 And pub_code >= 1 And pub_code <= UC_CONTROL_Z Then
+        msg = msg + fs_core_char( pub_code + UC_CONTROL_TO_LETTER )       ' a control code, shown as its letter
+    ElseIf pub_code >= UC_FIRST_PRINTABLE And pub_code <= UC_LAST_PRINTABLE Then
         msg = msg + fs_core_char( pub_code )
     Else
         add = ""
-        If pub_code = 27                                Then add = "ESC"
-        If pub_code = 32                                Then add = "Space"
-        If pub_code = 13                                Then add = "Enter"
-        If pub_code = 8                                 Then add = "Backspace"
+        If pub_code = UC_ESCAPE                         Then add = "ESC"
+        If pub_code = UC_SPACE                          Then add = "Space"
+        If pub_code = UC_ENTER                          Then add = "Enter"
+        If pub_code = UC_BACKSPACE                      Then add = "Backspace"
         If pub_code = Cast( UByte , UW_KEY_UP )         Then add = "Up"
         If pub_code = Cast( UByte , UW_KEY_DOWN )       Then add = "Down"
         If pub_code = Cast( UByte , UW_KEY_LEFT )       Then add = "Left"
@@ -564,55 +561,6 @@ Function fs_core_key_name( pub_code As UByte , pub_modifiers As UByte ) As Strin
     End If
     Return msg
 End Function
-
-
-Sub s_core_countdown( pub_x As UByte , pub_y As UByte , pub_stay_key As UByte , pub_flip_key As UByte )
-    ' shows a countdown  5 4 3 2 1  at ( row , column ), one second per digit, and returns when it runs out...
-    ' ...while it runs it watches the keyboard, the two keys are given as upper case character codes, e.g. 76 for "L":
-    '   pub_stay_key held or pressed  =  start again from 5, i.e. stay for another five seconds
-    '   pub_flip_key pressed          =  give up waiting and return straight away
-    ' the name of the last key pressed, e.g. "Ctrl-A", is shown two cells to the right of the digit, and stays there
-    ' until another key is pressed or the countdown ends, as a running test of the keyboard routine
-    ' the timing comes from the frame interrupt, which arrives 50 times a second whatever speed the CPU is set to
-    Dim lub_seconds         As UByte = 5
-    Dim lub_ticks           As UByte = 0
-    Dim lub_key             As UByte
-    Dim lub_shown_key       As UByte = 0        ' the key, and its modifiers, whose name is on screen at the moment
-    Dim lub_shown_modifiers As UByte = 0
-    Do
-        s_core_print_char_at( pub_x , pub_y , 48 + lub_seconds , UB_BRIGHT_WHITE )      ' 48 = "0"
-        s_core_wait_for_vblank()
-
-        lub_key = fub_core_scan_key()
-        ' show the name of the key, but only when it changes, building the text 50 times a second would be wasteful
-        If lub_key <> 0 Then
-            If lub_key <> lub_shown_key Or gub_key_modifiers <> lub_shown_modifiers Then
-                lub_shown_key       = lub_key
-                lub_shown_modifiers = gub_key_modifiers
-                s_core_print_string_at( pub_x , pub_y + 2 , "                " , UB_BLACK )       ' rub out the old name, 16 cells
-                s_core_print_string_at( pub_x , pub_y + 2 , fs_core_key_name( lub_key , gub_key_modifiers ) , UB_BRIGHT_CYAN )
-            End If
-        End If
-
-        ' the stay and flip keys are plain letters, a letter arrives in lower case unless caps shift is held,
-        ' so make it upper case for the comparisons below (a Ctrl-letter is a control code, so it never matches)
-        If lub_key >= 97 And lub_key <= 122 Then lub_key = lub_key - 32
-
-        If lub_key = pub_flip_key And lub_key <> 0 Then Exit Do
-        If lub_key = pub_stay_key And lub_key <> 0 Then
-            lub_seconds = 5
-            lub_ticks   = 0
-        Else
-            lub_ticks = lub_ticks + 1
-            If lub_ticks = 50 Then
-                lub_ticks   = 0
-                lub_seconds = lub_seconds - 1
-            End If
-        End If
-    Loop Until lub_seconds = 0
-    s_core_print_char_at( pub_x , pub_y , 32 , UB_BLACK )                                        ' rub out the digit
-    s_core_print_string_at( pub_x , pub_y + 2 , "                " , UB_BLACK )                   ' and the key name
-End Sub
 
 
 Sub s_core_monitor( pub_function As UByte )
@@ -652,25 +600,27 @@ Sub s_core_get_key()
             s_core_wait_for_vblank()
             lub_code   = fub_core_scan_key()
             lul_frames = lul_frames + 1
-            If lul_frames >= 180000 Then
+            If lul_frames >= UL_FRAMES_PER_HOUR Then
                 guw_key_code = 0        ' signal the timeout
                 gub_key_char = 0
                 Return
             End If
         Loop Until lub_code <> 0
 
-        ' the ] key (symbol shift and U) is the core's own: it turns the live monitor on and off, whatever stage is
-        ' running, and is never handed on, the wait simply carries on for the key the caller wanted, N.B: ] is no command
-        ' in either of Moria's key sets, nor the wizard's, and it was the GRAPH key (caps shift and 9) until 16 October 2026,
-        ' when the author chose ] (and [ for the mini map)
-        If lub_code <> 93 Then Exit Do
-        gub_core_monitor = Not gub_core_monitor
-        If gub_core_monitor = 0 Then s_core_monitor( UB_LIB_MONITOR_CLEAR )
+        ' the } key (symbol shift and G) is the core's own: it goes round the live monitor's three, the memory, then the
+        ' memory and MMU 2's misses as well, then off, whatever stage is running, and is never handed on, the wait simply
+        ' carries on for the key the caller wanted, N.B: } is no command in either of Moria's key sets, nor the wizard's,
+        ' it was the GRAPH key (caps shift and 9) until 16 October 2026, then ], on and off, until 23 October 2026, when
+        ' sdo chose } and its three (and ] for the colours)
+        If lub_code <> UC_MONITOR_KEY Then Exit Do
+        gub_core_monitor = gub_core_monitor + 1
+        If gub_core_monitor > UB_MONITOR_MISSES Then gub_core_monitor = UB_MONITOR_OFF
+        If gub_core_monitor = UB_MONITOR_OFF Then s_core_monitor( UB_LIB_MONITOR_CLEAR )
     Loop
 
     ' populate the shared structure (fub_core_scan_key() has already set gub_key_modifiers)
     ' nobody presses a key at exactly the same moment twice, so how long this wait took is stirred into the number that seeds a new game
-    gul_core_entropy = gul_core_entropy * 33 + lul_frames
+    gul_core_entropy = gul_core_entropy * UB_ENTROPY_MULTIPLIER + lul_frames
 
     guw_key_code  = lub_code
     gub_key_char  = lub_code
@@ -683,10 +633,10 @@ Sub s_core_crash( pub_error_code As UByte , ps_error_text As String )
     Dim lub_error_row       As UByte
     Dim lub_error_col       As UByte
     Dim ls_error_message    As String
-    Dim lub_max_length      As UByte = 78
+    Dim lub_max_length      As UByte = UB_SCREEN_COLS - 2
 
     ' clear the last three lines...
-    For x = 29 To 31
+    For x = UB_CRASH_FIRST_ROW To UB_SCREEN_ROWS - 1
         s_core_clear_row( x , 0 , UB_BLACK )
     Next x
 
@@ -699,8 +649,8 @@ Sub s_core_crash( pub_error_code As UByte , ps_error_text As String )
     End If
 
     ' calculate positions based on the final message length...
-    lub_error_row = 30
-    lub_error_col = ( 80 - Len( ls_error_message ) ) / 2
+    lub_error_row = UB_CRASH_ROW
+    lub_error_col = ( UB_SCREEN_COLS - Len( ls_error_message ) ) / 2
 
     ' display centered error message
     s_core_print_string_at( lub_error_row , lub_error_col , ls_error_message , UB_BRIGHT_RED )
@@ -756,34 +706,35 @@ Sub s_core_swap_paged_data( pub_slot As UByte , pub_page_number As UByte )
         call core_swap_data_count
 
         ; the third slot only: what kind of page it was that had to be fetched, for the live monitor, seven counts of
-        ; four bytes, see A_CORE_MMU2_KINDS in globals.bas, the numbers are the UB_PAGE_ constants
+        ; four bytes, see A_CORE_MMU2_KINDS in globals.bas, each kind from its first page in constants.bas upwards
+        ; N.B: until 21 October 2026 the numbers were typed out, and the objects' last page, 53, counted as the tables
         ld a, e
         cp 2
         jr nz, core_swap_data_end
         ld a, d
-        ld c, 24                        ; anything else
-        cp 89
+        ld c, 24                        ; anything else, from the scratch pages after the town's map up
+        cp UB_PAGE_TEST_SLOT0_1
         jr nc, core_swap_data_kind
-        ld c, 0                         ; 66 to 88, the dungeon's map and the town's
-        cp 66
+        ld c, 0                         ; the dungeon's map and the town's after it
+        cp UB_PAGE_DUNGEON_MAP
         jr nc, core_swap_data_kind
-        ld c, 24                        ; 64 and 65, the screens, count as anything else
-        cp 64
+        ld c, 24                        ; the screens count as anything else
+        cp UB_PAGE_SCREENS
         jr nc, core_swap_data_kind
-        ld c, 20                        ; 63, what the player knows
-        cp 63
+        ld c, 20                        ; what the player knows
+        cp UB_PAGE_KNOWLEDGE
         jr nc, core_swap_data_kind
-        ld c, 16                        ; 55 to 62, the strings
-        cp 55
+        ld c, 16                        ; the strings, their index and their text
+        cp UB_PAGE_STRINGS_INDEX
         jr nc, core_swap_data_kind
-        ld c, 12                        ; 53 and 54, the tables
-        cp 53
+        ld c, 12                        ; the tables
+        cp UB_PAGE_GAME_TABLES
         jr nc, core_swap_data_kind
-        ld c, 8                         ; 50 to 52, the objects
-        cp 50
+        ld c, 8                         ; the objects
+        cp UB_PAGE_OBJECTS_DB
         jr nc, core_swap_data_kind
-        ld c, 4                         ; 47 to 49, the creatures
-        cp 47
+        ld c, 4                         ; the creatures
+        cp UB_PAGE_CREATURES_DB
         jr nc, core_swap_data_kind
         ld c, 24
     core_swap_data_kind:
@@ -891,7 +842,7 @@ Function fub_core_file_transfer( ps_name As String , pub_page As UByte , pub_wri
     ' that is why this works in whole pages, the caller says which page and we fetch it ourselves
     Dim i , lub_length , lub_result As UByte
 
-    If Len( ps_name ) = 0 Or Len( ps_name ) > 63 Then Return 254
+    If Len( ps_name ) = 0 Or Len( ps_name ) > UB_FILE_NAME_MAX Then Return UB_FILE_RESULT_BAD_NAME
     lub_length = Len( ps_name )
     For i = 0 To lub_length - 1
         Poke @core_file_name + i , Code( ps_name( i ) )
@@ -900,36 +851,36 @@ Function fub_core_file_transfer( ps_name As String , pub_page As UByte , pub_wri
 
     ' bring the page in question into MMU 3, and lend the bottom of memory to the system...
     ' N.B: file calls need the 48K BASIC ROM in particular, which is the ROM that is selected when a nex file is started,
-    ' so we rely on that and do not select it ourselves... nextreg $8E can select it, but writing to $8E also puts
+    ' so we rely on that and do not select it ourselves... nextreg NEXTREG_MEMORY_128K can select it, but writing to $8E also puts
     ' the system's own pages back into MMU 6 and 7, i.e. it swaps our core data and our stack out from under us
     s_core_next_reg( MMU_SLOT_PAGED_CODE , pub_page )
-    s_core_next_reg( MMU_SLOT_0 , 255 )         ' 255 = the ROM
-    s_core_next_reg( MMU_SLOT_1 , 255 )
-    s_core_next_reg( MMU_SLOT_2 , 10 )          ' page 10 = the system variables
+    s_core_next_reg( MMU_SLOT_0 , UB_PAGE_ROM )
+    s_core_next_reg( MMU_SLOT_1 , UB_PAGE_ROM )
+    s_core_next_reg( MMU_SLOT_2 , UB_PAGE_SYSTEM_VARIABLES )
 
     ' N.B: these are set here, and not earlier, because s_core_next_reg() uses the same shared scratch variables
     ' gub_core_file_plan says which of the steps below this call takes: 1 open the file, 2 seek, 4 close it afterwards,
     ' 8 no reading or writing at all
     If pub_write Then
-        gub_shared_1 = $0E                      ' open for writing ($02), creating the file and deleting any existing one ($0C)
-        If gub_core_file_slot = 255 Then
-            gub_core_file_plan = 1 + 4          ' a file of one page: opened, written and closed
-        ElseIf gub_core_file_slot = 254 Then
-            gub_core_file_plan = 4 + 8          ' the file of many pages is finished with: closed, and nothing else
+        gub_shared_1 = UB_FILE_MODE_WRITE_NEW
+        If gub_core_file_slot = UB_FILE_SLOT_WHOLE Then
+            gub_core_file_plan = MB_FILE_PLAN_OPEN + MB_FILE_PLAN_CLOSE             ' opened, written and closed
+        ElseIf gub_core_file_slot = UB_FILE_SLOT_DONE Then
+            gub_core_file_plan = MB_FILE_PLAN_CLOSE + MB_FILE_PLAN_NO_DATA          ' closed, and nothing else
         ElseIf gub_core_file_slot = 0 Then
-            gub_core_file_plan = 1              ' the first page of many: opened, written, and left open for the rest
+            gub_core_file_plan = MB_FILE_PLAN_OPEN      ' the first page of many: opened, written, and left open for the rest
         Else
             gub_core_file_plan = 0              ' a later page: written where the last one ended
         End If
     Else
-        gub_shared_1 = $01                      ' open for reading ($01), the file must exist ($00)
-        gub_core_file_plan = 1 + 4
-        If gub_core_file_slot <> 255 Then gub_core_file_plan = 1 + 2 + 4
+        gub_shared_1 = UB_FILE_MODE_READ
+        gub_core_file_plan = MB_FILE_PLAN_OPEN + MB_FILE_PLAN_CLOSE
+        If gub_core_file_slot <> UB_FILE_SLOT_WHOLE Then gub_core_file_plan = MB_FILE_PLAN_OPEN + MB_FILE_PLAN_SEEK + MB_FILE_PLAN_CLOSE
     End If
     gub_shared_4 = pub_write
     guw_shared_1 = A_MMU_SLOT_PAGED_CODE        ' where the page is, $6000
-    guw_shared_2 = 8192                         ' how many bytes
-    guw_shared_3 = 8192                         ' how many were read or written, set here for the call that only closes
+    guw_shared_2 = UW_PAGE_SIZE                 ' how many bytes
+    guw_shared_3 = UW_PAGE_SIZE                 ' how many were read or written, set here for the call that only closes
 
     Asm
         push ix                     ; the compiler uses IX for this routine's own variables, and the calls want it for an address
@@ -1029,11 +980,11 @@ core_file_finished:
     ' ...255 means we never put one of our pages there, which for MMU 0 and 1 is the ROM, and for MMU 2 is page 10, as they already are
     s_core_next_reg( MMU_SLOT_0 , gub_core_MMU0_page_number )
     s_core_next_reg( MMU_SLOT_1 , gub_core_MMU1_page_number )
-    If gub_core_MMU2_page_number <> 255 Then s_core_next_reg( MMU_SLOT_2 , gub_core_MMU2_page_number )
+    If gub_core_MMU2_page_number <> UB_PAGE_NONE Then s_core_next_reg( MMU_SLOT_2 , gub_core_MMU2_page_number )
     ' ...and put back whichever stage was in MMU 3, it may well be the one that called us
     s_core_next_reg( MMU_SLOT_PAGED_CODE , gub_core_MMU3_page_number )
 
-    If lub_result = 0 And guw_shared_3 <> 8192 Then lub_result = 255
+    If lub_result = 0 And guw_shared_3 <> UW_PAGE_SIZE Then lub_result = UB_FILE_RESULT_SHORT
     Return lub_result
 
     ' the file name, as the system wants it: the characters followed by a 0, this is 64 bytes set aside inside the code...
@@ -1066,9 +1017,9 @@ Sub s_core_nothing_to_return_to()
     ' whose reset does not start the Next again, see s_core_return_to_zxos(), which is how this is reached. Say so, and
     ' stop: the processor has been reset, so interrupts are off and stay off, nothing here may wait for one
     s_core_clear_screen()
-    s_core_print_string_at( 14 , 31 , "ZXMoria has ended." , UB_BRIGHT_WHITE )
-    s_core_print_string_at( 16 , 7 , "This emulator cannot go back to NextZXOS by itself: close it, or reset it," , UB_WHITE )
-    s_core_print_string_at( 17 , 7 , "and start the game again to play on." , UB_WHITE )
+    s_core_print_string_at( UB_ENDED_TITLE_ROW , UB_ENDED_TITLE_COL , "ZXMoria has ended." , UB_BRIGHT_WHITE )
+    s_core_print_string_at( UB_ENDED_TEXT_ROW , UB_ENDED_TEXT_COL , "This emulator cannot go back to NextZXOS by itself: close it, or reset it," , UB_WHITE )
+    s_core_print_string_at( UB_ENDED_TEXT_ROW + 1 , UB_ENDED_TEXT_COL , "and start the game again to play on." , UB_WHITE )
     Asm
 core_ended_for_good:
         di
@@ -1389,7 +1340,7 @@ Function fuw_core_map_square( pub_first_page As UByte , pub_row As UByte , pub_c
 
     core_map_square_fetch:
         push af                         ; the page, the second parameter of s_core_swap_paged_data(), goes on first
-        ld a, 2                         ; UB_SLOT_DB_MAPS, its first
+        ld a, UB_SLOT_DB_MAPS           ; its first
         push af
         call _s_core_swap_paged_data
 
@@ -1401,11 +1352,11 @@ Function fuw_core_map_square( pub_first_page As UByte , pub_row As UByte , pub_c
         add hl, hl
         add hl, hl                      ; HL = column * 8, 2040 at most, so H is 7 at most
         ld a, (ix+7)
-        and 3
+        and UB_MAP_ROWS_PER_PAGE - 1
         add a, a
         add a, a
         add a, a                        ; ( row mod 4 ) * 8, which is the high byte of ( row mod 4 ) * 2048
-        add a, $40                      ; the high byte of A_MMU_SLOT_PAGED_DB_MAPS, $4000
+        add a, A_MMU_SLOT_PAGED_DB_MAPS >> 8    ; its high byte
         add a, h
         ld h, a
         jp _fuw_core_map_square__leave  ; the answer is in HL
@@ -1413,7 +1364,7 @@ Function fuw_core_map_square( pub_first_page As UByte , pub_row As UByte , pub_c
     Return 0        ' never reached, it is only here because the compiler expects a Function to end with a Return
 End Function
 
-Sub s_core_message_push()
+Sub s_core_history_push()
     ' the message that was showing goes into the history, Moria's messages[], the last 22 of them are kept, 80
     ' bytes each, in a page of their own, as a ring: gub_log_next is where the next one will go
     Dim lub_saved   As UByte
@@ -1422,19 +1373,70 @@ Sub s_core_message_push()
 
     lub_saved = gub_core_MMU1_page_number
     s_core_swap_paged_data( UB_SLOT_ITEMS , UB_PAGE_MESSAGES )
-    luw_at = A_MMU_SLOT_1 + Cast( UInteger , gub_log_next ) * 80
-    For i = 0 To 79
+    luw_at = A_MMU_SLOT_1 + Cast( UInteger , gub_log_next ) * UB_MESSAGE_SIZE
+    ' N.B: the line is blanked as it is put away, the next message is written into it a character at a time and two
+    ' put side by side leave a gap that nothing writes, which showed what an earlier message had left there (found
+    ' 20 October 2026, Ctrl-P showed "Dropped a Cloak [1,+0].morThe Scruffy-Looking Hobbit hits you.")
+    For i = 0 To UB_MESSAGE_SIZE - 1
         If i < gub_log_length Then
             Poke luw_at + i , Peek( A_MESSAGE_LINE + i )
         Else
             Poke luw_at + i , 0
         End If
+        Poke A_MESSAGE_LINE + i , UC_SPACE
     Next
     gub_log_next = gub_log_next + 1
     If gub_log_next >= UB_MESSAGE_HISTORY Then gub_log_next = 0
     If gub_log_count < UB_MESSAGE_HISTORY Then gub_log_count = gub_log_count + 1
     gub_log_length = 0
-    If lub_saved <> 255 Then s_core_swap_paged_data( UB_SLOT_ITEMS , lub_saved )
+    If lub_saved <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_ITEMS , lub_saved )
+End Sub
+
+
+Sub s_core_beep()
+    ' Moria's terminalBellSound(): a short beep from the speaker, if the player has "beep for invalid character" on,
+    ' about a tenth of a second at about 800Hz, for a key that is no command, in the dungeon or in a store
+    ' N.B: the speaker is bit 4 of port $FE, whose low three bits are the border, which is black and stays black,
+    ' and the timing is for the 28MHz the game runs at, 17,500 clock cycles between one flip of the speaker
+    ' and the next
+    ' N.B: it was in the walking stage and the store, a copy in each, until 20 October 2026
+    If ( guw_game_options bAnd MW_OPTION_BEEP ) = 0 Then Return
+    Asm
+        ld hl, 160              ; how many times the speaker is flipped
+        ld e, 0
+core_beep_flip:
+        ld a, e
+        xor 16
+        ld e, a
+        out (UB_ULA_PORT), a
+        ld bc, 670              ; 26 clock cycles each time round
+core_beep_wait:
+        dec bc
+        ld a, b
+        or c
+        jr nz, core_beep_wait
+        dec hl
+        ld a, h
+        or l
+        jr nz, core_beep_flip
+        xor a
+        out (UB_ULA_PORT), a
+    End Asm
+End Sub
+
+
+Sub s_core_history_forget()
+    ' what is on the top row is not a message after all, and is not to go into the history: an answer as it was
+    ' typed (a rest's turns, an offer in a store), a prompt (which direction), a description (identify a character),
+    ' Moria shows those with putStringClearToEOL() or getStringInput() and keeps nothing of them for Ctrl-P
+    ' N.B: they are bright white on the top row, which is what makes a message, see s_core_print_char_at_logged()
+    ' (found 20 October 2026, Ctrl-P showed "                   999" from the rest's prompt)
+    Dim i As UByte
+
+    For i = 0 To UB_MESSAGE_SIZE - 1
+        Poke A_MESSAGE_LINE + i , UC_SPACE
+    Next
+    gub_log_length = 0
 End Sub
 
 
@@ -1450,12 +1452,12 @@ Sub s_core_print_char_at_logged( pub_x As UByte , pub_y As UByte , pub_char As U
         If pub_colour = UB_BRIGHT_WHITE Then
             ' N.B: a message ends a command that is being repeated, as Moria's printMessage() does
             guw_game_command_count = 0
-            If pub_y < 80 Then
+            If pub_y < UB_MESSAGE_SIZE Then
                 Poke A_MESSAGE_LINE + pub_y , pub_char
                 If pub_y >= gub_log_length Then gub_log_length = pub_y + 1
             End If
         ElseIf pub_y = 0 And gub_log_length <> 0 Then
-            s_core_message_push()
+            s_core_history_push()
         End If
     End If
     s_core_print_char_at( pub_x , pub_y , pub_char , pub_colour )
@@ -1489,17 +1491,24 @@ Function fub_core_map_symbol( pub_y As UByte , pub_x As UByte ) As UByte
     Dim lub_flags , lub_item , lub_feature , lub_monster    As UByte
 
     gub_map_is_monster = false
+    gub_map_colour     = 0
     luw_square  = fuw_core_map_at( pub_y , pub_x )
     lub_monster = Peek( luw_square + UB_SQUARE_MONSTER )
     ' N.B: a running player is not drawn, unless they have asked to be, Moria's run_print_self
     If lub_monster = 1 Then
         If gub_game_running = 0 Or ( guw_game_options bAnd MW_OPTION_PRINT_SELF ) <> 0 Then Return Code( "@" )
     End If
-    If ( gul_player_status bAnd UL_PY_BLIND ) <> 0 Then Return 32
+    If ( gul_player_status bAnd UL_PY_BLIND ) <> 0 Then Return UC_SPACE
     ' a hallucinating player sees nonsense now and then, one square in twelve, N.B: as in Moria the dice are
     ' thrown only while they are hallucinating
     If gsw_player_image > 0 Then
-        If ful_core_random_number( 12 ) = 1 Then Return ful_core_random_number( 95 ) + 31
+        If ful_core_random_number( 12 ) = 1 Then
+            ' N.B: and a colour to go with the nonsense, ours, made from the symbol and not from a random number of its
+            ' own, which would put the random numbers out of step with Moria's
+            lub_item = ful_core_random_number( 95 ) + 31
+            gub_map_colour = ( UB_FIRST_COLOUR_PAIR + ( lub_item bAnd 63 ) ) * 2
+            Return lub_item
+        End If
     End If
 
     lub_flags   = Peek( luw_square + UB_SQUARE_FLAGS )
@@ -1510,15 +1519,19 @@ Function fub_core_map_symbol( pub_y As UByte , pub_x As UByte ) As UByte
         luw_record = fuw_core_record_address( UB_SLOT_MONSTERS , gub_level_monsters_page , lub_monster )
         If Peek( luw_record + UB_MONSTER_LIT_OFFSET ) Then
             gub_map_is_monster = true
+            gub_map_colour     = Peek( luw_record + UB_MONSTER_COLOUR_OFFSET )
             Return Peek( luw_record + UB_MONSTER_SPRITE_OFFSET )
         End If
     End If
 
-    If ( lub_flags bAnd ( MB_SQUARE_PERM_LIGHT bOr MB_SQUARE_TEMP_LIGHT bOr MB_SQUARE_FIELD_MARK ) ) = 0 Then Return 32
+    If ( lub_flags bAnd ( MB_SQUARE_PERM_LIGHT bOr MB_SQUARE_TEMP_LIGHT bOr MB_SQUARE_FIELD_MARK ) ) = 0 Then Return UC_SPACE
 
     If lub_item <> 0 Then
         luw_record = fuw_core_record_address( UB_SLOT_ITEMS , gub_level_items_page , lub_item )
-        If Peek( luw_record + UB_ITEM_CATEGORY_OFFSET ) <> UB_TV_INVIS_TRAP Then Return Peek( luw_record + UB_ITEM_SPRITE_OFFSET )
+        If Peek( luw_record + UB_ITEM_CATEGORY_OFFSET ) <> UB_TV_INVIS_TRAP Then
+            gub_map_colour = Peek( luw_record + UB_ITEM_COLOUR_OFFSET )
+            Return Peek( luw_record + UB_ITEM_SPRITE_OFFSET )
+        End If
     End If
     If lub_feature <= UB_TILE_BLOCKED_FLOOR Then Return Code( "." )
     ' magma and quartz are drawn as % if the player has asked for the mineral seams to be shown
@@ -1527,6 +1540,33 @@ Function fub_core_map_symbol( pub_y As UByte , pub_x As UByte ) As UByte
     End If
     Return Code( "#" )
 End Function
+
+
+Sub s_core_load_palette()
+    ' the colours of things on the map, ours: their pairs of the tilemap's palette, from UB_FIRST_COLOUR_PAIR up, black
+    ' paper and the colour's ink, from the game tables page, where create-data.ps1 put them from src\colours.txt
+    ' N.B: once, as the core starts, the loader has written the screen's own 16 pairs below them, see load.bas
+    Dim lub_count , i , lub_saved   As UByte
+    Dim luw_at                      As UInteger
+
+    lub_saved = gub_core_MMU2_page_number
+    s_core_swap_paged_data( UB_SLOT_DB_MAPS , UB_PAGE_GAME_TABLES )
+    lub_count = Peek( A_TABLE_PALETTE )
+    s_core_next_reg( NEXTREG_PALETTE_CONTROL , %00110000 )          ' the tilemap's first palette, as the loader has it
+    s_core_next_reg( NEXTREG_PALETTE_INDEX , UB_FIRST_COLOUR_PAIR * 2 )
+    luw_at = A_TABLE_PALETTE + 1
+    i = 0
+    While i < lub_count
+        ' the paper, black, and the ink, each two writes, the second of which moves the index on
+        s_core_next_reg( NEXTREG_PALETTE_VALUE_9 , 0 )
+        s_core_next_reg( NEXTREG_PALETTE_VALUE_9 , 0 )
+        s_core_next_reg( NEXTREG_PALETTE_VALUE_9 , Peek( luw_at ) )
+        s_core_next_reg( NEXTREG_PALETTE_VALUE_9 , Peek( luw_at + 1 ) )
+        luw_at = luw_at + 2
+        i = i + 1
+    End While
+    If lub_saved <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved )
+End Sub
 
 
 Function fub_core_map_inside_panel( pub_y As UByte , pub_x As UByte ) As UByte
@@ -1539,12 +1579,16 @@ End Function
 
 Sub s_core_map_put( pub_y As UByte , pub_x As UByte )
     ' draws one square of the map, if it is in the window, Moria's dungeonLiteSpot()
-    ' N.B: Moria has no colours, these are ours: monsters red, the player green, the stairs magenta, things lying about cyan...
+    ' N.B: Moria has no colours, these are ours: each creature and thing its own, from src\colours.txt (see
+    ' create-data.ps1), a creature with none red, the player green, floor grey, walls white, or all of them white if
+    ' the player has chosen the plain map on the options screen
     Dim lub_symbol , lub_colour As UByte
 
     If fub_core_map_inside_panel( pub_y , pub_x ) = false Then Return
     lub_symbol = fub_core_map_symbol( pub_y , pub_x )
-    If gub_map_is_monster Then
+    If gub_map_colour <> 0 Then
+        lub_colour = gub_map_colour
+    ElseIf gub_map_is_monster Then
         lub_colour = UB_BRIGHT_RED
     Else
         lub_colour = UB_BRIGHT_CYAN                         ' things lying about
@@ -1554,6 +1598,8 @@ Sub s_core_map_put( pub_y As UByte , pub_x As UByte )
         If lub_symbol = Code( "<" ) Or lub_symbol = Code( ">" ) Then lub_colour = UB_BRIGHT_MAGENTA   ' the stairs, the one bright colour nothing else on the map has
         If lub_symbol >= Code( "1" ) And lub_symbol <= Code( "6" ) Then lub_colour = UB_BRIGHT_YELLOW
     End If
+    ' the purist's map, an option: every symbol white, the player, the monsters, the things and the store doors too
+    If ( guw_game_options bAnd MW_OPTION_PLAIN_MAP ) <> 0 Then lub_colour = UB_WHITE
     s_core_print_char_at( pub_y - gub_panel_top + UB_VIEW_SCREEN_ROW , pub_x - gub_panel_left + UB_VIEW_SCREEN_COL , lub_symbol , lub_colour )
 End Sub
 
@@ -1602,7 +1648,7 @@ Sub s_core_map_draw_panel()
             If y < gub_dungeon_rows And x < gub_dungeon_cols Then
                 s_core_map_put( y , x )
             Else
-                s_core_print_char_at( y - gub_panel_top + UB_VIEW_SCREEN_ROW , x - gub_panel_left + UB_VIEW_SCREEN_COL , 32 , UB_WHITE )
+                s_core_print_char_at( y - gub_panel_top + UB_VIEW_SCREEN_ROW , x - gub_panel_left + UB_VIEW_SCREEN_COL , UC_SPACE , UB_WHITE )
             End If
         Next
     Next
@@ -1668,7 +1714,7 @@ Sub s_core_msg_more()
     s_core_print_string_at( 0 , lub_col , " -more-" , UB_BRIGHT_YELLOW )
     Do
         s_core_get_key()
-    Loop Until gub_key_char = 32 Or gub_key_char = 27 Or gub_key_char = 13 Or guw_key_code = 0
+    Loop Until gub_key_char = UC_SPACE Or gub_key_char = UC_ESCAPE Or gub_key_char = UC_ENTER Or guw_key_code = 0
 End Sub
 
 
@@ -1692,7 +1738,7 @@ Sub s_core_msg_text( puw_address As UInteger )
 
     ' a message is cut to 79 characters, as Moria's messageLinePrintMessage() cuts it
     lub_length = 0
-    While Peek( puw_address + lub_length ) <> 0 And lub_length < 79
+    While Peek( puw_address + lub_length ) <> 0 And lub_length < UB_MESSAGE_SIZE - 1
         lub_length = lub_length + 1
     End While
 
@@ -1715,6 +1761,19 @@ Sub s_core_msg_text( puw_address As UInteger )
     If lub_col = 0 Then
         gub_message_length = lub_length
     Else
+        ' the history keeps the two as Moria's messages[] keeps them, the old one, two spaces and the new one, where
+        ' the screen has them three columns apart (found 20 October 2026, Ctrl-P showed "Welcome to level 2.   Welcome
+        ' to level 3." with three spaces)
+        ' N.B: the two spaces are written, not taken for granted: until a message has been put away the line is noughts,
+        ' and the history kept "You are full.", a nought, a nought, "You have 4 Rations of Food.", which reads as the
+        ' first message alone (found 21 October 2026 by comparing the histories, the first two messages of a game)
+        Poke A_MESSAGE_LINE + gub_message_length , UC_SPACE
+        Poke A_MESSAGE_LINE + gub_message_length + 1 , UC_SPACE
+        For i = 0 To lub_length - 1
+            Poke A_MESSAGE_LINE + gub_message_length + 2 + i , Peek( puw_address + i )
+        Next
+        Poke A_MESSAGE_LINE + gub_message_length + 2 + lub_length , UC_SPACE
+        gub_log_length = gub_message_length + 2 + lub_length
         ' N.B: as Moria reckons it, the old message, two spaces, and the new one
         gub_message_length = gub_message_length + 2 + lub_length
     End If
@@ -1795,14 +1854,14 @@ Sub s_core_message_after( puw_before As UInteger , puw_string As UInteger )
         End While
     End If
     lub_saved_page = gub_core_MMU2_page_number
-    s_core_swap_paged_data( UB_SLOT_DB_MAPS , UB_PAGE_STRINGS_INDEX + Cast( UByte , puw_string >> 11 ) )
-    luw_entry  = A_MMU_SLOT_PAGED_DB_MAPS + ( ( puw_string bAnd 2047 ) << 2 )
+    s_core_swap_paged_data( UB_SLOT_DB_MAPS , UB_PAGE_STRINGS_INDEX + Cast( UByte , puw_string >> UB_STRINGS_PAGE_SHIFT ) )
+    luw_entry  = A_MMU_SLOT_PAGED_DB_MAPS + ( ( puw_string bAnd UW_STRINGS_PAGE_MASK ) << UB_STRING_ENTRY_SHIFT )
     lub_page   = Peek( luw_entry )
     luw_offset = Peek( UInteger , luw_entry + 1 )
-    lub_length = Peek( luw_entry + 3 )
+    lub_length = Peek( luw_entry + UB_STRING_ENTRY_LENGTH )
     s_core_swap_paged_data( UB_SLOT_DB_MAPS , UB_PAGE_STRINGS_TEXT + lub_page )
     s_core_ram_copy( A_MMU_SLOT_PAGED_DB_MAPS + luw_offset , A_TEXT_BUFFER + i , lub_length )
-    If lub_saved_page <> 255 Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved_page )
+    If lub_saved_page <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved_page )
 
     s_core_msg_text( A_TEXT_BUFFER )
 End Sub
@@ -1836,7 +1895,7 @@ Function ful_core_recall( puw_creature As UInteger , pub_what As UByte , pul_val
 
     lub_saved = gub_core_MMU1_page_number
     s_core_swap_paged_data( UB_SLOT_ITEMS , UB_PAGE_KNOWLEDGE )
-    luw_at = A_MMU_SLOT_1 + puw_creature * 20
+    luw_at = A_MMU_SLOT_1 + puw_creature * UB_RECALL_SIZE
 
     If pub_what = UB_RECALL_MOVEMENT Or pub_what = UB_RECALL_SPELLS Then
         luw_at     = luw_at + Cast( UInteger , pub_what ) * 4
@@ -1847,30 +1906,30 @@ Function ful_core_recall( puw_creature As UInteger , pub_what As UByte , pul_val
         Poke ULong luw_at , lul_answer
     ElseIf pub_what = UB_RECALL_SPELL_SEEN Then
         ' one more time it has been seen to cast, up to 15
-        lul_answer = Peek( ULong , luw_at + 4 )
-        If ( lul_answer bAnd 15 ) <> 15 Then lul_answer = lul_answer + 1
-        Poke ULong luw_at + 4 , lul_answer
+        lul_answer = Peek( ULong , luw_at + UB_RECALL_OFFSET_SPELLS )
+        If ( lul_answer bAnd UL_CS_FREQ ) <> UL_CS_FREQ Then lul_answer = lul_answer + 1
+        Poke ULong luw_at + UB_RECALL_OFFSET_SPELLS , lul_answer
     ElseIf pub_what = UB_RECALL_DEFENSES Then
-        luw_count = Peek( UInteger , luw_at + 12 ) bOr Cast( UInteger , pul_value )
-        Poke UInteger luw_at + 12 , luw_count
+        luw_count = Peek( UInteger , luw_at + UB_RECALL_OFFSET_DEFENSES ) bOr Cast( UInteger , pul_value )
+        Poke UInteger luw_at + UB_RECALL_OFFSET_DEFENSES , luw_count
         lul_answer = luw_count
     ElseIf pub_what = UB_RECALL_KILLS Or pub_what = UB_RECALL_DEATHS Then
-        luw_at    = luw_at + 8
-        If pub_what = UB_RECALL_DEATHS Then luw_at = luw_at + 2
+        luw_at    = luw_at + UB_RECALL_OFFSET_KILLS
+        If pub_what = UB_RECALL_DEATHS Then luw_at = luw_at + ( UB_RECALL_OFFSET_DEATHS - UB_RECALL_OFFSET_KILLS )
         luw_count = Peek( UInteger , luw_at )
-        If pul_value <> 0 And luw_count < 32767 Then luw_count = luw_count + 1
+        If pul_value <> 0 And luw_count < UW_RECALL_COUNT_MAX Then luw_count = luw_count + 1
         Poke UInteger luw_at , luw_count
         lul_answer = luw_count
     Else
         ' wake, ignore and the four attacks, a byte each, in that order
-        luw_at    = luw_at + 14 + ( pub_what - UB_RECALL_WAKE )
+        luw_at    = luw_at + UB_RECALL_OFFSET_WAKE + ( pub_what - UB_RECALL_WAKE )
         luw_count = Peek( luw_at )
-        If pul_value <> 0 And luw_count < 255 Then luw_count = luw_count + 1
+        If pul_value <> 0 And luw_count < UB_RECALL_BYTE_MAX Then luw_count = luw_count + 1
         Poke luw_at , luw_count
         lul_answer = luw_count
     End If
 
-    If lub_saved <> 255 Then s_core_swap_paged_data( UB_SLOT_ITEMS , lub_saved )
+    If lub_saved <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_ITEMS , lub_saved )
     Return lul_answer
 End Function
 
@@ -1889,19 +1948,19 @@ Function fub_core_print_text_at( pub_row As UByte , pub_col As UByte , puw_addre
     luw_at   = 0
     Do
         lub_char = Peek( puw_address + luw_at )
-        If lub_char = 0 Or luw_at = 250 Then Exit Do
+        If lub_char = 0 Or luw_at = UB_TEXT_PRINT_MAX Then Exit Do
 
         ' at the start of each word: if the whole word will not fit on what is left of this row, start the next row...
         ' ...unless we are already at the start of a row, a word longer than a row just has to be split
-        If lub_char <> 32 And lub_col > pub_col Then
+        If lub_char <> UC_SPACE And lub_col > pub_col Then
             lub_word = 0
             If luw_at = 0 Then
                 lub_word = 1
-            ElseIf Peek( puw_address + luw_at - 1 ) = 32 Then
+            ElseIf Peek( puw_address + luw_at - 1 ) = UC_SPACE Then
                 lub_word = 1
             End If
             If lub_word = 1 Then
-                While Peek( puw_address + luw_at + lub_word ) <> 0 And Peek( puw_address + luw_at + lub_word ) <> 32 And lub_word < UB_SCREEN_COLS
+                While Peek( puw_address + luw_at + lub_word ) <> 0 And Peek( puw_address + luw_at + lub_word ) <> UC_SPACE And lub_word < UB_SCREEN_COLS
                     lub_word = lub_word + 1
                 End While
                 If Cast( UInteger , lub_col ) + lub_word > UB_SCREEN_COLS Then
@@ -1918,7 +1977,7 @@ Function fub_core_print_text_at( pub_row As UByte , pub_col As UByte , puw_addre
         End If
 
         ' a space is not printed at the start of a row that the text has carried over on to
-        If lub_char = 32 And lub_col = pub_col And lub_rows > 1 Then
+        If lub_char = UC_SPACE And lub_col = pub_col And lub_rows > 1 Then
             ' nothing
         Else
             s_core_print_char_at( lub_row , lub_col , lub_char , pub_colour )
@@ -1943,7 +2002,7 @@ Function fs_core_text_at( puw_address As UInteger ) As String
 
     Do
         lub_char = Peek( puw_address + lub_count )
-        If lub_char = 0 Or lub_count = 160 Then Exit Do
+        If lub_char = 0 Or lub_count = UB_TEXT_STRING_MAX Then Exit Do
         ls_text   = ls_text + fs_core_char( lub_char )
         lub_count = lub_count + 1
     Loop
@@ -1968,21 +2027,21 @@ Sub s_core_main_vars()
     gul_core_MMU3_page_swaps  = 0
     ' the three paged data slots, 255 is the number the Next uses for "the ROM", and it is not one of our pages...
     ' ...so it stands for "nothing of ours is in this slot yet", the slots still hold whatever the system left there
-    gub_core_MMU0_page_number = 255
+    gub_core_MMU0_page_number = UB_PAGE_NONE
     gul_core_MMU0_cache_hits  = 0
     gul_core_MMU0_page_swaps  = 0
-    gub_core_MMU1_page_number = 255
+    gub_core_MMU1_page_number = UB_PAGE_NONE
     gul_core_MMU1_cache_hits  = 0
     gul_core_MMU1_page_swaps  = 0
-    gub_core_MMU2_page_number = 255
-    gub_core_file_slot        = 255         ' a file is one page and no more unless a caller says otherwise
+    gub_core_MMU2_page_number = UB_PAGE_NONE
+    gub_core_file_slot        = UB_FILE_SLOT_WHOLE  ' a file is one page and no more unless a caller says otherwise
     gul_core_MMU2_cache_hits  = 0
     gul_core_MMU2_page_swaps  = 0
 
     s_core_ram_copy( 0, 0, 0 )           ' to stop the compiler optimizer from dropping this routine...
     s_core_clear_screen()                ' start with a blank screen, and this call also stops the optimizer from dropping the routine...
-    If gub_core_end Then s_core_countdown( 0 , 0 , 0 , 0 )      ' never actually runs, it is only here to stop the optimizer from dropping the routine...
-    If gub_core_end Then s_core_swap_paged_data( 255 , 0 )     ' ditto
+    s_core_load_palette()
+    If gub_core_end Then s_core_swap_paged_data( 255 , 0 )     ' never actually runs, it is only here to stop the optimizer from dropping the routine...
     If gub_core_end Then s_core_nothing_to_return_to()         ' ditto, it is only ever reached by a jump, see s_core_return_to_zxos()
     If gub_core_end Then gub_shared_1 = fub_core_file_save_page( "" , 0 )      ' ditto
     If gub_core_end Then gub_shared_1 = fub_core_file_load_page( "" , 0 )      ' ditto
@@ -2008,19 +2067,21 @@ Sub s_core_main_vars()
     If gub_core_end Then s_core_msg_flush()                                    ' ditto
     If gub_core_end Then gub_shared_1 = fub_core_lib_call( 0 , 0 , 0 , 0 )      ' ditto
     If gub_core_end Then guw_shared_1 = fuw_core_random_word( 1 )              ' ditto
+    If gub_core_end Then s_core_history_forget()                               ' ditto
+    If gub_core_end Then s_core_beep()                                         ' ditto
 
     ' no messages yet
     gub_log_length = 0
     gub_log_next   = 0
     gub_log_count  = 0
 
-    ' nothing is known about any kind of creature yet, the monster memory is the first 5580 bytes of its page
+    ' nothing is known about any kind of creature yet, the monster memory is the first UW_MONSTER_MEMORY_SIZE bytes of its page
     ' N.B: this is done once, when the program starts, as in Moria what one character learns the next one knows
     s_core_swap_paged_data( UB_SLOT_ITEMS , UB_PAGE_KNOWLEDGE )
     Asm
         ld hl, A_MMU_SLOT_1
         ld de, A_MMU_SLOT_1 + 1
-        ld bc, 5579
+        ld bc, UW_MONSTER_MEMORY_SIZE - 1
         ld (hl), 0
         ldir
     End Asm
@@ -2039,7 +2100,7 @@ Sub s_core_main()
     ' (the paged data slots, a file saved and loaded, the random numbers, the records, the databases) and "Press any
     ' key to begin...", the stage stage-init.bas, which has been taken out, git has it
     gub_core_stage   = UB_STAGE_SPLASH
-    gub_core_monitor = false        ' the live monitor starts out off, the ] key turns it on, see s_core_get_key()
+    gub_core_monitor = UB_MONITOR_OFF   ' the live monitor starts out off, the } key turns it on, see s_core_get_key()
     Do
         ' N.B: gub_core_stage holds a UB_STAGE_ number, which is not the same thing as a UB_PAGED_CODE_ page number
         If gub_core_stage = UB_STAGE_SPLASH Then
@@ -2053,16 +2114,19 @@ Sub s_core_main()
             ' ...and a game started as a wizard, Ctrl-W on the opening screen, Moria's -w, may bring back a character
             ' who has died, the save library asks, they then arrive in the town, made afresh, as Moria's do
             s_core_call_library( UB_PAGED_CODE_LIB_SAVE , UB_LIB_SAVE_RESTORE )
-            If gsw_lib_result = 3 Then
+            If gsw_lib_result = UB_RESTORE_BAD_FILE Then
                 ' a save that will not do, Moria's "Error during reading of file.": the game ends, and leaves it be
                 gub_core_end = true
             ElseIf gsw_lib_result <> 0 Then
-                If gsw_lib_result = 2 Then
+                If gsw_lib_result = UB_RESTORE_RESURRECTED Then
+                    ' the colours of the saved game's flavours, see s_ob_flavour_colours() in stage-lib-objects.bas
+                    s_core_call_library( UB_PAGED_CODE_LIB_OBJECTS , UB_LIB_OBJECTS_FLAVOUR_COLOURS )
                     ' N.B: a character brought back is not in wizard mode, Moria's resurrection clears to_be_wizard
                     gub_core_to_be_wizard = false
                     gub_core_request = UB_REQUEST_RESURRECTED
                     gub_core_stage   = UB_STAGE_CREATE_TOWN
                 Else
+                    s_core_call_library( UB_PAGED_CODE_LIB_OBJECTS , UB_LIB_OBJECTS_FLAVOUR_COLOURS )
                     gub_core_request = UB_REQUEST_RESUME
                     gub_core_stage   = UB_STAGE_CRAWL
                     ' a game started as a wizard is in wizard mode, Moria's enterWizardMode() after loadGame(), and if
@@ -2095,7 +2159,7 @@ Sub s_core_main()
                 Asm
                     ld hl, A_PLAYER
                     ld de, A_PLAYER + 1
-                    ld bc, 767
+                    ld bc, UW_PLAYER_SIZE - 1
                     ld (hl), 0
                     ldir
                 End Asm
@@ -2132,13 +2196,13 @@ Sub s_core_main()
             s_core_call_library( UB_PAGED_CODE_LIB_INVENTORY , UB_LIB_INV_NEW_CHARACTER )
             gsw_player_food          = 7500
             gsw_player_food_digested = 2
-            ' no spells have been learnt yet, 99 marks the end of the order they were learnt in, and then how many
+            ' no spells have been learnt yet, UB_SPELL_ORDER_END marks the end of the order they were learnt in, and then how many
             ' the character may learn, and their mana, are worked out, for those who have spells at all
             Asm
                 ld hl, A_PLAYER_SPELL_ORDER
                 ld de, A_PLAYER_SPELL_ORDER + 1
-                ld bc, 31
-                ld (hl), 99
+                ld bc, UB_SPELL_ORDER_SIZE - 1
+                ld (hl), UB_SPELL_ORDER_END
                 ldir
             End Asm
             s_core_call_library( UB_PAGED_CODE_LIB_MAGIC , UB_LIB_MAGIC_CALC )
@@ -2157,6 +2221,8 @@ Sub s_core_main()
             End If
             ' what the unidentified items look like in this game is decided now, as in Moria, after the character is made
             s_core_call_library( UB_PAGED_CODE_LIB_ITEMS , UB_LIB_ITEMS_NEW_GAME )
+            ' ...and so what colour each of them is on the map, see s_ob_flavour_colours() in stage-lib-objects.bas
+            s_core_call_library( UB_PAGED_CODE_LIB_OBJECTS , UB_LIB_OBJECTS_FLAVOUR_COLOURS )
             ' a new character starts in the town, level 0, at turn 0, which is by day
             guw_dungeon_level = 0
             ' N.B: -1, as Moria's dg.game_turn starts out, so that the first turn played is turn 0 and not turn 1: it was 0 here

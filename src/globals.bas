@@ -36,7 +36,7 @@ Dim gul_core_MMU2_page_swaps     As ULong    At A_CORE + 32
 Dim gub_core_stage               As UByte    At A_CORE + 36
 Dim gub_core_to_be_wizard        As UByte    At A_CORE + 37  ' true if the game was started as a wizard, Ctrl-W on the opening screen, Moria's -w, see stage-splash.bas
 Dim gub_core_end                 As UByte    At A_CORE + 43  ' flag for end
-Dim gub_core_monitor             As UByte    At A_CORE + 44  ' true while the live monitor is on, the ] key changes it, see s_core_get_key()
+Dim gub_core_monitor             As UByte    At A_CORE + 44  ' UB_MONITOR_OFF, UB_MONITOR_MEMORY or UB_MONITOR_MISSES, the } key changes it, see s_core_get_key()
 Dim guw_core_stack_pos           As UInteger At A_CORE + 45  ' last known stack position
 Dim guw_core_heap_top            As UInteger At A_CORE + 47  ' last known top of heap
 ' the library: which of a library page's routines is wanted, and what is passed to it, see s_core_call_library() in core.bas
@@ -139,6 +139,7 @@ Dim gub_panel_left      As UByte    At A_GAME + 52
 Dim gub_panel_right     As UByte    At A_GAME + 53
 Dim gsb_panel_max_rows  As Byte     At A_GAME + 54      ' the last half window the window may start at, down and across
 Dim gsb_panel_max_cols  As Byte     At A_GAME + 55
+Dim gub_map_colour      As UByte    At A_GAME + 30      ' ours: the colour of the last symbol fub_cr_symbol() gave, 0 for the usual one
 Dim gub_map_is_monster  As UByte    At A_GAME + 56      ' true if the last symbol fub_cr_symbol() gave was a monster's
 ' the player, this is Moria's Player_t, everything about the character except what they carry...
 ' ...Moria's "misc" part
@@ -228,7 +229,8 @@ Dim gub_player_resist_acid      As UByte    At A_PLAYER + 433
 Dim gub_player_regenerate_hp    As UByte    At A_PLAYER + 434
 Dim gub_player_resist_light     As UByte    At A_PLAYER + 435
 Dim gub_player_free_fall        As UByte    At A_PLAYER + 436
-Dim gub_player_sustain_str      As UByte    At A_PLAYER + 437
+#define A_PLAYER_SUSTAIN        A_PLAYER + 437      ' size 6, the six sustain flags, strength first, in the order of the stats
+Dim gub_player_sustain_str      As UByte    At A_PLAYER_SUSTAIN
 Dim gub_player_sustain_int      As UByte    At A_PLAYER + 438
 Dim gub_player_sustain_wis      As UByte    At A_PLAYER + 439
 Dim gub_player_sustain_con      As UByte    At A_PLAYER + 440
@@ -241,6 +243,8 @@ Dim gul_player_spells_learnt    As ULong    At A_PLAYER + 445   ' one bit per sp
 Dim gul_player_spells_worked    As ULong    At A_PLAYER + 449   ' tried and worked
 Dim gul_player_spells_forgotten As ULong    At A_PLAYER + 453
 #define A_PLAYER_SPELL_ORDER    A_PLAYER + 457      ' 32 bytes, the order the spells were learnt in
+#define UB_SPELL_ORDER_SIZE     32                  ' Moria's spells_learned_order[32]
+#define UB_SPELL_ORDER_END      99                  ' marks the first free place in that order, as Moria's 99 does
 
 ' ...the rest of Moria's Player_t
 Dim gub_player_row              As UByte    At A_PLAYER + 489   ' where the player is on the map (pos)
@@ -262,7 +266,7 @@ Dim guw_game_options            As UInteger At A_PLAYER + 590   ' the player's o
 Dim gub_minimap_mode            As UByte    At A_PLAYER + 593   ' ours: the mini map, 0 off, 1 one square to a pixel, 2 two by two squares to a pixel, see stage-lib-minimap.bas
 Dim gub_minimap_rebuild         As UByte    At A_PLAYER + 594   ' ours: true when the mini map's bitmap must be made again from the map before it is next drawn
 Dim gub_game_rest_broken        As UByte    At A_PLAYER + 592   ' true when a monster's turn has ended a rest and the screen has yet to be told, see s_mon_disturb() in stage-disturb-include.bas
-#define UW_PLAYER_SIZE          595                 ' how much of the 768 bytes is used so far
+#define UW_PLAYER_USED          595                 ' how much of the UW_PLAYER_SIZE bytes is used so far
 
 ' the player's race and class, 64 byte records from the character database, kept in the core data once chosen...
 ' ...the layouts are set by create-data.ps1, the names are 16 bytes of text ending in a 0 at A_RACE and A_CLASS themselves
@@ -299,7 +303,7 @@ Dim gub_class_bth               As UByte    At A_CLASS + 21
 Dim gub_class_bth_bows          As UByte    At A_CLASS + 22
 Dim gub_class_saving_throw      As UByte    At A_CLASS + 23
 ' N.B: A_CLASS + 24 to + 29 are the six stat adjustments, signed bytes, in the usual order
-Dim gub_class_spell_type        As UByte    At A_CLASS + 30     ' 0 none, 1 mage's spells, 2 priest's prayers
+Dim gub_class_spell_type        As UByte    At A_CLASS + 30     ' a UB_SPELL_TYPE_ value: none, the mage's spells or the priest's prayers
 Dim gub_class_exp_factor        As UByte    At A_CLASS + 31
 Dim gub_class_first_spell_level As UByte    At A_CLASS + 32
 Dim gub_class_adj_bth           As UByte    At A_CLASS + 33     ' what each level adds: to hit...
@@ -356,6 +360,8 @@ Dim gsl_item_store_cost         As Long     At A_ITEM + 20      ' in a store's s
 #define UB_ITEM_TO_AC_OFFSET    54
 #define UB_ITEM_SUB_CATEGORY_OFFSET 44
 #define UB_ITEM_COUNT_OFFSET    45
+#define UB_ITEM_OBJECT_FIELDS   32      ' an item's fields from here on are its object's, Moria's inventoryItemCopyTo() copies them
+#define UB_ITEM_COLOUR_OFFSET   59      ' ours: an object's, and so an item's, attribute byte on the map, see colours.txt
 #define UB_ITEM_CATEGORY_OFFSET 36      ' where the category is in an item record, for reading it straight from the paged data
 #define UB_ITEM_SPRITE_OFFSET   37      ' ...and the sprite
 #define UB_ITEM_DEPTH_OFFSET    58      ' the depth this kind of thing is first found at
@@ -373,14 +379,17 @@ Dim gub_creature_sleep          As UByte    At A_CREATURE + 38  ' inactive count
 Dim gub_creature_area_radius    As UByte    At A_CREATURE + 39  ' area affect radius
 Dim gub_creature_ac             As UByte    At A_CREATURE + 40  ' armour class
 Dim gub_creature_speed          As UByte    At A_CREATURE + 41  ' movement speed + 10
-Dim gub_creature_sprite         As UByte    At A_CREATURE + 42  ' the character shown on the map
+#define UB_CREATURE_SPRITE_OFFSET   42              ' for reading it straight from another creature's record
+Dim gub_creature_sprite         As UByte    At A_CREATURE + UB_CREATURE_SPRITE_OFFSET  ' the character shown on the map
 Dim gub_creature_hit_dice       As UByte    At A_CREATURE + 43  ' hit points are this many dice...
 Dim gub_creature_hit_sides      As UByte    At A_CREATURE + 44  ' ...of this many sides
-Dim gub_creature_attack_1       As UByte    At A_CREATURE + 45  ' up to four attacks, each the number of an entry in the monster attacks table
+#define UB_CREATURE_ATTACKS_OFFSET  45              ' the four attacks, a byte each
+Dim gub_creature_attack_1       As UByte    At A_CREATURE + UB_CREATURE_ATTACKS_OFFSET  ' up to four attacks, each the number of an entry in the monster attacks table
 Dim gub_creature_attack_2       As UByte    At A_CREATURE + 46
 Dim gub_creature_attack_3       As UByte    At A_CREATURE + 47
 Dim gub_creature_attack_4       As UByte    At A_CREATURE + 48
 Dim gub_creature_level          As UByte    At A_CREATURE + 49  ' the dungeon level it is first found on
+Dim gub_creature_colour         As UByte    At A_CREATURE + 50  ' ours: its attribute byte on the map, 0 for red, see colours.txt
 
 ' the working monster, i.e. one monster on the level, a 64 byte record from the level's monsters page...
 ' ...filled by s_core_fetch_record( UB_SLOT_MONSTERS , gub_level_monsters_page , <number> , A_MONSTER )...
@@ -404,10 +413,11 @@ Dim gub_monster_sprite          As UByte    At A_MONSTER + 14   ' ours: the crea
 #define UB_MONSTER_DISTANCE_OFFSET  10
 #define UB_MONSTER_LIT_OFFSET       11
 #define UB_MONSTER_SPRITE_OFFSET    14
+#define UB_MONSTER_COLOUR_OFFSET    15      ' ours: its creature's colour on the map, beside its symbol
+Dim gub_monster_colour          As UByte    At A_MONSTER + UB_MONSTER_COLOUR_OFFSET
 #define UB_MONSTER_CONFUSED_OFFSET  13
 #define UB_MONSTER_STUNNED_OFFSET   12
 #define UB_CREATURE_KILL_EXP_OFFSET 36      ' where the experience for a kill is in a creature record
-#define UB_CREATURE_ATTACKS_OFFSET  45      ' ...and its four attacks
 #define UB_CREATURE_SPELLS_OFFSET   30      ' 4 bytes
 #define UB_CREATURE_DEFENSES_OFFSET 34      ' 2 bytes
 
@@ -432,3 +442,236 @@ Dim gub_object_damage_sides     As UByte    At A_OBJECT + 57    ' ...of this man
 Dim gub_object_depth            As UByte    At A_OBJECT + 58    ' the dungeon level it is first found on
 
 '##################################################################################################################################
+
+'##################################################################################################################################
+' --- EACH STAGE'S AND LIBRARY'S OWN STORAGE, moved here from their own files on 22 October 2026, file by file ---
+' N.B: a library's private storage, A_LIB_PRIVATE, is its own and no other's, the heading over each part says whose,
+' and tools\check-addresses.ps1 checks each part with that module, see there
+
+' --- private to stage-aim-include.bas (its own, moved here from it on 22 October 2026) ---
+Dim gub_aim_y               As UByte    At A_LIB_PRIVATE            ' the square the spell has reached
+Dim gub_aim_x               As UByte    At A_LIB_PRIVATE + 1
+Dim gub_aim_distance        As UByte    At A_LIB_PRIVATE + 2        ' how far it has gone
+
+' --- private to stage-create-dungeon.bas (its own, moved here from it on 22 October 2026) ---
+' Moria keeps its working lists in arrays, we cannot have arrays in a stage (they would sit in front of the code),
+' so they live in the corridor scratchpad page, which this stage keeps in the first paged data slot (MMU 0) throughout...
+' ...each entry in a list is a row and a column, one byte each
+#define A_GEN_TUNNELS       A_MMU_SLOT_PAGED_CORRIDORS              ' 1000 entries, the squares of the tunnel being dug
+#define A_GEN_WALLS         A_MMU_SLOT_PAGED_CORRIDORS + 2000       ' 1000 entries, the room walls that tunnel has gone through
+#define A_GEN_DOORS         A_MMU_SLOT_PAGED_CORRIDORS + 4000       '  100 entries, where tunnels have met tunnels
+#define A_GEN_LOCATIONS     A_MMU_SLOT_PAGED_CORRIDORS + 4200       '  401 entries, the middle of each room
+#define A_GEN_ROOM_MAP      A_MMU_SLOT_PAGED_CORRIDORS + 5010       '  400 bytes, 20 by 20, which places on the grid get a room
+#define A_GEN_VARS          A_MMU_SLOT_PAGED_CORRIDORS + 5500
+Dim gub_gen_y               As UByte    At A_GEN_VARS           ' where the tunnel being dug has got to
+Dim gub_gen_x               As UByte    At A_GEN_VARS + 1
+Dim gub_gen_end_y           As UByte    At A_GEN_VARS + 2       ' where it is going
+Dim gub_gen_end_x           As UByte    At A_GEN_VARS + 3
+Dim gsb_gen_dir_y           As Byte     At A_GEN_VARS + 4       ' which way it is heading, -1, 0 or 1 each
+Dim gsb_gen_dir_x           As Byte     At A_GEN_VARS + 5
+Dim guw_gen_door_count      As UInteger At A_GEN_VARS + 6       ' how many entries are in the doors list
+
+' --- private to stage-fight-include.bas (its own, moved here from it on 22 October 2026) ---
+' what the fight library and the throw library share: asking for a direction, and stepping along it, stage-lib-fight.bas
+' and stage-lib-throw.bas include this file, each has its own copy of these routines
+' N.B: the page's own storage at A_LIB_PRIVATE + 64 and + 65 is used here
+Dim gub_ft_y                As UByte    At A_LIB_PRIVATE + 64       ' the square a direction leads to, or the thing in flight has reached
+Dim gub_ft_x                As UByte    At A_LIB_PRIVATE + 65
+
+' --- private to stage-lib-chests.bas (its own, moved here from it on 22 October 2026) ---
+Dim gub_ch_y                As UByte    At A_LIB_PRIVATE            ' where the chest is
+Dim gub_ch_x                As UByte    At A_LIB_PRIVATE + 1
+
+' --- private to stage-lib-commands-2.bas (its own, moved here from it on 22 October 2026) ---
+Dim gub_cm_rogue_dir        As UByte    At A_LIB_PRIVATE + 200      ' the direction that came with a rogue like command, 0 for none
+
+' --- private to stage-lib-commands.bas (its own, moved here from it on 22 October 2026) ---
+Dim gub_cm_last_was_ctrl_p  As UByte    At A_LIB_PRIVATE + 100      ' true if the last command was Ctrl-P, Moria's last_command
+
+' --- private to stage-lib-compact.bas (its own, moved here from it on 22 October 2026) ---
+#define A_CP_MONSTER        A_LIB_PRIVATE                           ' the working records, kept while the list is compacted
+#define A_CP_CREATURE       A_LIB_PRIVATE + UB_RECORD_SIZE
+#define A_CP_OBJECT         A_LIB_PRIVATE + UB_RECORD_SIZE * 2
+#define A_CP_ITEM           A_LIB_PRIVATE + UB_RECORD_SIZE * 3
+
+' --- private to stage-lib-equipment.bas (its own, moved here from it on 22 October 2026) ---
+#define A_EQ_SAVED              A_LIB_PRIVATE               ' 64 bytes, the item being put on, while its place is made ready
+Dim gub_eq_saved_page           As UByte    At A_LIB_PRIVATE + 64       ' the page the caller had in the first data slot, while the screen is put aside there
+Dim gub_eq_screen_saved         As UByte    At A_LIB_PRIVATE + 65
+
+' --- private to stage-lib-haggle-include.bas (its own, moved here from it on 22 October 2026) ---
+#define A_HG_INPUT              A_LIB_PRIVATE               ' 44 bytes, what the player has typed
+Dim gsw_hg_last_increment       As Integer  At A_LIB_PRIVATE + 44   ' the last "+10" style raise, so that just Enter repeats it (store_last_increment)
+Dim gsl_hg_new_offer            As Long     At A_LIB_PRIVATE + 46   ' the offer being made
+Dim gub_hg_store                As UByte    At A_LIB_PRIVATE + 50
+Dim guw_hg_state                As UInteger At A_LIB_PRIVATE + 51   ' where this store's 16 bytes of state are
+Dim gub_hg_owner_haggle         As UByte    At A_LIB_PRIVATE + 53   ' three things about the store's owner...
+Dim gub_hg_owner_max_inflate    As UByte    At A_LIB_PRIVATE + 54
+Dim gub_hg_owner_max_insults    As UByte    At A_LIB_PRIVATE + 55
+Dim gub_hg_owner_min_inflate    As UByte    At A_LIB_PRIVATE + 56
+Dim gub_hg_owner_race           As UByte    At A_LIB_PRIVATE + 57
+Dim gsw_hg_owner_max_cost       As Integer  At A_LIB_PRIVATE + 58   ' the most the owner will pay for anything
+
+' --- private to stage-lib-info.bas (its own, moved here from it on 22 October 2026) ---
+#define A_IN_MAP_ROW        A_LIB_PRIVATE               ' 66 bytes, one row of the reduced map while it is worked out
+Dim gub_in_saved_page       As UByte    At A_LIB_PRIVATE + 70       ' the page the caller had in the first data slot, while the screen is put aside there
+
+' --- private to stage-lib-items.bas (its own, moved here from it on 22 October 2026) ---
+#define A_D_VAL             A_LIB_PRIVATE               ' 176 bytes, the description as it is built up
+#define A_D_TAIL            A_LIB_PRIVATE + 176         ' 176 bytes, the rest of the text, while something is inserted in front of it
+#define A_D_DAM             A_LIB_PRIVATE + 352         '  24 bytes, the damage part, e.g. " (2d5)"
+Dim guw_d_base              As UInteger At A_LIB_PRIVATE + 376      ' the text being added to...
+Dim gub_d_len               As UByte    At A_LIB_PRIVATE + 378      ' ...and how long it is so far
+Dim gub_d_saved_page        As UByte    At A_LIB_PRIVATE + 379      ' the page the caller had in the third data slot
+
+' --- private to stage-lib-look.bas (its own, moved here from it on 22 October 2026) ---
+Dim gsb_lk_fxx              As Byte     At A_LIB_PRIVATE            ' how the cone's own x and y turn into columns and rows of the map
+Dim gsb_lk_fxy              As Byte     At A_LIB_PRIVATE + 1
+Dim gsb_lk_fyx              As Byte     At A_LIB_PRIVATE + 2
+Dim gsb_lk_fyy              As Byte     At A_LIB_PRIVATE + 3
+Dim gub_lk_no_query         As UByte    At A_LIB_PRIVATE + 4        ' a hack to prevent doubling up on direct lines of sight (los_hack_no_query)
+Dim gub_lk_transparent      As UByte    At A_LIB_PRIVATE + 5        ' whether the square last looked at can be seen past
+Dim gub_lk_seen             As UByte    At A_LIB_PRIVATE + 6        ' how many places something was seen at (los_num_places_seen)
+Dim gub_lk_rocks            As UByte    At A_LIB_PRIVATE + 7        ' 0 while looking at monsters and things, 1 on the second time round, for the kinds of rock (los_rocks_and_objects)
+
+' --- private to stage-lib-minimap.bas (its own, moved here from it on 22 October 2026) ---
+#define A_MM_FONT       A_MMU_SLOT_1 + UW_MM_FONT_SIZE     ' characters 128 to 255 of the font, page 10, while it is in MMU 1
+#define A_MM_BITS       A_MMU_SLOT_0            ' the bitmap, while its page is in MMU 0
+' ...and in this page's own storage: which of the 128 cells is the green one, the player's, 255 for none, see s_mm_player()
+#define A_MM_GREEN      A_LIB_PRIVATE
+
+' --- private to stage-lib-monster-attack-2.bas (its own, moved here from it on 22 October 2026) ---
+Dim gub_m2_quiet            As UByte    At A_LIB_PRIVATE + 16       ' true when the damage is a trap's, which has said its own piece
+
+' --- private to stage-lib-monster-attack.bas (its own, moved here from it on 22 October 2026) ---
+#define A_MA_NAME           A_LIB_PRIVATE               ' 40 bytes, how the attacker is spoken of: "The Kobold " or "It "
+
+' --- private to stage-lib-monster-moves.bas (its own, moved here from it on 22 October 2026) ---
+Dim gub_mm_wake             As UByte    At A_LIB_PRIVATE + 21       ' 1 if it woke, 2 if it stirred and slept on
+
+' --- private to stage-lib-monster-spells.bas (its own, moved here from it on 22 October 2026) ---
+#define A_MS_NAME           A_LIB_PRIVATE               ' 40 bytes, how the caster is spoken of: "The Kobold " or "It "
+#define A_MS_CHOICES        A_LIB_PRIVATE + 40          ' 30 bytes, the spells the caster knows
+Dim gub_ms_monster          As UByte    At A_LIB_PRIVATE + 72       ' the caster's number on the level
+
+' --- private to stage-lib-moves.bas (its own, moved here from it on 22 October 2026) ---
+#define A_MV_TEXT           A_LIB_PRIVATE               ' 240 bytes, a message as it is built up
+#define A_MV_SCAN_OLD       A_LIB_PRIVATE + 240         ' the item number being looked for on the map...
+#define A_MV_SCAN_NEW       A_LIB_PRIVATE + 241         ' ...and the number it is changed to
+Dim gub_mv_scan_old         As UByte    At A_MV_SCAN_OLD
+Dim gub_mv_scan_new         As UByte    At A_MV_SCAN_NEW
+Dim gub_mv_length           As UByte    At A_LIB_PRIVATE + 242      ' how long the message is so far
+Dim gub_mv_saved_page       As UByte    At A_LIB_PRIVATE + 243      ' the page the caller had in the third data slot
+Dim gub_mv_y                As UByte    At A_LIB_PRIVATE + 244      ' the square a direction leads to
+Dim gub_mv_x                As UByte    At A_LIB_PRIVATE + 245
+
+' --- private to stage-lib-player-attack.bas (its own, moved here from it on 22 October 2026) ---
+#define A_PA_MONSTER            A_LIB_PRIVATE               ' the working monster, put aside...
+#define A_PA_CREATURE           A_LIB_PRIVATE + UB_RECORD_SIZE  ' ...and its creature
+Dim gub_pa_seen_objects     As UByte    At A_LIB_PRIVATE + 128      ' how many of the things a dead monster left the player could see...
+Dim gub_pa_seen_gold        As UByte    At A_LIB_PRIVATE + 129      ' ...and how many piles of its gold
+Dim gul_pa_treasure         As ULong    At A_LIB_PRIVATE + 130      ' what that teaches the player about its kind, the bits of its "movement", Moria's monsterDeath() answer
+
+' --- private to stage-lib-run.bas (its own, moved here from it on 22 October 2026) ---
+Dim gub_rn_prev_dir         As UByte    At A_LIB_PRIVATE            ' the way the runner is taken to have come from (find_prevdir)
+Dim gub_rn_open_area        As UByte    At A_LIB_PRIVATE + 1        ' in the open on at least one side (find_openarea)
+Dim gub_rn_break_right      As UByte    At A_LIB_PRIVATE + 2        ' a wall on the right, stop if it opens (find_breakright)
+Dim gub_rn_break_left       As UByte    At A_LIB_PRIVATE + 3        ' the same on the left (find_breakleft)
+Dim gub_rn_y                As UByte    At A_LIB_PRIVATE + 4        ' the square fub_rn_step() last led to
+Dim gub_rn_x                As UByte    At A_LIB_PRIVATE + 5
+Dim gub_rn_check_dir        As UByte    At A_LIB_PRIVATE + 6        ' while looking round: the other diagonal beside the first way on
+Dim gub_rn_dir_a            As UByte    At A_LIB_PRIVATE + 7        ' the first way on, 0 for none yet
+Dim gub_rn_dir_b            As UByte    At A_LIB_PRIVATE + 8        ' the second
+
+' --- private to stage-lib-scores.bas (its own, moved here from it on 22 October 2026) ---
+#define A_SC_ENTRY          A_LIB_PRIVATE           ' a score put aside, while the table is made over or moved down
+#define A_SC_ITEM           A_LIB_PRIVATE + 128     ' the working item, put aside while the pack is valued
+#define A_SC_FILE_NAME      A_LIB_PRIVATE + 200     ' 16 bytes, the name of the text file while it is being written
+#define A_SC_CLOCK          A_LIB_PRIVATE + 300     ' 7 bytes, the clock's own, as they were read from it
+
+' --- private to stage-lib-spells-2.bas (its own, moved here from it on 22 October 2026) ---
+#define A_S2_TEXT           A_LIB_PRIVATE + 256     ' a description put aside, while what is worn is worked out again
+
+' --- private to stage-lib-stores.bas (its own, moved here from it on 22 October 2026) ---
+Dim gub_st_saved_page       As UByte    At A_LIB_PRIVATE            ' the page the caller had in the second data slot
+Dim gsl_st_price            As Long     At A_LIB_PRIVATE + 1        ' the three answers of the sell price routine...
+Dim gsl_st_min_price        As Long     At A_LIB_PRIVATE + 5
+Dim gsl_st_max_price        As Long     At A_LIB_PRIVATE + 9
+
+' --- private to stage-lib-text.bas (its own, moved here from it on 22 October 2026) ---
+Dim gub_tx_saved_page       As UByte    At A_LIB_PRIVATE            ' the page the caller had in the first data slot, while the screen is put aside there
+
+' --- private to stage-lib-throw.bas (its own, moved here from it on 22 October 2026) ---
+#define A_FT_THROWN         A_LIB_PRIVATE               ' 64 bytes, the thing in flight
+
+' --- private to stage-lib-traps.bas (its own, moved here from it on 22 October 2026) ---
+Dim gub_tr_y                As UByte    At A_LIB_PRIVATE            ' the square a direction leads to
+Dim gub_tr_x                As UByte    At A_LIB_PRIVATE + 1
+
+' --- private to stage-lib-wizard-2.bas (its own, moved here from it on 22 October 2026) ---
+#define A_W2_ITEM           A_LIB_PRIVATE + 64                      ' 64 bytes, the object being made up
+
+' --- private to stage-lib-wizard.bas (its own, moved here from it on 22 October 2026) ---
+#define A_WZ_ROWS           A_MMU_SLOT_PAGED_CORRIDORS              ' three rows of the map, 256 bytes each, while the level is lit
+
+' --- private to stage-magic-include.bas (its own, moved here from it on 22 October 2026) ---
+#define A_MG_LIST           A_LIB_PRIVATE               ' 32 bytes, the spells to choose from
+#define A_MG_PROMPT         A_LIB_PRIVATE + 32          ' 40 bytes, the caller's question, kept while other libraries are called
+Dim gub_mg_saved_page       As UByte    At A_LIB_PRIVATE + 72       ' the page the caller had in the first data slot, while the screen is put aside there
+Dim gub_mg_screen_saved     As UByte    At A_LIB_PRIVATE + 73
+Dim gub_mg_saved_page_2     As UByte    At A_LIB_PRIVATE + 74       ' the page the caller had in the third data slot
+
+' --- private to stage-monster-moves-include.bas (its own, moved here from it on 22 October 2026) ---
+' what the two monster moves libraries share, stage-lib-monster-moves.bas and stage-lib-monster-moves-2.bas: the
+' working storage of a monster's move, it is in the core's data, not in either page's own, so that both can get at it
+#define A_MM_DIRECTIONS     A_MMU_SLOT_CORE_DATA + 585      ' 9 bytes, the directions a monster will try, in order, only the first 5 are used
+' N.B: this one is the same byte as gub_game_monster_turn in globals.bas, so that the compact library and the player
+' attack library can tell which monsters have had their turn, it is 0 when it is not the monsters' turn
+Dim gub_mm_monster          As UByte    At A_MMU_SLOT_CORE_DATA + 584   ' the number of the monster having its turn, the same byte as gub_game_monster_turn
+Dim gub_mm_do_turn          As UByte    At A_MMU_SLOT_CORE_DATA + 594   ' true once the monster has used its move
+Dim gub_mm_do_move          As UByte    At A_MMU_SLOT_CORE_DATA + 595   ' true while the square being tried can be moved on to
+' what the player may learn from watching this move, Moria's rcmove: the bits of the creature's "movement" that
+' showed, in two bytes, the lowest of the four and the third, the only ones any of them are in
+Dim gub_mm_seen_low         As UByte    At A_MMU_SLOT_CORE_DATA + 596
+Dim gub_mm_seen_high        As UByte    At A_MMU_SLOT_CORE_DATA + 597
+
+' --- private to stage-player.bas (its own, moved here from it on 22 October 2026) ---
+' NOT Moria's, ours, and a cheeky one: the auto roller. A capital R at "Hit space to re-roll" asks for the least the
+' player will take for each of the six stats, and then rolls again and again, every roll shown, until a character
+' comes up with all of them, or a key is pressed. Each roll is an ordinary one, Moria's dice and Moria's rules, so
+' nothing can be had this way that patience with the space bar would not bring, N.B: and so asking for more than
+' the race can have just rolls for ever, a Halfling's strength, say, is never more than 15
+' the six least values are kept at the far end of the text buffer, clear of the dice and of the history
+#define A_PL_AUTO_LEAST     A_TEXT_BUFFER + 248     ' 6 bytes, the auto roller's least for each stat
+
+' --- private to stage-recall-include.bas (its own, moved here from it on 22 October 2026) ---
+#define A_RC_LINE           A_TEXT_BUFFER               ' 80 bytes, the line being filled, Moria's roff_buffer
+#define A_RC_ATTACKS        A_TEXT_BUFFER + 80          ' 4 bytes, how often each attack has been seen
+Dim gub_rc_length           As UByte    At A_TEXT_BUFFER + 84       ' how much of the line is filled
+Dim gub_rc_row              As UByte    At A_TEXT_BUFFER + 85       ' the row of the screen the line will go on
+Dim gub_rc_saved_page       As UByte    At A_TEXT_BUFFER + 86       ' the page the caller had in the first data slot, while the screen is put aside there
+Dim gul_rc_movement         As ULong    At A_TEXT_BUFFER + 88       ' what is remembered of the creature, Moria's Recall_t
+Dim gul_rc_spells           As ULong    At A_TEXT_BUFFER + 92
+Dim guw_rc_kills            As UInteger At A_TEXT_BUFFER + 96
+Dim guw_rc_deaths           As UInteger At A_TEXT_BUFFER + 98
+Dim guw_rc_defenses         As UInteger At A_TEXT_BUFFER + 100
+Dim gub_rc_wake             As UByte    At A_TEXT_BUFFER + 102
+Dim gub_rc_ignore           As UByte    At A_TEXT_BUFFER + 103
+
+' --- private to stage-store.bas (its own, moved here from it on 22 October 2026) ---
+Dim gub_store_top   As UByte    At A_TEXT_BUFFER + 240      ' which item is at the top of the list on screen, 0 or 12 (current_top_item_id)
+
+' --- private to stage-textfile-include.bas (its own, moved here from it on 22 October 2026) ---
+Dim guw_tf_at               As UInteger At A_LIB_PRIVATE + 440      ' how much of the page being filled is full
+Dim gub_tf_slot             As UByte    At A_LIB_PRIVATE + 442      ' which 8KB of the file that page is
+Dim gub_tf_failed           As UByte    At A_LIB_PRIVATE + 443      ' true once the file would not write
+Dim gub_tf_saved_page       As UByte    At A_LIB_PRIVATE + 444      ' the page the caller had in the first data slot
+#define A_TF_NAME           A_LIB_PRIVATE + 448                     ' 32 bytes, the name of the file, text ending in a 0
+
+' --- private to stage-wizard-include.bas (its own, moved here from it on 22 October 2026) ---
+Dim gsl_wz_number           As Long     At A_LIB_PRIVATE            ' the number the player last typed
+Dim gub_wz_valid            As UByte    At A_LIB_PRIVATE + 4        ' true if what they typed was a number, Moria's stringToNumber()
+
+' --- private to stage-lib-objects.bas ---
+#define A_OB_ORDER          A_LIB_PRIVATE           ' 164 bytes, this game's order of the six flavour lists, copied from the knowledge page
+#define A_OB_COLOURS        A_LIB_PRIVATE + 164     ' 164 bytes, the flavours' colours, copied from the game tables page

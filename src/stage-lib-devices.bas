@@ -186,24 +186,24 @@ Function fub_dv_staff() As UByte
     While lul_flags <> 0
         If ( lul_flags bAnd lul_mask ) <> 0 Then
             lul_flags = lul_flags bAnd ( $FFFFFFFF - lul_mask )
-            If lub_effect = 1 Then
+            If lub_effect = UB_STAFF_STAFF_LIGHT Then
                 lub_identified = fub_dv_call( UB_PAGED_CODE_LIB_SPELLS , UB_LIB_SPELLS_LIGHT_AREA , 0 , 0 )
-            ElseIf lub_effect = 2 Then
+            ElseIf lub_effect = UB_STAFF_DETECT_DOORS_STAIRS Then
                 lub_identified = fub_dv_call( UB_PAGED_CODE_LIB_SPELLS , UB_LIB_SPELLS_DETECT_DOORS , 0 , 0 )
-            ElseIf lub_effect = 3 Then
+            ElseIf lub_effect = UB_STAFF_TRAP_LOCATION Then
                 lub_identified = fub_dv_call( UB_PAGED_CODE_LIB_SPELLS , UB_LIB_SPELLS_DETECT_TRAPS , 0 , 0 )
-            ElseIf lub_effect = 4 Then
+            ElseIf lub_effect = UB_STAFF_TREASURE_LOCATION Then
                 lub_identified = fub_dv_call( UB_PAGED_CODE_LIB_SPELLS , UB_LIB_SPELLS_DETECT_TREASURE , 0 , 0 )
-            ElseIf lub_effect = 5 Then
+            ElseIf lub_effect = UB_STAFF_OBJECT_LOCATION Then
                 lub_identified = fub_dv_call( UB_PAGED_CODE_LIB_SPELLS , UB_LIB_SPELLS_DETECT_OBJECTS , 0 , 0 )
-            ElseIf lub_effect = 6 Then
+            ElseIf lub_effect = UB_STAFF_TELEPORTATION Then
                 ' teleportation
                 gub_shared_1 = fub_dv_call( UB_PAGED_CODE_LIB_SPELLS , UB_LIB_SPELLS_TELEPORT , 0 , 100 )
                 lub_identified = true
-            ElseIf lub_effect = 7 Then
+            ElseIf lub_effect = UB_STAFF_EARTHQUAKES Then
                 lub_identified = true
                 gub_shared_1 = fub_dv_call( UB_PAGED_CODE_LIB_SPELLS_5 , UB_LIB_SPELLS_5_EARTHQUAKE , 0 , 0 )
-            ElseIf lub_effect = 8 Then
+            ElseIf lub_effect = UB_STAFF_SUMMONING Then
                 ' summoning, N.B: as in Moria the dice are thrown afresh each time round
                 lub_identified = false
                 luw_i = 0
@@ -211,45 +211,45 @@ Function fub_dv_staff() As UByte
                     If fub_dv_call( UB_PAGED_CODE_LIB_MONSTERS , UB_LIB_MONSTERS_SUMMON , 0 , 0 ) Then lub_identified = true
                     luw_i = luw_i + 1
                 End While
-            ElseIf lub_effect = 10 Then
+            ElseIf lub_effect = UB_STAFF_DESTRUCTION Then
                 lub_identified = true
                 gub_shared_1 = fub_dv_call( UB_PAGED_CODE_LIB_SPELLS , UB_LIB_SPELLS_DESTROY_AREA , 0 , 0 )
-            ElseIf lub_effect = 11 Then
+            ElseIf lub_effect = UB_STAFF_STARLIGHT Then
                 lub_identified = true
                 gub_shared_1 = fub_dv_call( UB_PAGED_CODE_LIB_SPELLS_3 , UB_LIB_SPELLS_3_STARLITE , 0 , 0 )
-            ElseIf lub_effect = 12 Then
+            ElseIf lub_effect = UB_STAFF_HASTE_MONSTERS Then
                 ' haste monsters
                 lub_identified = fub_dv_call( UB_PAGED_CODE_LIB_SPELLS_4 , UB_LIB_SPELLS_4_SPEED_ALL , 0 , 1 )
-            ElseIf lub_effect = 13 Then
+            ElseIf lub_effect = UB_STAFF_SLOW_MONSTERS Then
                 ' slow monsters
                 lub_identified = fub_dv_call( UB_PAGED_CODE_LIB_SPELLS_4 , UB_LIB_SPELLS_4_SPEED_ALL , 0 , $FFFF )
-            ElseIf lub_effect = 14 Then
+            ElseIf lub_effect = UB_STAFF_SLEEP_MONSTERS Then
                 lub_identified = fub_dv_call( UB_PAGED_CODE_LIB_SPELLS_4 , UB_LIB_SPELLS_4_SLEEP_ALL , 0 , 0 )
-            ElseIf lub_effect = 15 Then
+            ElseIf lub_effect = UB_STAFF_CURE_LIGHT_WOUNDS Then
                 ' cure light wounds
                 lub_identified = fub_dv_call( UB_PAGED_CODE_LIB_EFFECTS , UB_LIB_EFFECTS_HP_CHANGE , 0 , fuw_dv_random( 8 ) )
-            ElseIf lub_effect = 16 Then
+            ElseIf lub_effect = UB_STAFF_DETECT_INVISIBLE Then
                 lub_identified = fub_dv_call( UB_PAGED_CODE_LIB_SPELLS , UB_LIB_SPELLS_DETECT_INVISIBLE , 0 , 0 )
-            ElseIf lub_effect = 17 Then
+            ElseIf lub_effect = UB_STAFF_SPEED Then
                 ' speed
                 lub_identified = false
                 If fub_dv_timed( @gsw_player_fast , fuw_dv_random( 30 ) + 15 ) Then lub_identified = true
-            ElseIf lub_effect = 18 Then
+            ElseIf lub_effect = UB_STAFF_SLOWNESS Then
                 ' slowness
                 lub_identified = false
                 If fub_dv_timed( @gsw_player_slow , fuw_dv_random( 30 ) + 15 ) Then lub_identified = true
-            ElseIf lub_effect = 19 Then
+            ElseIf lub_effect = UB_STAFF_MASS_POLYMORPH Then
                 lub_identified = fub_dv_call( UB_PAGED_CODE_LIB_SPELLS_4 , UB_LIB_SPELLS_4_MASS_POLYMORPH , 0 , 0 )
-            ElseIf lub_effect = 20 Then
+            ElseIf lub_effect = UB_STAFF_REMOVE_CURSE Then
                 ' remove curse
                 If fub_dv_call( UB_PAGED_CODE_LIB_SPELLS_2 , UB_LIB_SPELLS_2_REMOVE_CURSE , 0 , 0 ) Then
                     If gsw_player_blind < 1 Then s_core_message( UW_MSG_THE_STAFF_GLOWS_BLUE_FOR_A_MOMENT )
                     lub_identified = true
                 End If
-            ElseIf lub_effect = 21 Then
+            ElseIf lub_effect = UB_STAFF_DETECT_EVIL Then
                 ' detect evil
                 lub_identified = fub_dv_call( UB_PAGED_CODE_LIB_SPELLS_4 , UB_LIB_SPELLS_4_DETECT , 0 , UW_CD_EVIL )
-            ElseIf lub_effect = 22 Then
+            ElseIf lub_effect = UB_STAFF_CURING Then
                 ' curing, N.B: as in Moria the second and third are tried only if the one before cured nothing
                 If fub_dv_cure( @gsw_player_blind ) Then
                     lub_identified = true
@@ -258,10 +258,10 @@ Function fub_dv_staff() As UByte
                 ElseIf fub_dv_cure( @gsw_player_confused ) Then
                     lub_identified = true
                 End If
-            ElseIf lub_effect = 23 Then
+            ElseIf lub_effect = UB_STAFF_DISPEL_EVIL Then
                 ' dispel evil
                 lub_identified = fub_dv_call( UB_PAGED_CODE_LIB_SPELLS_2 , UB_LIB_SPELLS_2_DISPEL , 60 , UW_CD_EVIL )
-            ElseIf lub_effect = 25 Then
+            ElseIf lub_effect = UB_STAFF_DARKNESS Then
                 lub_identified = fub_dv_call( UB_PAGED_CODE_LIB_SPELLS , UB_LIB_SPELLS_DARKEN_AREA , 0 , 0 )
             ElseIf lub_effect <> 32 Then
                 ' 32 only marks a staff as bought in a store
@@ -312,7 +312,11 @@ Function fub_dv_wand() As UByte
         If guw_key_code = UW_KEY_DOWN Then lub_direction = 2
         If guw_key_code = UW_KEY_LEFT Then lub_direction = 4
         If guw_key_code = UW_KEY_RIGHT Then lub_direction = 6
-    Loop Until lub_direction <> 0 Or gub_key_char = 27 Or guw_key_code = 0
+    Loop Until lub_direction <> 0 Or gub_key_char = UC_ESCAPE Or guw_key_code = 0
+    ' the question is not a message, Moria asks it with getCommand() and keeps nothing of it for Ctrl-P
+    Asm
+        call A_JUMP_HISTORY_FORGET
+    End Asm
     s_msg_clear()
     ' backing out takes no time, Moria's getDirectionWithMemory() sets player_free_turn itself
     If lub_direction = 0 Then Return false
@@ -335,65 +339,65 @@ Function fub_dv_wand() As UByte
     While lul_flags <> 0
         If ( lul_flags bAnd lul_mask ) <> 0 Then
             lul_flags = lul_flags bAnd ( $FFFFFFFF - lul_mask )
-            If lub_effect = 1 Then
+            If lub_effect = UB_WAND_WAND_LIGHT Then
                 s_core_message( UW_MSG_A_LINE_OF_BLUE_SHIMMERING_LIGHT )
                 gub_shared_1 = fub_dv_call( UB_PAGED_CODE_LIB_SPELLS_3 , UB_LIB_SPELLS_3_LIGHT_LINE , lub_direction , 0 )
                 lub_identified = true
-            ElseIf lub_effect = 2 Then
+            ElseIf lub_effect = UB_WAND_LIGHTNING_BOLT Then
                 s_dv_bolt( UB_LIB_SPELLS_3_BOLT , lub_direction , fuw_core_dice_roll( 4 , 8 ) , UB_ELEMENT_LIGHTNING , "Lightning Bolt" )
                 lub_identified = true
-            ElseIf lub_effect = 3 Then
+            ElseIf lub_effect = UB_WAND_FROST_BOLT Then
                 s_dv_bolt( UB_LIB_SPELLS_3_BOLT , lub_direction , fuw_core_dice_roll( 6 , 8 ) , UB_ELEMENT_FROST , "Frost Bolt" )
                 lub_identified = true
-            ElseIf lub_effect = 4 Then
+            ElseIf lub_effect = UB_WAND_FIRE_BOLT Then
                 s_dv_bolt( UB_LIB_SPELLS_3_BOLT , lub_direction , fuw_core_dice_roll( 9 , 8 ) , UB_ELEMENT_FIRE , "Fire Bolt" )
                 lub_identified = true
-            ElseIf lub_effect = 5 Then
+            ElseIf lub_effect = UB_WAND_STONE_TO_MUD Then
                 lub_identified = fub_dv_call( UB_PAGED_CODE_LIB_SPELLS_5 , UB_LIB_SPELLS_5_WALL_TO_MUD , lub_direction , 0 )
-            ElseIf lub_effect = 6 Then
+            ElseIf lub_effect = UB_WAND_POLYMORPH Then
                 lub_identified = fub_dv_call( UB_PAGED_CODE_LIB_SPELLS_4 , UB_LIB_SPELLS_4_POLYMORPH , lub_direction , 0 )
-            ElseIf lub_effect = 7 Then
+            ElseIf lub_effect = UB_WAND_HEAL_MONSTER Then
                 ' heal monster, a hurt of less than nothing
                 lub_identified = fub_dv_call( UB_PAGED_CODE_LIB_SPELLS_4 , UB_LIB_SPELLS_4_CHANGE_HP , lub_direction , Cast( UInteger , -Cast( Integer , fuw_core_dice_roll( 4 , 6 ) ) ) )
-            ElseIf lub_effect = 8 Then
+            ElseIf lub_effect = UB_WAND_HASTE_MONSTER Then
                 lub_identified = fub_dv_call( UB_PAGED_CODE_LIB_SPELLS_4 , UB_LIB_SPELLS_4_SPEED , lub_direction , 1 )
-            ElseIf lub_effect = 9 Then
+            ElseIf lub_effect = UB_WAND_SLOW_MONSTER Then
                 lub_identified = fub_dv_call( UB_PAGED_CODE_LIB_SPELLS_4 , UB_LIB_SPELLS_4_SPEED , lub_direction , $FFFF )
-            ElseIf lub_effect = 10 Then
+            ElseIf lub_effect = UB_WAND_CONFUSE_MONSTER Then
                 lub_identified = fub_dv_call( UB_PAGED_CODE_LIB_SPELLS_4 , UB_LIB_SPELLS_4_CONFUSE , lub_direction , 0 )
-            ElseIf lub_effect = 11 Then
+            ElseIf lub_effect = UB_WAND_SLEEP_MONSTER Then
                 lub_identified = fub_dv_call( UB_PAGED_CODE_LIB_SPELLS_4 , UB_LIB_SPELLS_4_SLEEP , lub_direction , 0 )
-            ElseIf lub_effect = 12 Then
+            ElseIf lub_effect = UB_WAND_DRAIN_LIFE Then
                 lub_identified = fub_dv_call( UB_PAGED_CODE_LIB_SPELLS_4 , UB_LIB_SPELLS_4_DRAIN_LIFE , lub_direction , 0 )
-            ElseIf lub_effect = 13 Then
+            ElseIf lub_effect = UB_WAND_TRAP_DOOR_DESTRUCTION Then
                 lub_identified = fub_dv_call( UB_PAGED_CODE_LIB_SPELLS_5 , UB_LIB_SPELLS_5_DESTROY_DOORS , lub_direction , 0 )
-            ElseIf lub_effect = 14 Then
+            ElseIf lub_effect = UB_WAND_WAND_MAGIC_MISSILE Then
                 s_dv_bolt( UB_LIB_SPELLS_3_BOLT , lub_direction , fuw_core_dice_roll( 2 , 6 ) , 0 , "Magic Missile" )
                 lub_identified = true
-            ElseIf lub_effect = 15 Then
+            ElseIf lub_effect = UB_WAND_WALL_BUILDING Then
                 lub_identified = fub_dv_call( UB_PAGED_CODE_LIB_SPELLS_5 , UB_LIB_SPELLS_5_BUILD_WALL , lub_direction , 0 )
-            ElseIf lub_effect = 16 Then
+            ElseIf lub_effect = UB_WAND_CLONE_MONSTER Then
                 lub_identified = fub_dv_call( UB_PAGED_CODE_LIB_SPELLS_4 , UB_LIB_SPELLS_4_CLONE , lub_direction , 0 )
-            ElseIf lub_effect = 17 Then
+            ElseIf lub_effect = UB_WAND_TELEPORT_AWAY Then
                 lub_identified = fub_dv_call( UB_PAGED_CODE_LIB_SPELLS_4 , UB_LIB_SPELLS_4_TELEPORT_AWAY , lub_direction , 0 )
-            ElseIf lub_effect = 18 Then
+            ElseIf lub_effect = UB_WAND_DISARMING Then
                 lub_identified = fub_dv_call( UB_PAGED_CODE_LIB_SPELLS_5 , UB_LIB_SPELLS_5_DISARM_ALL , lub_direction , 0 )
-            ElseIf lub_effect = 19 Then
+            ElseIf lub_effect = UB_WAND_LIGHTNING_BALL Then
                 s_dv_bolt( UB_LIB_SPELLS_3_BALL , lub_direction , 32 , UB_ELEMENT_LIGHTNING , "Lightning Ball" )
                 lub_identified = true
-            ElseIf lub_effect = 20 Then
+            ElseIf lub_effect = UB_WAND_COLD_BALL Then
                 s_dv_bolt( UB_LIB_SPELLS_3_BALL , lub_direction , 48 , UB_ELEMENT_FROST , "Cold Ball" )
                 lub_identified = true
-            ElseIf lub_effect = 21 Then
+            ElseIf lub_effect = UB_WAND_FIRE_BALL Then
                 s_dv_bolt( UB_LIB_SPELLS_3_BALL , lub_direction , 72 , UB_ELEMENT_FIRE , "Fire Ball" )
                 lub_identified = true
-            ElseIf lub_effect = 22 Then
+            ElseIf lub_effect = UB_WAND_STINKING_CLOUD Then
                 s_dv_bolt( UB_LIB_SPELLS_3_BALL , lub_direction , 12 , UB_ELEMENT_GAS , "Stinking Cloud" )
                 lub_identified = true
-            ElseIf lub_effect = 23 Then
+            ElseIf lub_effect = UB_WAND_ACID_BALL Then
                 s_dv_bolt( UB_LIB_SPELLS_3_BALL , lub_direction , 60 , UB_ELEMENT_ACID , "Acid Ball" )
                 lub_identified = true
-            ElseIf lub_effect = 24 Then
+            ElseIf lub_effect = UB_WAND_WONDER Then
                 ' wonder: any one of the others, picked at random, the hunt for it starts again from the first
                 lul_flags  = Cast( ULong , 1 ) << ( fuw_dv_random( 23 ) - 1 )
                 lub_effect = 0

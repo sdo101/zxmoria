@@ -137,7 +137,7 @@ Sub s_mg_calculate()
         While gul_player_spells_forgotten <> 0 And lsw_new <> 0 And lsw_i < lsw_allowed And lsw_i < 32
             lub_order = Peek( A_PLAYER_SPELL_ORDER + lsw_i )
             lul_mask  = 0
-            If lub_order <> 99 Then lul_mask = ful_mg_mask( lub_order )
+            If lub_order <> UB_SPELL_ORDER_END Then lul_mask = ful_mg_mask( lub_order )
             If ( lul_mask bAnd gul_player_spells_forgotten ) <> 0 Then
                 If Peek( fuw_mg_spell( lub_order ) ) <= guw_player_level Then
                     lsw_new = lsw_new - 1
@@ -173,7 +173,7 @@ Sub s_mg_calculate()
         While lsw_new <> 0 And gul_player_spells_learnt <> 0 And lsw_i >= 0
             lub_order = Peek( A_PLAYER_SPELL_ORDER + lsw_i )
             lul_mask  = 0
-            If lub_order <> 99 Then lul_mask = ful_mg_mask( lub_order )
+            If lub_order <> UB_SPELL_ORDER_END Then lul_mask = ful_mg_mask( lub_order )
             If ( lul_mask bAnd gul_player_spells_learnt ) <> 0 Then
                 gul_player_spells_learnt    = gul_player_spells_learnt bAnd ( $FFFFFFFF - lul_mask )
                 gul_player_spells_forgotten = gul_player_spells_forgotten bOr lul_mask
@@ -196,9 +196,9 @@ End Sub
 Sub s_lib_magic()
     gub_mg_saved_page_2 = gub_core_MMU2_page_number
     ' only for those who have spells at all
-    If gub_class_spell_type <> 0 Then
+    If gub_class_spell_type <> UB_SPELL_TYPE_NONE Then
         If gub_lib_function = UB_LIB_MAGIC_CALC Then s_mg_calculate()
         s_mg_gain_mana()
     End If
-    If gub_mg_saved_page_2 <> 255 Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , gub_mg_saved_page_2 )
+    If gub_mg_saved_page_2 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , gub_mg_saved_page_2 )
 End Sub

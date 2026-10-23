@@ -2,20 +2,7 @@
 ' remembered of the creature, and the printing, each page has its own copy of these routines, and its own lists of
 ' phrases, fuw_rc_table(), which it must define before including this file
 
-' --- working storage, private to this page, see A_TEXT_BUFFER in constants.bas ---
-#define A_RC_LINE           A_TEXT_BUFFER               ' 80 bytes, the line being filled, Moria's roff_buffer
-#define A_RC_ATTACKS        A_TEXT_BUFFER + 80          ' 4 bytes, how often each attack has been seen
-Dim gub_rc_length           As UByte    At A_TEXT_BUFFER + 84       ' how much of the line is filled
-Dim gub_rc_row              As UByte    At A_TEXT_BUFFER + 85       ' the row of the screen the line will go on
-Dim gub_rc_saved_page       As UByte    At A_TEXT_BUFFER + 86       ' the page the caller had in the first data slot, while the screen is put aside there
-Dim gul_rc_movement         As ULong    At A_TEXT_BUFFER + 88       ' what is remembered of the creature, Moria's Recall_t
-Dim gul_rc_spells           As ULong    At A_TEXT_BUFFER + 92
-Dim guw_rc_kills            As UInteger At A_TEXT_BUFFER + 96
-Dim guw_rc_deaths           As UInteger At A_TEXT_BUFFER + 98
-Dim guw_rc_defenses         As UInteger At A_TEXT_BUFFER + 100
-Dim gub_rc_wake             As UByte    At A_TEXT_BUFFER + 102
-Dim gub_rc_ignore           As UByte    At A_TEXT_BUFFER + 103
-
+' --- its working storage is in globals.bas, under "private to stage-recall-include.bas", moved there on 22 October 2026 ---
 
 
 Sub s_rc_char( pub_char As UByte )
@@ -25,12 +12,12 @@ Sub s_rc_char( pub_char As UByte )
     Poke A_RC_LINE + gub_rc_length , pub_char
     If pub_char = 10 Or gub_rc_length >= 79 Then
         q = gub_rc_length
-        If pub_char <> 10 Then
-            While Peek( A_RC_LINE + q ) <> 32
+        If pub_char <> UC_NEWLINE Then
+            While Peek( A_RC_LINE + q ) <> UC_SPACE
                 q = q - 1
             End While
         End If
-        For i = 0 To 79
+        For i = 0 To UB_SCREEN_COLS - 1
             If i < q Then
                 s_core_print_char_at( gub_rc_row , i , Peek( A_RC_LINE + i ) , UB_WHITE )
             Else

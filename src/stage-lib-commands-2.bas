@@ -37,8 +37,6 @@ Function fub_cm_call( pub_page As UByte , pub_function As UByte , pub_param As U
     Return 0        ' never reached, it is only here because the compiler expects a Function to end with a Return
 End Function
 
-Dim gub_cm_rogue_dir        As UByte    At A_LIB_PRIVATE + 200      ' the direction that came with a rogue like command, 0 for none
-
 
 Function fub_cm_rogue( pub_key As UByte ) As UByte
     ' turns a rogue like command into the command of ours that does the same, 255 if it is not a command, and
@@ -132,20 +130,20 @@ Sub s_cm_count()
     Do
         s_core_get_key()
         lub_key = gub_key_char
-        If guw_key_code = 0 Then lub_key = 27
-        If lub_key = 8 Then
+        If guw_key_code = 0 Then lub_key = UC_ESCAPE
+        If lub_key = UC_BACKSPACE Then
             luw_count = luw_count / 10
         ElseIf lub_key >= Code( "0" ) And lub_key <= Code( "9" ) Then
             If luw_count <= 99 Then luw_count = luw_count * 10 + ( lub_key - Code( "0" ) )
         End If
         s_core_print_string_at( 0 , 14 , fs_core_number( luw_count ) + "    " , UB_WHITE )
-    Loop While lub_key = 8 Or ( lub_key >= Code( "0" ) And lub_key <= Code( "9" ) )
+    Loop While lub_key = UC_BACKSPACE Or ( lub_key >= Code( "0" ) And lub_key <= Code( "9" ) )
     If luw_count = 0 Then
         luw_count = 99
         s_core_print_string_at( 0 , 14 , "99" , UB_WHITE )
     End If
     ' a special hack to allow numbers as commands
-    If lub_key = 32 Then
+    If lub_key = UC_SPACE Then
         s_core_print_string_at( 0 , 20 , "Command:" , UB_WHITE )
         s_core_get_key()
         lub_key = gub_key_char
@@ -156,9 +154,9 @@ Sub s_cm_count()
     If guw_key_code = UW_KEY_LEFT Then lub_key = Code( "4" )
     If guw_key_code = UW_KEY_RIGHT Then lub_key = Code( "6" )
     s_msg_clear()
-    If lub_key = 27 Then Return
+    If lub_key = UC_ESCAPE Then Return
     ' a rogue like command is turned into ours, a direction may come with it
-    If lub_rogue And guw_key_code < 130 Then lub_key = fub_cm_rogue( lub_key )
+    If lub_rogue And guw_key_code < Cast( UByte , UW_KEY_UP ) Then lub_key = fub_cm_rogue( lub_key )
 
     ' Moria's validCountCommand(): the commands it makes sense to repeat
     If lub_key >= Code( "1" ) And lub_key <= Code( "9" ) Then lub_valid = true
@@ -176,7 +174,7 @@ Sub s_cm_count()
     If gub_cm_rogue_dir <> 0 Then
         ' the direction is known already, so it is not asked for: as from the second time round of any count
         gub_player_prev_dir = gub_cm_rogue_dir
-        gub_game_repeat_key = lub_key bOr 128
+        gub_game_repeat_key = lub_key bOr MB_REPEAT_DONE
     End If
     s_core_call_library( UB_PAGED_CODE_LIB_TURN_2 , UB_LIB_TURN_2_MOVEMENT_STATE )
     ' the key must be let go of first, a key that is down stops the repeating
@@ -230,21 +228,21 @@ Sub s_cm_inscribe()
     ' Moria's getStringInput(): escape leaves things as they were
     Do
         s_core_get_key()
-        If gub_key_char = 27 Or guw_key_code = 0 Then
+        If gub_key_char = UC_ESCAPE Or guw_key_code = 0 Then
             s_msg_clear()
             Return
         End If
-        If gub_key_char = 8 Then
+        If gub_key_char = UC_BACKSPACE Then
             If lub_length > 0 Then
                 lub_length = lub_length - 1
                 s_core_print_char_at( 0 , lub_col + lub_length , 32 , UB_WHITE )
             End If
-        ElseIf gub_key_char >= 32 And gub_key_char < 127 And lub_length < lub_max Then
+        ElseIf gub_key_char >= UC_SPACE And gub_key_char < UC_DELETE And lub_length < lub_max Then
             Poke A_PROMPT + lub_length , gub_key_char
             s_core_print_char_at( 0 , lub_col + lub_length , gub_key_char , UB_WHITE )
             lub_length = lub_length + 1
         End If
-    Loop Until gub_key_char = 13
+    Loop Until gub_key_char = UC_ENTER
     ' Moria's itemReplaceInscription()
     For lub_col = 0 To 12
         If lub_col < lub_length Then
@@ -286,10 +284,12 @@ cm_option_names:
         defb 0
         defm "Display rest/repeat counts"
         defb 0
+        defm "Plain map, no colours"
+        defb 0
     End Asm
 cm_option_bits:
     Asm
-        defw $0001, $0002, $0004, $0008, $0100, $0010, $0020, $0040, $0080, $0200, $0400
+        defw $0001, $0002, $0004, $0008, $0100, $0010, $0020, $0040, $0080, $0200, $0400, MW_OPTION_PLAIN_MAP
     End Asm
     Return 0
 End Function
@@ -339,19 +339,21 @@ Sub s_cm_options()
     Dim lub_saved_page              As UByte
     Dim luw_bit                     As UInteger
     Dim lub_key , lub_next          As UByte
+    Dim luw_was_plain               As UInteger
 
     s_msg_flush()
     lub_saved_page = gub_core_MMU0_page_number
     s_core_swap_paged_data( UB_SLOT_CORRIDORS , UB_PAGE_CORRIDORS )
-    s_core_ram_copy( A_SCREEN_BASE , A_MMU_SLOT_PAGED_CORRIDORS , 5120 )
+    s_core_ram_copy( A_SCREEN_BASE , A_MMU_SLOT_PAGED_CORRIDORS , UW_SCREEN_CELLS_SIZE )
 
     s_core_clear_row( 0 , 0 , UB_WHITE )
-    s_core_clear_row( 12 , 0 , UB_WHITE )
+    s_core_clear_row( UB_CM_OPTION_LAST + 2 , 0 , UB_WHITE )                ' the row below the last option
     s_core_print_string_at( 0 , 0 , "  ESC when finished, y/n to set options, <return> or - to move cursor" , UB_WHITE )
-    For i = 0 To 10
+    For i = 0 To UB_CM_OPTION_LAST
         s_cm_option_line( i , false )
     Next
 
+    luw_was_plain = guw_game_options bAnd MW_OPTION_PLAIN_MAP
     lub_option = 0
     Do
         s_cm_option_line( lub_option , true )
@@ -359,14 +361,14 @@ Sub s_cm_options()
         lub_key  = gub_key_char
         lub_was  = lub_option
         lub_next = false
-        If lub_key = 27 Or guw_key_code = 0 Then Exit Do
+        If lub_key = UC_ESCAPE Or guw_key_code = 0 Then Exit Do
         If lub_key = Code( "-" ) Then
             If lub_option > 0 Then
                 lub_option = lub_option - 1
             Else
-                lub_option = 10
+                lub_option = UB_CM_OPTION_LAST
             End If
-        ElseIf lub_key = 32 Or lub_key = 13 Then
+        ElseIf lub_key = UC_SPACE Or lub_key = UC_ENTER Then
             lub_next = true
         ElseIf ( lub_key bOr 32 ) = Code( "y" ) Or ( lub_key bOr 32 ) = Code( "n" ) Then
             luw_bit = Peek( UInteger , fuw_cm_options( 1 ) + 2 * Cast( UInteger , lub_option ) )
@@ -375,7 +377,7 @@ Sub s_cm_options()
             lub_next = true
         End If
         If lub_next Then
-            If lub_option < 10 Then
+            If lub_option < UB_CM_OPTION_LAST Then
                 lub_option = lub_option + 1
             Else
                 lub_option = 0
@@ -385,9 +387,11 @@ Sub s_cm_options()
     Loop
 
     s_core_swap_paged_data( UB_SLOT_CORRIDORS , UB_PAGE_CORRIDORS )
-    s_core_ram_copy( A_MMU_SLOT_PAGED_CORRIDORS , A_SCREEN_BASE , 5120 )
-    If lub_saved_page <> 255 Then s_core_swap_paged_data( UB_SLOT_CORRIDORS , lub_saved_page )
+    s_core_ram_copy( A_MMU_SLOT_PAGED_CORRIDORS , A_SCREEN_BASE , UW_SCREEN_CELLS_SIZE )
+    If lub_saved_page <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_CORRIDORS , lub_saved_page )
     gub_message_length = 0
+    ' the plain map turned on or off: the map is drawn again in its new colours
+    If ( guw_game_options bAnd MW_OPTION_PLAIN_MAP ) <> luw_was_plain Then gub_game_turn_flags = gub_game_turn_flags bOr MB_TURN_REDRAW_MAP
 End Sub
 
 
@@ -399,8 +403,14 @@ Sub s_cm_refill()
 
     gub_game_free_turn = true
     luw_lamp = A_EQUIPMENT + Cast( UInteger , UB_EQUIP_LIGHT ) * UB_RECORD_SIZE
-    ' N.B: as in Moria it is the sub category that says lamp, so with nothing in the hand at all the answer is "no oil"
-    If Peek( luw_lamp + UB_ITEM_SUB_CATEGORY_OFFSET ) <> 0 Then
+    ' N.B: it is the sub category that says lamp, and an empty place counts as not a lamp: Moria fills it with
+    ' OBJ_NOTHING, whose sub category is 64, where ours is all noughts (until 21 October 2026 ours said "You have no
+    ' oil." with nothing wielded, the lamp comparison found it)
+    ' N.B: NOT Moria's: Moria takes only sub category 0 for a lamp, so the dungeon's Brass Lantern, sub category 1, can
+    ' never be filled, most likely a slip from Moria 5.0's renumbering of the lamps' and torches' sub categories in
+    ' 1989; here a torch (UB_ITEM_GROUP_MIN and up, 192 and 193) is no lamp and both lanterns are (sdo, 22 October
+    ' 2026), see umoria-oddities.md
+    If Peek( luw_lamp + UB_ITEM_CATEGORY_OFFSET ) = 0 Or Peek( luw_lamp + UB_ITEM_SUB_CATEGORY_OFFSET ) >= UB_ITEM_GROUP_MIN Then
         s_core_message( UW_MSG_BUT_YOU_ARE_NOT_USING_A_LAMP )
         Return
     End If
@@ -417,14 +427,13 @@ Sub s_cm_refill()
 
     gub_game_free_turn = false
     lsw_oil = Peek( Integer , luw_lamp + UB_ITEM_MISC_USE_OFFSET ) + Peek( Integer , A_INVENTORY + Cast( UInteger , lsw_flask ) * UB_RECORD_SIZE + UB_ITEM_MISC_USE_OFFSET )
-    If lsw_oil > 15000 Then
-        ' OBJECT_LAMP_MAX_CAPACITY
-        lsw_oil = 15000
+    If lsw_oil > UW_OBJECT_LAMP_MAX_CAPACITY Then
+        lsw_oil = UW_OBJECT_LAMP_MAX_CAPACITY
         s_core_message( UW_MSG_YOUR_LAMP_OVERFLOWS_SPILLING_OIL )
         s_core_message( UW_MSG_YOUR_LAMP_IS_FULL )
-    ElseIf lsw_oil > 7500 Then
+    ElseIf lsw_oil > UW_OBJECT_LAMP_MAX_CAPACITY / 2 Then
         s_core_message( UW_MSG_YOUR_LAMP_IS_MORE_THAN_HALF_FULL )
-    ElseIf lsw_oil = 7500 Then
+    ElseIf lsw_oil = UW_OBJECT_LAMP_MAX_CAPACITY / 2 Then
         s_core_message( UW_MSG_YOUR_LAMP_IS_HALF_FULL )
     Else
         s_core_message( UW_MSG_YOUR_LAMP_IS_LESS_THAN_HALF_FULL )
@@ -447,19 +456,19 @@ Sub s_lib_commands_2()
         ' the key just pressed, in gub_key_char, is a rogue like command: it is turned into ours, for the walking
         ' stage, gsw_lib_result is true if it was a step, or came with its direction
         gsw_lib_result = false
-        If guw_key_code >= 130 Then
+        If guw_key_code >= Cast( UByte , UW_KEY_UP ) Then
             ' the arrow keys are as they were
         ElseIf gub_key_char >= Code( "0" ) And gub_key_char <= Code( "9" ) Then
             ' a digit begins a count, and then nothing more is to be done this time round
             s_cm_count()
-            gub_key_char = 32
-            guw_key_code = 32
+            gub_key_char = UC_SPACE
+            guw_key_code = UC_SPACE
         Else
             gub_key_char = fub_cm_rogue( gub_key_char )
             guw_key_code = gub_key_char
             If gub_cm_rogue_dir <> 0 Then
                 gub_player_prev_dir = gub_cm_rogue_dir
-                gub_game_repeat_key = gub_key_char bOr 128
+                gub_game_repeat_key = gub_key_char bOr MB_REPEAT_DONE
                 gsw_lib_result = true
             ElseIf gub_key_char >= Code( "1" ) And gub_key_char <= Code( "9" ) Then
                 gsw_lib_result = true

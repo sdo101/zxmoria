@@ -27,7 +27,8 @@ End Asm
 '
 '   UB_LIB_MONSTER_SPELLS_CAST      the working monster (A_MONSTER), whose creature is in A_CREATURE and whose number
 '                                   on the level is gub_lib_param_1, may cast one of its spells instead of moving,
-'                                   Moria's monsterCastSpell(), gsw_lib_result is true if it did
+'                                   Moria's monsterCastSpell(), gsw_lib_result is the number of the spell it cast,
+'                                   1 to 17 (Moria's thrown_spell), or 0 if it cast none
 '
 ' a creature's spells are bits of its "spells" field: the low four bits are how often it casts, one chance in that
 ' many each move, the rest are the spells it knows, one is picked at random: teleporting itself or the player,
@@ -41,10 +42,7 @@ End Asm
 ' N.B: the order things are done in matters, each random number must be asked for exactly when Moria asks for it
 
 
-' --- working storage, private to this page, see A_LIB_PRIVATE in constants.bas ---
-#define A_MS_NAME           A_LIB_PRIVATE               ' 40 bytes, how the caster is spoken of: "The Kobold " or "It "
-#define A_MS_CHOICES        A_LIB_PRIVATE + 40          ' 30 bytes, the spells the caster knows
-Dim gub_ms_monster          As UByte    At A_LIB_PRIVATE + 72       ' the caster's number on the level
+' --- its working storage is in globals.bas, under "private to stage-lib-monster-spells.bas", moved there on 22 October 2026 ---
 
 
 Function fuw_ms_random( puw_max As UInteger ) As UInteger
@@ -359,7 +357,7 @@ Function fub_ms_cast() As UByte
     If gub_game_character_dead Then Return false
 
     ' 1 in x chance of casting spell
-    If fuw_ms_random( gul_creature_spells bAnd 15 ) <> 1 Then Return false
+    If fuw_ms_random( gul_creature_spells bAnd UL_CS_FREQ ) <> 1 Then Return false
     ' must be within certain range, and have unobstructed line of sight
     If gub_monster_distance > UB_MON_MAX_SIGHT Then Return false
     If fub_ms_los( gub_player_row , gub_player_col , gub_monster_row , gub_monster_col ) = false Then Return false
@@ -407,9 +405,10 @@ Function fub_ms_cast() As UByte
     If ( lub_spell < 14 And lub_spell > 6 ) Or lub_spell = 16 Then s_core_message_after( A_MS_NAME , UW_MSG_CASTS_A_SPELL )
 
     s_ms_execute( lub_spell )
-    ' N.B: the monster moves library puts this into the monster memory, there is no room for it here
-    gub_shared_2 = lub_spell
-    Return true
+    ' N.B: the monster moves library puts this into the monster memory, there is no room for it here, so the spell is
+    ' the answer: until 21 October 2026 it went back in gub_shared_2, which s_core_next_reg() uses on the way back to
+    ' the caller's page, so the memory learnt the page's bit (none) and never the spell's
+    Return lub_spell
 End Function
 
 
@@ -423,6 +422,6 @@ Sub s_lib_monster_spells()
         gub_ms_monster = gub_lib_param_1
         lub_cast = fub_ms_cast()
     End If
-    If lub_saved_page_1 <> 255 Then s_core_swap_paged_data( UB_SLOT_ITEMS , lub_saved_page_1 )
+    If lub_saved_page_1 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_ITEMS , lub_saved_page_1 )
     gsw_lib_result = lub_cast
 End Sub

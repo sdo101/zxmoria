@@ -62,6 +62,68 @@ function Put-Number([int]$at, [int]$bytes, [long]$v, [switch]$Signed) {
     for ($i = 0; $i -lt $bytes; $i++) { $script:Rec[$at + $i] = [byte](($v -shr (8 * $i)) -band 255) }     # low byte first, as the Z80 wants
 }
 
+# --- colours ------------------------------------------------------------------------------------------------------------------
+# the colours of things on the map, ours, not Moria's, from colours.txt beside this script (which says how it works): each colour
+# used is given a pair of the tilemap's palette, from pair 16 up, and the attribute byte that shows it, 2 x the pair, goes into
+# byte 50 of a creature's record, byte 59 of an object's, and the flavour table of the game tables page; the palette itself
+# goes into the game tables page too, for the core to load as it starts, see s_core_load_palette() in core.bas
+$ColourRgb = @{}; $CreatureWords = @(); $ObjectWords = @(); $ClassColour = @{}; $FlavourColour = @{}; $InvisibleColour = $null
+foreach ($line in [IO.File]::ReadAllLines((Join-Path $TextDir 'colours.txt'))) {
+    $t = ($line -replace '#.*$', '').Trim()
+    if (-not $t) { continue }
+    $f = @($t -split '\|' | ForEach-Object { $_.Trim() })
+    switch ($f[0].ToLower()) {
+        'colour'    { if ($f[2] -notmatch '^[0-7]{3}$') { throw "colours.txt: $line" }; $ColourRgb[$f[1].ToLower()] = ([int]"$($f[2][0])" -shl 6) -bor ([int]"$($f[2][1])" -shl 3) -bor [int]"$($f[2][2])" }
+        'creature'  { $CreatureWords += , @($f[1], $f[2]) }
+        'object'    { $ObjectWords += , @($f[1], $f[2], $f[3]) }
+        'class'     { $ClassColour[[int]$Named[$f[1]]] = $f[2] }
+        'flavour'   { $FlavourColour["$($f[1].ToLower())|$($f[2].ToLower())"] = $f[3] }
+        'invisible' { $InvisibleColour = $f[1] }
+        default     { throw "colours.txt: what is this? $line" }
+    }
+}
+$Pairs = [ordered]@{}                               # 9 bit colour -> palette pair
+$ColourReport = New-Object Collections.Generic.List[string]
+function Get-Attribute([string]$colour) {
+    if ($colour -eq 'none') { return 0 }            # no colour of its own: drawn as the map's own rules have it, see s_core_map_put()
+    $rgb = $ColourRgb[$colour.ToLower()]
+    if ($null -eq $rgb) { throw "colours.txt has no colour called '$colour'" }
+    $key = "$rgb"                                   # N.B: a text key, an [ordered] takes a number for a position
+    if (-not $Pairs.Contains($key)) {
+        if ($Pairs.Count -ge 112) { throw "colours.txt wants more than 112 colours, the palette has room for no more" }
+        $Pairs[$key] = 16 + $Pairs.Count
+    }
+    2 * $Pairs[$key]
+}
+function Test-Phrase([string]$name, [string]$phrase) { $name -match ('(?i)(?<![\w-])' + [regex]::Escape($phrase) + '(?![\w-])') }
+function Get-CreatureColour([string]$name, [long]$movement) {
+    if (($movement -band 0x10000) -ne 0) { return $InvisibleColour }      # CM_INVISIBLE
+    $best = $null
+    foreach ($w in $CreatureWords) { if ((Test-Phrase $name $w[0]) -and (-not $best -or $w[0].Length -gt $best[0].Length)) { $best = $w } }
+    if ($best) { return $best[1] }
+    $null                                                                   # red, as before: the core's default
+}
+function Get-ObjectColour([string]$name, [int]$category) {
+    $plain = $name -replace '[&~]', ''
+    foreach ($scope in 'category', 'any') {
+        $best = $null
+        foreach ($w in $ObjectWords) {
+            $ok = $(if ($scope -eq 'category') { $w[0] -ne '*' -and [int]$Named[$w[0]] -eq $category } else { $w[0] -eq '*' })
+            if ($ok -and (Test-Phrase $plain $w[1]) -and (-not $best -or $w[1].Length -gt $best[1].Length)) { $best = $w }
+        }
+        if ($best) { return $best[2] }
+    }
+    if (-not $ClassColour.ContainsKey($category)) { throw "colours.txt has no colour for category $category ('$name')" }
+    $ClassColour[$category]
+}
+# the flavoured kinds, whose colour is their flavour's, put into the objects as each game shuffles the flavours, see
+# s_ob_flavour_colours() in stage-lib-objects.bas: potions, wands, staffs, rings, amulets, and mushrooms (food from
+# ITEM_SINGLE_STACK_MIN up whose low six bits are 20 or less, as Moria's itemDescription() has them)
+function Test-Flavoured([int]$category, [int]$sub) {
+    if ($category -in [int]$Named['TV_POTION1'], [int]$Named['TV_POTION2'], [int]$Named['TV_WAND'], [int]$Named['TV_STAFF'], [int]$Named['TV_RING'], [int]$Named['TV_AMULET']) { return $true }
+    $category -eq [int]$Named['TV_FOOD'] -and $sub -ge 64 -and ($sub -band 63) -le 20       # mushrooms and hairy molds, as itemDescription()
+}
+
 # --- creatures ----------------------------------------------------------------------------------------------------------------
 #   offset  size  field                     Moria's Creature_t
 #        0    26  name, ends in a 0         name
@@ -96,6 +158,9 @@ foreach ($c in $creatures) {
     Put-Number 44 1 $v[10]
     for ($i = 0; $i -lt 4; $i++) { Put-Number (45 + $i) 1 $v[11 + $i] }
     Put-Number 49 1 $v[15]
+    $colour = Get-CreatureColour $c.Name $v[0]
+    if ($colour) { Put-Number 50 1 (Get-Attribute $colour) }
+    $ColourReport.Add("creature $n $($c.Name): $(if ($colour) { $colour } else { 'red, as before' })")
     [Array]::Copy($script:Rec, 0, $bytes, $n * $RecordSize, $RecordSize); $n++
 }
 [IO.File]::WriteAllBytes((Join-Path $OutDir 'creatures.bin'), $bytes)
@@ -140,7 +205,8 @@ for ($i = 0; $i -le $monMaxLevels; $i++) { Put-Number (2 * $i) 2 $monsterLevels[
 #       54     2  to armour class, signed   to_ac
 #       56     2  damage dice: number, sides    damage
 #       58     1  depth first found         depth_first_found
-#       59     5  spare
+#       59     1  colour                    ours: its attribute byte on the map, see colours.txt, 0 for a flavoured kind
+#       60     4  spare
 $objects = Read-Table 'data_treasure.cpp' 'game_objects' 15
 $bytes = New-Object byte[] ($objects.Count * $RecordSize); $n = 0
 foreach ($o in $objects) {
@@ -161,6 +227,13 @@ foreach ($o in $objects) {
     Put-Number 56 1 $v[12]
     Put-Number 57 1 $v[13]
     Put-Number 58 1 $v[14]
+    if (Test-Flavoured $v[1] $v[5]) {
+        $ColourReport.Add("object $n $($o.Name): its flavour's")
+    } else {
+        $colour = Get-ObjectColour $o.Name $v[1]
+        Put-Number 59 1 (Get-Attribute $colour)
+        $ColourReport.Add("object $n $($o.Name): $colour")
+    }
     [Array]::Copy($script:Rec, 0, $bytes, $n * $RecordSize, $RecordSize); $n++
 }
 [IO.File]::WriteAllBytes((Join-Path $OutDir 'objects.bin'), $bytes)
@@ -475,6 +548,36 @@ Put-Names 'rocks'               4608 16 32
 Put-Names 'amulets'             5632 16 11
 Put-Names 'syllables'           5888  5 153
 Put-Names 'special_item_names'  6656 20 55
+
+# the colours, ours, see colours.txt:
+#     1536   164  each flavour's attribute byte, in the order of the six lists above: 49 potion colours, 22 mushroom
+#                 kinds, 25 woods, 25 metals, 32 stones, 11 amulet materials
+#     1792     1  how many pairs of the palette, from pair 16, the colours use
+#     1793   224  each pair's ink, two bytes as NEXTREG_PALETTE_VALUE_9 takes them: RRRGGGBB, then the lowest blue bit
+$at = 1536
+foreach ($l in @(@('colors', 49), @('mushrooms', 22), @('woods', 25), @('metals', 25), @('rocks', 32), @('amulets', 11))) {
+    $m = [regex]::Match($nameText, "(?s)\b$($l[0])\[[^\]]*\]\s*=\s*\{(.*?)\n\};")
+    $names = @([regex]::Matches($m.Groups[1].Value, '"((?:[^"\\]|\\.)*)"') | ForEach-Object { $_.Groups[1].Value })
+    if ($names.Count -ne $l[1]) { throw "$($l[0]) has $($names.Count) entries, expected $($l[1])" }
+    foreach ($nm in $names) {
+        $colour = $FlavourColour["$($l[0])|$($nm.ToLower())"]
+        if (-not $colour) { throw "colours.txt has no colour for the $($l[0]) flavour '$nm'" }
+        $script:Rec = $page; $script:What = 'flavour colours'
+        Put-Number $at 1 (Get-Attribute $colour); $at++
+        $ColourReport.Add("flavour $($l[0]) $($nm): $colour")
+    }
+}
+$script:Rec = $page; $script:What = 'palette'
+Put-Number 1792 1 $Pairs.Count
+$i = 0
+foreach ($key in $Pairs.Keys) {
+    $rgb = [int]$key
+    Put-Number (1793 + 2 * $i) 1 ($rgb -shr 1)
+    Put-Number (1794 + 2 * $i) 1 ($rgb -band 1)
+    $i++
+}
+[IO.File]::WriteAllLines((Join-Path $OutDir 'colours-report.txt'), $ColourReport)
+"colours: $($Pairs.Count) colours of the palette's 112 spare pairs, see colours-report.txt for what each thing is given"
 [IO.File]::WriteAllBytes((Join-Path $OutDir 'gametables.bin'), $page)
 "gametables.bin: $($owners.Count) store owners, the stock lists of 6 stores, the race price table, the names items go by, $($page.Length) bytes"
 

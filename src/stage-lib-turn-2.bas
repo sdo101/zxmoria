@@ -189,15 +189,18 @@ Sub s_t2_rest_off()
     ' Moria's playerRestOff()
     ' N.B: a monster's turn may already have ended the rest itself, s_mon_disturb() in stage-disturb-include.bas, and
     ' left only the screen to be done
+    ' N.B: a rest a monster's turn ended has had its messages flushed already, at that moment, as in Moria
     If gub_game_rest_broken = false Then
         gsw_player_rest   = 0
         gul_player_status = gul_player_status bAnd ( $FFFFFFFF - UL_PY_REST )
         gsw_player_food_digested = gsw_player_food_digested + 1
+        s_t2_movement_state()
+        s_msg_flush()
+        s_msg_clear()
+    Else
+        gub_game_rest_broken = false
+        s_t2_movement_state()
     End If
-    gub_game_rest_broken = false
-    s_t2_movement_state()
-    s_msg_flush()
-    s_msg_clear()
 End Sub
 
 
@@ -493,5 +496,5 @@ Sub s_lib_turn_2()
     ElseIf gub_lib_function = UB_LIB_TURN_2_CHANGE_SPEED Then
         s_t2_change_speed( Cast( Integer , guw_lib_param_2 ) )
     End If
-    If lub_saved_page <> 255 Then s_core_swap_paged_data( UB_SLOT_MONSTERS , lub_saved_page )
+    If lub_saved_page <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_MONSTERS , lub_saved_page )
 End Sub

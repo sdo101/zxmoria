@@ -3,12 +3,6 @@
 ' each has its own copy of these routines
 ' N.B: the page's own storage from A_LIB_PRIVATE + 0 to + 7 is used here
 
-Dim gub_aim_y               As UByte    At A_LIB_PRIVATE            ' the square the spell has reached
-Dim gub_aim_x               As UByte    At A_LIB_PRIVATE + 1
-Dim gub_aim_distance        As UByte    At A_LIB_PRIVATE + 2        ' how far it has gone
-
-#define UB_AIM_MAX_RANGE    18      ' how far a bolt or ball goes, Moria's OBJECT_BOLTS_MAX_RANGE
-
 
 Function fuw_aim_random( puw_max As UInteger ) As UInteger
     ' a random number from 1 to puw_max, Moria's randomNumber(), the core has the routine, see fuw_core_random_word()

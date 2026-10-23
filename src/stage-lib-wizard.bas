@@ -65,8 +65,7 @@ End Asm
 ' N.B: the order things are done in matters, each random number must be asked for exactly when Moria asks for it
 
 
-' --- working storage, see also stage-wizard-include.bas ---
-#define A_WZ_ROWS           A_MMU_SLOT_PAGED_CORRIDORS              ' three rows of the map, 256 bytes each, while the level is lit
+' --- its working storage is in globals.bas, under "private to stage-lib-wizard.bas", moved there on 22 October 2026 ---
 
 
 Function fub_wz_call( pub_page As UByte , pub_function As UByte , pub_param As UByte , puw_param As UInteger ) As UByte
@@ -259,7 +258,7 @@ Sub s_wz_light()
     s_core_swap_paged_data( UB_SLOT_CORRIDORS , UB_PAGE_CORRIDORS )
     lub_cols = gub_dungeon_cols
     ' nothing is known yet of any of the three rows, N.B: a note has a column either side of the level's own
-    For luw_note = 0 To 767
+    For luw_note = 0 To UW_WZ_ROWS_SIZE - 1
         Poke A_WZ_ROWS + luw_note , 0
     Next
 
@@ -301,7 +300,7 @@ Sub s_wz_light()
             Next
         End If
     Next
-    If lub_saved_page <> 255 Then s_core_swap_paged_data( UB_SLOT_CORRIDORS , lub_saved_page )
+    If lub_saved_page <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_CORRIDORS , lub_saved_page )
     gub_game_turn_flags = gub_game_turn_flags bOr MB_TURN_REDRAW_MAP
 End Sub
 
@@ -369,6 +368,7 @@ Function fub_wz_key( pub_key As UByte ) As UByte
     End If
     If gub_game_wizard = false Then
         s_core_message( UW_MSG_TYPE_FOR_HELP )
+        s_wz_not_a_message()
         Return MB_COMMAND_DONE bOr MB_COMMAND_UNKNOWN
     End If
 
@@ -393,9 +393,9 @@ Function fub_wz_key( pub_key As UByte ) As UByte
     ElseIf lub_ctrl And pub_key = 8 Then
         ' the wizard's help
         If ( guw_game_options bAnd MW_OPTION_ROGUELIKE ) <> 0 Then
-            gub_shared_1 = fub_wz_call( UB_PAGED_CODE_LIB_TEXT , UB_LIB_TEXT_SHOW , 7 , 0 )
+            gub_shared_1 = fub_wz_call( UB_PAGED_CODE_LIB_TEXT , UB_LIB_TEXT_SHOW , UB_TEXT_ROGUE_WIZARD , 0 )
         Else
-            gub_shared_1 = fub_wz_call( UB_PAGED_CODE_LIB_TEXT , UB_LIB_TEXT_SHOW , 4 , 0 )
+            gub_shared_1 = fub_wz_call( UB_PAGED_CODE_LIB_TEXT , UB_LIB_TEXT_SHOW , UB_TEXT_WIZARD , 0 )
         End If
     ElseIf lub_ctrl And pub_key = 9 Then
         gub_shared_1 = fub_wz_call( UB_PAGED_CODE_LIB_SPELLS_2 , UB_LIB_SPELLS_2_IDENTIFY , 0 , 0 )
@@ -420,11 +420,28 @@ Function fub_wz_key( pub_key As UByte ) As UByte
     ElseIf pub_key = Code( "@" ) Then
         s_core_call_library( UB_PAGED_CODE_LIB_WIZARD_2 , UB_LIB_WIZARD_2_OBJECT )
     Else
-        s_core_message( UW_MSG_TYPE_OR_H_FOR_HELP )
+        ' N.B: the rogue like keys' help is \, the other keys' ^H, as in Moria
+        If ( guw_game_options bAnd MW_OPTION_ROGUELIKE ) <> 0 Then
+            s_core_message( UW_MSG_TYPE_OR_BACKSLASH_FOR_HELP )
+        Else
+            s_core_message( UW_MSG_TYPE_OR_H_FOR_HELP )
+        End If
+        s_wz_not_a_message()
         Return MB_COMMAND_DONE bOr MB_COMMAND_UNKNOWN
     End If
     Return MB_COMMAND_DONE
 End Function
+
+
+Sub s_wz_not_a_message()
+    ' the help line just shown stays on the top row but is not a message: Moria shows it with putStringClearToEOL(),
+    ' so it does not go into the history for Ctrl-P, and the next message takes its place without -more- (found 20
+    ' October 2026, ZXMoria's Ctrl-P had "Type '?' or ^H for help." where Umoria's had nothing)
+    Asm
+        call A_JUMP_HISTORY_FORGET
+    End Asm
+    gub_message_length = 0
+End Sub
 
 
 Sub s_lib_wizard()
@@ -445,6 +462,6 @@ Sub s_lib_wizard()
     End If
     lub_saved_page_2 = gub_core_MMU2_page_number
     lub_answer = fub_wz_key( gub_lib_param_1 )
-    If lub_saved_page_2 <> 255 Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved_page_2 )
+    If lub_saved_page_2 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved_page_2 )
     gsw_lib_result = lub_answer
 End Sub

@@ -1,12 +1,7 @@
 ' what the magic library and the books library share: the tables of spells, and showing a list of them,
 ' stage-lib-magic.bas and stage-lib-books.bas include this file, each has its own copy of these routines
 ' N.B: the page's own storage at A_LIB_PRIVATE, 75 bytes of it, is used here
-' --- working storage, private to this page, see A_LIB_PRIVATE in constants.bas ---
-#define A_MG_LIST           A_LIB_PRIVATE               ' 32 bytes, the spells to choose from
-#define A_MG_PROMPT         A_LIB_PRIVATE + 32          ' 40 bytes, the caller's question, kept while other libraries are called
-Dim gub_mg_saved_page       As UByte    At A_LIB_PRIVATE + 72       ' the page the caller had in the first data slot, while the screen is put aside there
-Dim gub_mg_screen_saved     As UByte    At A_LIB_PRIVATE + 73
-Dim gub_mg_saved_page_2     As UByte    At A_LIB_PRIVATE + 74       ' the page the caller had in the third data slot
+' --- its working storage is in globals.bas, under "private to stage-magic-include.bas", moved there on 22 October 2026 ---
 
 
 '##################################################################################################################################
@@ -15,7 +10,7 @@ Dim gub_mg_saved_page_2     As UByte    At A_LIB_PRIVATE + 74       ' the page t
 Function fuw_mg_spell( pub_spell As UByte ) As UInteger
     ' where one spell's four bytes are, for the player's class: level, mana, chance of failing, experience
     s_core_swap_paged_data( UB_SLOT_DB_MAPS , UB_PAGE_OBJECT_LEVELS )
-    Return A_TABLE_SPELLS + Cast( UInteger , gub_player_class - 1 ) * 124 + Cast( UInteger , pub_spell ) * 4
+    Return A_TABLE_SPELLS + Cast( UInteger , gub_player_class - 1 ) * UB_CLASS_SPELLS_SIZE + Cast( UInteger , pub_spell ) * UB_SPELL_SIZE
 End Function
 
 
@@ -24,8 +19,8 @@ Function fs_mg_name( pub_spell As UByte ) As String
     Dim luw_name As UInteger
 
     s_core_swap_paged_data( UB_SLOT_DB_MAPS , UB_PAGE_OBJECT_LEVELS )
-    luw_name = A_TABLE_SPELL_NAMES + Cast( UInteger , pub_spell ) * 28
-    If gub_class_spell_type <> 1 Then luw_name = luw_name + 31 * 28
+    luw_name = A_TABLE_SPELL_NAMES + Cast( UInteger , pub_spell ) * UB_SPELL_NAME_SIZE
+    If gub_class_spell_type <> UB_SPELL_TYPE_MAGE Then luw_name = luw_name + 31 * UB_SPELL_NAME_SIZE
     Return fs_core_text_at( luw_name )
 End Function
 
@@ -39,14 +34,14 @@ End Function
 Function fsw_mg_stat_bonus() As Integer
     ' what the player's intelligence, for a mage's spells, or wisdom, for prayers, does for them
     gub_lib_param_1 = UB_STAT_WIS
-    If gub_class_spell_type = 1 Then gub_lib_param_1 = UB_STAT_INT
+    If gub_class_spell_type = UB_SPELL_TYPE_MAGE Then gub_lib_param_1 = UB_STAT_INT
     s_core_call_library( UB_PAGED_CODE_LIB_CHARACTER , UB_LIB_CHAR_WIS_INT )
     Return gsw_lib_result
 End Function
 
 
 Function fs_mg_kind() As String
-    If gub_class_spell_type = 1 Then Return "spell"
+    If gub_class_spell_type = UB_SPELL_TYPE_MAGE Then Return "spell"
     Return "prayer"
 End Function
 
@@ -77,7 +72,7 @@ Sub s_mg_screen_save()
     If gub_mg_screen_saved Then Return
     gub_mg_saved_page = gub_core_MMU0_page_number
     s_core_swap_paged_data( UB_SLOT_CORRIDORS , UB_PAGE_CORRIDORS )
-    s_core_ram_copy( A_SCREEN_BASE , A_MMU_SLOT_PAGED_CORRIDORS , 5120 )
+    s_core_ram_copy( A_SCREEN_BASE , A_MMU_SLOT_PAGED_CORRIDORS , UW_SCREEN_CELLS_SIZE )
     gub_mg_screen_saved = true
 End Sub
 
@@ -86,8 +81,8 @@ Sub s_mg_screen_restore()
     ' Moria's terminalRestoreScreen()
     If gub_mg_screen_saved = false Then Return
     s_core_swap_paged_data( UB_SLOT_CORRIDORS , UB_PAGE_CORRIDORS )
-    s_core_ram_copy( A_MMU_SLOT_PAGED_CORRIDORS , A_SCREEN_BASE , 5120 )
-    If gub_mg_saved_page <> 255 Then s_core_swap_paged_data( UB_SLOT_CORRIDORS , gub_mg_saved_page )
+    s_core_ram_copy( A_MMU_SLOT_PAGED_CORRIDORS , A_SCREEN_BASE , UW_SCREEN_CELLS_SIZE )
+    If gub_mg_saved_page <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_CORRIDORS , gub_mg_saved_page )
     gub_mg_screen_saved = false
 End Sub
 

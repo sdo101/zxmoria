@@ -44,12 +44,7 @@ End Asm
 '     asked for, done, and the screen put back
 
 
-' --- working storage, private to this page, see A_LIB_PRIVATE in constants.bas ---
-#define A_EQ_SAVED              A_LIB_PRIVATE               ' 64 bytes, the item being put on, while its place is made ready
-Dim gub_eq_saved_page           As UByte    At A_LIB_PRIVATE + 64       ' the page the caller had in the first data slot, while the screen is put aside there
-Dim gub_eq_screen_saved         As UByte    At A_LIB_PRIVATE + 65
-
-#define UB_EQ_FIRST             22      ' the first equipment place in the one list, Moria's PlayerEquipment::Wield
+' --- its working storage is in globals.bas, under "private to stage-lib-equipment.bas", moved there on 22 October 2026 ---
 
 
 '##################################################################################################################################
@@ -76,8 +71,8 @@ Sub s_eq_screen_save()
     ' puts the screen aside, in the corridor scratchpad page, Moria's terminalSaveScreen()
     gub_eq_saved_page = gub_core_MMU0_page_number
     s_core_swap_paged_data( UB_SLOT_CORRIDORS , UB_PAGE_CORRIDORS )
-    s_core_ram_copy( A_SCREEN_BASE , A_MMU_SLOT_PAGED_CORRIDORS , 5120 )
-    If gub_eq_saved_page <> 255 Then s_core_swap_paged_data( UB_SLOT_CORRIDORS , gub_eq_saved_page )
+    s_core_ram_copy( A_SCREEN_BASE , A_MMU_SLOT_PAGED_CORRIDORS , UW_SCREEN_CELLS_SIZE )
+    If gub_eq_saved_page <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_CORRIDORS , gub_eq_saved_page )
     gub_eq_screen_saved = true
 End Sub
 
@@ -86,8 +81,8 @@ Sub s_eq_screen_restore()
     If gub_eq_screen_saved = false Then Return
     gub_eq_saved_page = gub_core_MMU0_page_number
     s_core_swap_paged_data( UB_SLOT_CORRIDORS , UB_PAGE_CORRIDORS )
-    s_core_ram_copy( A_MMU_SLOT_PAGED_CORRIDORS , A_SCREEN_BASE , 5120 )
-    If gub_eq_saved_page <> 255 Then s_core_swap_paged_data( UB_SLOT_CORRIDORS , gub_eq_saved_page )
+    s_core_ram_copy( A_MMU_SLOT_PAGED_CORRIDORS , A_SCREEN_BASE , UW_SCREEN_CELLS_SIZE )
+    If gub_eq_saved_page <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_CORRIDORS , gub_eq_saved_page )
     gub_eq_screen_saved = false
     gub_message_length  = 0
 End Sub
@@ -102,21 +97,11 @@ End Sub
 
 
 Sub s_eq_say( ps_before As String , ps_after As String )
-    ' a message with the description that is in A_TEXT_BUFFER in the middle of it
-    Dim lub_rows , lub_length , lub_start As UByte
-
-    s_msg_flush()
-    s_msg_clear()
-    lub_start = Len( ps_before )
-    s_core_print_string_at( 0 , 0 , ps_before , UB_BRIGHT_WHITE )
-    Poke A_TEXT_BUFFER + 78 - lub_start - Len( ps_after ) , 0        ' cut to fit on the one row
-    lub_rows   = fub_core_print_text_at( 0 , lub_start , A_TEXT_BUFFER , UB_BRIGHT_WHITE )
-    lub_length = lub_start
-    While Peek( A_TEXT_BUFFER + lub_length - lub_start ) <> 0
-        lub_length = lub_length + 1
-    End While
-    s_core_print_string_at( 0 , lub_length , ps_after , UB_BRIGHT_WHITE )
-    gub_message_length = lub_length + Len( ps_after )
+    ' a message with the description that is in A_TEXT_BUFFER in the middle of it, Moria's printMessage(): put after
+    ' the message showing if the two fit, -more- if not, and remembered for Ctrl-P
+    ' N.B: until 21 October 2026 it was printed straight on to the top row, after a -more- of its own, and so never
+    ' reached the history (found by the bow comparison, Umoria's Ctrl-P had "You are wielding ..." and ours did not)
+    s_msg( ps_before + fs_core_text_at( A_TEXT_BUFFER ) + ps_after )
 End Sub
 
 
@@ -271,7 +256,7 @@ Function fsw_eq_slot_for( pub_category As UByte ) As Integer
         s_core_print_string_at( 0 , 0 , "Put ring on which hand (l/r/L/R)?" , UB_BRIGHT_WHITE )
         While lsw_hand = 0
             s_core_get_key()
-            If gub_key_char = 27 Or guw_key_code = 0 Then lsw_hand = -1
+            If gub_key_char = UC_ESCAPE Or guw_key_code = 0 Then lsw_hand = -1
             If gub_key_char = Code( "l" ) Or gub_key_char = Code( "L" ) Then lsw_hand = UB_EQ_FIRST + UB_EQUIP_LEFT
             If gub_key_char = Code( "r" ) Or gub_key_char = Code( "R" ) Then lsw_hand = UB_EQ_FIRST + UB_EQUIP_RIGHT
         End While
@@ -308,7 +293,7 @@ Sub s_eq_wear( pub_pack_place As UByte )
             Return
         End If
         luw_record = fuw_eq_record( pub_pack_place )
-        If Peek( luw_record + UB_ITEM_SUB_CATEGORY_OFFSET ) = 192 And Peek( luw_record + UB_ITEM_COUNT_OFFSET ) > 1 Then
+        If Peek( luw_record + UB_ITEM_SUB_CATEGORY_OFFSET ) = UB_ITEM_GROUP_MIN And Peek( luw_record + UB_ITEM_COUNT_OFFSET ) > 1 Then
             s_core_ram_copy( fuw_eq_record( lub_slot ) , A_ITEM , UB_RECORD_SIZE )
             s_core_call_library( UB_PAGED_CODE_LIB_INVENTORY , UB_LIB_INV_CAN_CARRY )
             If gsw_lib_result = false Then
@@ -324,7 +309,7 @@ Sub s_eq_wear( pub_pack_place As UByte )
     ' the thing itself, one of it if it is the kind that stacks singly, is kept aside while its place is made ready
     s_core_ram_copy( fuw_eq_record( pub_pack_place ) , A_EQ_SAVED , UB_RECORD_SIZE )
     lub_count = Peek( A_EQ_SAVED + UB_ITEM_COUNT_OFFSET )
-    If lub_count > 1 And Peek( A_EQ_SAVED + UB_ITEM_SUB_CATEGORY_OFFSET ) <= 192 Then
+    If lub_count > 1 And Peek( A_EQ_SAVED + UB_ITEM_SUB_CATEGORY_OFFSET ) <= UB_ITEM_SINGLE_STACK_MAX Then
         lub_count = 1
         Poke A_EQ_SAVED + UB_ITEM_COUNT_OFFSET , 1
     End If
@@ -438,7 +423,7 @@ Sub s_eq_remove( pub_line As UByte , pub_capital As UByte )
         s_core_print_string_at( 0 , 0 , "You can't carry it.  Drop it? [y/n]" , UB_BRIGHT_WHITE )
         Do
             s_core_get_key()
-        Loop While gub_key_char = 32
+        Loop While gub_key_char = UC_SPACE
         s_msg_clear()
         If gub_key_char = Code( "y" ) Or gub_key_char = Code( "Y" ) Then gub_shared_1 = fub_eq_throw_off( lub_place )
         Return
@@ -620,7 +605,7 @@ Sub s_eq_command( pub_key As UByte )
             lsw_choice = -1
             Do
                 s_core_get_key()
-                If gub_key_char = 27 Or guw_key_code = 0 Then Exit Do
+                If gub_key_char = UC_ESCAPE Or guw_key_code = 0 Then Exit Do
                 i = gub_key_char bOr 32
                 If i >= 97 And i < 97 + lub_lines Then
                     lsw_choice = i - 97
@@ -664,7 +649,7 @@ Sub s_lib_equipment()
         If gub_lib_param_1 = UB_STAT_STR Then gul_player_status = gul_player_status bOr UL_PY_STR_WGT
         If gub_lib_param_1 = UB_STAT_STR Or gub_lib_param_1 = UB_STAT_DEX Then s_eq_recalc()
         ' intelligence changes the spells and mana of those who cast spells, wisdom of those who pray
-        If ( gub_lib_param_1 = UB_STAT_INT And gub_class_spell_type = 1 ) Or ( gub_lib_param_1 = UB_STAT_WIS And gub_class_spell_type = 2 ) Then
+        If ( gub_lib_param_1 = UB_STAT_INT And gub_class_spell_type = UB_SPELL_TYPE_MAGE ) Or ( gub_lib_param_1 = UB_STAT_WIS And gub_class_spell_type = UB_SPELL_TYPE_PRIEST ) Then
             s_core_call_library( UB_PAGED_CODE_LIB_MAGIC , UB_LIB_MAGIC_CALC )
         End If
         ' constitution changes the hit points

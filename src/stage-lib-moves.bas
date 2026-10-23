@@ -37,16 +37,7 @@ End Asm
 '   (chests are the chests library's, stage-lib-chests.bas, traps going off the traps library's)
 
 
-' --- working storage, private to this page, see A_LIB_PRIVATE in constants.bas ---
-#define A_MV_TEXT           A_LIB_PRIVATE               ' 240 bytes, a message as it is built up
-#define A_MV_SCAN_OLD       A_LIB_PRIVATE + 240         ' the item number being looked for on the map...
-#define A_MV_SCAN_NEW       A_LIB_PRIVATE + 241         ' ...and the number it is changed to
-Dim gub_mv_scan_old         As UByte    At A_MV_SCAN_OLD
-Dim gub_mv_scan_new         As UByte    At A_MV_SCAN_NEW
-Dim gub_mv_length           As UByte    At A_LIB_PRIVATE + 242      ' how long the message is so far
-Dim gub_mv_saved_page       As UByte    At A_LIB_PRIVATE + 243      ' the page the caller had in the third data slot
-Dim gub_mv_y                As UByte    At A_LIB_PRIVATE + 244      ' the square a direction leads to
-Dim gub_mv_x                As UByte    At A_LIB_PRIVATE + 245
+' --- its working storage is in globals.bas, under "private to stage-lib-moves.bas", moved there on 22 October 2026 ---
 
 
 '##################################################################################################################################
@@ -128,7 +119,7 @@ Sub Fastcall s_mv_scan_row( puw_item_byte As UInteger )
         ld a, (A_MV_SCAN_NEW)
         ld c, a
         ld a, (A_MV_SCAN_OLD)
-        ld de, 8                        ; UB_MAP_SQUARE_SIZE
+        ld de, UB_MAP_SQUARE_SIZE
     mv_scan_row_loop:
         cp (hl)
         jr nz, mv_scan_row_next
@@ -176,7 +167,7 @@ Sub s_mv_change_item( pub_item As UByte , puw_object As UInteger )
     For i = 0 To 31
         Poke A_ITEM + i , 0
     Next
-    s_core_ram_copy( A_OBJECT + 32 , A_ITEM + 32 , 32 )
+    s_core_ram_copy( A_OBJECT + UB_ITEM_OBJECT_FIELDS , A_ITEM + UB_ITEM_OBJECT_FIELDS , UB_RECORD_SIZE - UB_ITEM_OBJECT_FIELDS )
     guw_item_object = puw_object
     s_core_store_record( UB_SLOT_ITEMS , gub_level_items_page , pub_item , A_ITEM )
 End Sub
@@ -194,7 +185,7 @@ Function fub_mv_direction() As UByte
     ' a command that is being repeated uses the direction it had the first time, without asking, and asking
     ' does not end a count that has just been given, Moria's use_last_direction
     luw_count = guw_game_command_count
-    If gub_game_repeat_key >= 128 Then
+    If gub_game_repeat_key >= MB_REPEAT_DONE Then
         lub_direction = gub_player_prev_dir
     Else
         s_core_message( UW_MSG_WHICH_DIRECTION )
@@ -206,7 +197,11 @@ Function fub_mv_direction() As UByte
             If guw_key_code = UW_KEY_DOWN Then lub_direction = 2
             If guw_key_code = UW_KEY_LEFT Then lub_direction = 4
             If guw_key_code = UW_KEY_RIGHT Then lub_direction = 6
-        Loop Until lub_direction <> 0 Or gub_key_char = 27 Or guw_key_code = 0
+        Loop Until lub_direction <> 0 Or gub_key_char = UC_ESCAPE Or guw_key_code = 0
+        ' the question is not a message, Moria asks it with getCommand() and keeps nothing of it for Ctrl-P
+        Asm
+            call A_JUMP_HISTORY_FORGET
+        End Asm
         s_msg_clear()
     End If
     guw_game_command_count = luw_count
@@ -492,6 +487,6 @@ Sub s_lib_moves()
         s_mv_delete_object( gub_lib_param_1 , guw_lib_param_2 )
         lub_changed = true
     End If
-    If gub_mv_saved_page <> 255 Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , gub_mv_saved_page )
+    If gub_mv_saved_page <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , gub_mv_saved_page )
     gsw_lib_result = lub_changed
 End Sub

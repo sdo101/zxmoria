@@ -26,7 +26,7 @@ Sub s_pl_generate_class( pub_class As UByte )
 
     gub_player_class = pub_class
     s_core_swap_paged_data( UB_SLOT_DB_MAPS , UB_PAGE_CHARACTER_DB )
-    s_core_ram_copy( A_CHARACTER_CLASSES + Cast( UInteger , pub_class ) * 64 , A_CLASS , 64 )
+    s_core_ram_copy( A_CHARACTER_CLASSES + Cast( UInteger , pub_class ) * UB_CHARACTER_RECORD_SIZE , A_CLASS , UB_CHARACTER_RECORD_SIZE )
 
     s_pl_clear_to_bottom( 20 )
     s_pl_put( 5 , 15 , fs_core_text_at( A_CLASS ) )
@@ -82,7 +82,7 @@ End Sub
 Sub s_pl_choose_class()
     ' Moria's displayRaceClasses() and characterGetClass(): only the classes the race may be are offered
     Dim i , lub_row , lub_col , lub_count , lub_mask    As UByte
-    Dim lub_chosen                                      As UByte = 255
+    Dim lub_chosen                                      As UByte = UB_PL_NOT_CHOSEN
 
     s_core_swap_paged_data( UB_SLOT_DB_MAPS , UB_PAGE_CHARACTER_DB )
     s_pl_clear_to_bottom( 20 )
@@ -93,7 +93,7 @@ Sub s_pl_choose_class()
     lub_mask  = 1
     For i = 0 To UB_PLAYER_MAX_CLASSES - 1
         If ( gub_race_classes bAnd lub_mask ) <> 0 Then
-            s_pl_put( lub_row , lub_col , fs_core_char( 97 + lub_count ) + ") " + fs_core_text_at( A_CHARACTER_CLASSES + Cast( UInteger , i ) * 64 ) )
+            s_pl_put( lub_row , lub_col , fs_core_char( Code( "a" ) + lub_count ) + ") " + fs_core_text_at( A_CHARACTER_CLASSES + Cast( UInteger , i ) * UB_CHARACTER_RECORD_SIZE ) )
             Poke A_TEXT_BUFFER + lub_count , i          ' which class each letter stands for
             lub_col = lub_col + 15
             If lub_col > 70 Then
@@ -108,9 +108,9 @@ Sub s_pl_choose_class()
     gub_player_class = 0
     Do
         s_core_get_key()
-        If gub_key_char >= 97 And gub_key_char < 97 + lub_count Then lub_chosen = Peek( A_TEXT_BUFFER + gub_key_char - 97 )
+        If gub_key_char >= Code( "a" ) And gub_key_char < Code( "a" ) + lub_count Then lub_chosen = Peek( A_TEXT_BUFFER + gub_key_char - Code( "a" ) )
         If gub_key_char = Code( "?" ) Then s_pl_welcome()
-    Loop Until lub_chosen <> 255
+    Loop Until lub_chosen <> UB_PL_NOT_CHOSEN
     s_pl_generate_class( lub_chosen )
 End Sub
 
@@ -144,18 +144,18 @@ Sub s_pl_get_name()
     s_pl_put( 2 , 15 , "_                      " )
     Do
         s_core_get_key()
-        If gub_key_char = 13 Then Exit Do
-        If gub_key_char = 27 Then           ' escape: give up, and take the default name
+        If gub_key_char = UC_ENTER Then Exit Do
+        If gub_key_char = UC_ESCAPE Then           ' escape: give up, and take the default name
             lub_length = 0
             Exit Do
         End If
-        If gub_key_char = 8 Then            ' delete
+        If gub_key_char = UC_BACKSPACE Then            ' delete
             If lub_length > 0 Then
                 s_core_print_char_at( 2 , 15 + lub_length , 32 , UB_WHITE )
                 lub_length = lub_length - 1
                 s_core_print_char_at( 2 , 15 + lub_length , Code( "_" ) , UB_WHITE )
             End If
-        ElseIf gub_key_char >= 32 And gub_key_char < 127 And lub_length < 23 Then
+        ElseIf gub_key_char >= UC_SPACE And gub_key_char < UC_DELETE And lub_length < 23 Then
             Poke A_PLAYER_NAME + lub_length , gub_key_char
             s_core_print_char_at( 2 , 15 + lub_length , gub_key_char , UB_BRIGHT_WHITE )
             lub_length = lub_length + 1

@@ -31,8 +31,7 @@ End Asm
 ' set to the length of the question instead, a slip in Moria's source, here it is set to the answer
 
 
-' --- working storage, see also stage-wizard-include.bas ---
-#define A_W2_ITEM           A_LIB_PRIVATE + 64                      ' 64 bytes, the object being made up
+' --- its working storage is in globals.bas, under "private to stage-lib-wizard-2.bas", moved there on 22 October 2026 ---
 
 
 Function fub_w2_call( pub_page As UByte , pub_function As UByte , pub_param As UByte , puw_param As UInteger ) As UByte
@@ -156,7 +155,6 @@ End Sub
 ' --- an object ---
 
 
-
 Function ful_w2_hex() As ULong
     ' what the player typed, read as a number in hexadecimal, as far as it goes, Moria's sscanf( "%lx" )
     Dim lul_value   As ULong = 0
@@ -273,5 +271,5 @@ Sub s_lib_wizard_2()
     ElseIf gub_lib_function = UB_LIB_WIZARD_2_OBJECT Then
         s_w2_object()
     End If
-    If lub_saved_page_2 <> 255 Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved_page_2 )
+    If lub_saved_page_2 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved_page_2 )
 End Sub

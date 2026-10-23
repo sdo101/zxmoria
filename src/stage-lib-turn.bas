@@ -59,11 +59,15 @@ Function fub_tn_blindness() As UByte
     Dim lub_redraw As UByte = false
 
     If gsw_player_blind <= 0 Then Return false
+    ' N.B: the monsters are unlit as the blindness begins and lit again as it ends, Moria's updateMonsters( false ),
+    ' which matters beyond the look of it: a lit monster gets its moves however far away it is (until 21 October 2026
+    ' ours left them as they were for the rest of the turn, the blind comparison found the random numbers a draw apart)
     If ( gul_player_status bAnd UL_PY_BLIND ) = 0 Then
         gul_player_status = gul_player_status bOr UL_PY_BLIND
         s_tn_word( 7 , "Blind" , true )
         lub_redraw = true
         s_dst_disturb( false , true )
+        s_core_call_library( UB_PAGED_CODE_LIB_MONSTERS , UB_LIB_MONSTERS_UPDATE )
     End If
     gsw_player_blind = gsw_player_blind - 1
     If gsw_player_blind = 0 Then
@@ -71,6 +75,7 @@ Function fub_tn_blindness() As UByte
         s_tn_word( 7 , "Blind" , false )
         lub_redraw = true
         s_dst_disturb( false , true )
+        s_core_call_library( UB_PAGED_CODE_LIB_MONSTERS , UB_LIB_MONSTERS_UPDATE )
         s_core_message( UW_MSG_THE_VEIL_OF_DARKNESS_LIFTS )
     End If
     Return lub_redraw
@@ -177,16 +182,16 @@ Function fsw_tn_food() As Integer
     ' Moria's playerFoodConsumption(): the food in the player's belly is used up a little each turn, as it runs low
     ' they are warned, then weaken, then faint, and with none left they starve, what comes back is how fast they
     ' will heal this turn, a hungry player heals slowly
-    Dim lsw_regen As Integer = 197              ' PLAYER_REGEN_NORMAL
+    Dim lsw_regen As Integer = UB_PLAYER_REGEN_NORMAL
 
-    If gsw_player_food < 2000 Then              ' PLAYER_FOOD_ALERT
-        If gsw_player_food < 1000 Then          ' PLAYER_FOOD_WEAK
+    If gsw_player_food < UW_PLAYER_FOOD_ALERT Then
+        If gsw_player_food < UW_PLAYER_FOOD_WEAK Then
             If gsw_player_food < 0 Then
                 lsw_regen = 0
-            ElseIf gsw_player_food < 300 Then   ' PLAYER_FOOD_FAINT
-                lsw_regen = 33                  ' PLAYER_REGEN_FAINT
+            ElseIf gsw_player_food < UW_PLAYER_FOOD_FAINT Then
+                lsw_regen = UB_PLAYER_REGEN_FAINT
             Else
-                lsw_regen = 98                  ' PLAYER_REGEN_WEAK
+                lsw_regen = UB_PLAYER_REGEN_WEAK
             End If
             If ( gul_player_status bAnd UL_PY_WEAK ) = 0 Then
                 gul_player_status = gul_player_status bOr UL_PY_WEAK
@@ -194,7 +199,7 @@ Function fsw_tn_food() As Integer
                 s_dst_disturb( false , false )
                 s_tn_hunger_word()
             End If
-            If gsw_player_food < 300 Then
+            If gsw_player_food < UW_PLAYER_FOOD_FAINT Then
                 If ful_core_random_number( 8 ) = 1 Then
                     gsw_player_paralysis = gsw_player_paralysis + ful_core_random_number( 5 )
                     s_core_message( UW_MSG_YOU_FAINT_FROM_THE_LACK_OF_FOOD )
@@ -233,7 +238,7 @@ Sub s_tn_regenerate( psw_amount As Integer )
 
     If gsw_player_poisoned < 1 And gsw_player_current_hp < gsw_player_max_hp Then
         lsw_old = gsw_player_current_hp
-        lsl_new = Cast( Long , gsw_player_max_hp ) * psw_amount + 1442         ' PLAYER_REGEN_HPBASE
+        lsl_new = Cast( Long , gsw_player_max_hp ) * psw_amount + UW_PLAYER_REGEN_HPBASE
         gsw_player_current_hp = gsw_player_current_hp + ( lsl_new >> 16 )
         lsl_new = ( lsl_new bAnd $FFFF ) + guw_player_hp_fraction
         If lsl_new >= 65536 Then
@@ -253,7 +258,7 @@ Sub s_tn_regenerate( psw_amount As Integer )
     ' mana comes back the same way, Moria's playerRegenerateMana()
     If gsw_player_current_mana < gsw_player_mana Then
         lsw_old = gsw_player_current_mana
-        lsl_new = Cast( Long , gsw_player_mana ) * psw_amount + 524            ' PLAYER_REGEN_MNBASE
+        lsl_new = Cast( Long , gsw_player_mana ) * psw_amount + UW_PLAYER_REGEN_MNBASE
         gsw_player_current_mana = gsw_player_current_mana + ( lsl_new >> 16 )
         lsl_new = ( lsl_new bAnd $FFFF ) + guw_player_mana_fraction
         If lsl_new >= 65536 Then

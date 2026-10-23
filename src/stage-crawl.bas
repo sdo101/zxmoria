@@ -21,7 +21,7 @@ End Asm
 ' Moria's playDungeon() (game_run.cpp), with its map display (ui.cpp, dungeon.cpp) and its playerMove() (player_move.cpp)
 ' the screen is Moria's: a message line on row 0, the character's details down the left hand 13 columns, the map in a
 ' window of 22 rows by 66 columns from row 1 and column 13, and the depth at the bottom right, that is 24 rows of the
-' Next's 32: the eight below them belong to the core's live monitor, which the ] key turns on and off
+' Next's 32: the eight below them belong to the core's live monitor, which the } key turns on and off
 ' the map shows only what the player has seen or can see, a square appears when it is lit, permanently or by the
 ' player's own light, or when the thing on it has been found
 '
@@ -73,13 +73,12 @@ Sub s_cr_minimap_set( pub_row As UByte , pub_col As UByte )
     ' the parameters: pub_row ix+5, pub_col ix+7
     Asm
         ld bc, A_NEXTREG_SELECT
-        ld a, MMU_SLOT_0_REG            ; $50, MMU 0
+        ld a, MMU_SLOT_0
         out (c), a
         inc b                           ; $253B, A_NEXTREG_DATA
         in a, (c)
         push af                         ; the page that was there
-        ld a, UB_PAGE_MINIMAP_NUMBER
-        out (c), a
+        nextreg MMU_SLOT_0, UB_PAGE_MINIMAP
         ld l, (ix+5)                    ; the row's first byte: row * 32
         ld h, 0
         add hl, hl
@@ -106,8 +105,7 @@ Sub s_cr_minimap_set( pub_row As UByte , pub_col As UByte )
         or e
         ld (hl), a
         pop af
-        ld bc, A_NEXTREG_DATA           ; the register chosen is still MMU 0's
-        out (c), a
+        nextreg MMU_SLOT_0, a           ; the page that was there, back
     End Asm
 End Sub
 
@@ -535,50 +533,6 @@ Sub s_cr_arrive()
 End Sub
 
 
-' whether a new character starts with "print self during run" on, which draws the player at every step of a run,
-' Moria starts with it off, N.B: it is here, and not in constants.bas, so that changing it compiles this stage alone,
-' and it only sets how the option starts out, = changes it in the game
-#define UB_CR_PRINT_SELF_AT_START    true
-
-' the same for "beep for invalid character": whether a new character starts with it on, as Moria does, the beep is
-' made when a key that is no command at all is pressed, s_cr_beep() below, = turns it on and off in the game
-#define UB_CR_BEEP_AT_START          true
-
-' the same for "rogue like commands": whether a new character starts with them on, Moria starts with them off,
-' and so do ours, the digits are Moria's directions and a keyboard with a number pad is what they are meant for,
-' = turns them on and off in the game
-#define UB_CR_ROGUELIKE_AT_START     false
-
-
-Sub s_cr_beep()
-    ' a short beep from the speaker, if the player has that option on: about a tenth of a second at about 800Hz
-    ' N.B: the speaker is bit 4 of port $FE, whose low three bits are the border, which is black and stays black,
-    ' and the timing is for the 28MHz the game runs at, 17,500 clock cycles between one flip of the speaker
-    ' and the next
-    If ( guw_game_options bAnd MW_OPTION_BEEP ) = 0 Then Return
-    Asm
-        ld hl, 160              ; how many times the speaker is flipped
-        ld e, 0
-cr_beep_flip:
-        ld a, e
-        xor 16
-        ld e, a
-        out ($FE), a
-        ld bc, 670              ; 26 clock cycles each time round
-cr_beep_wait:
-        dec bc
-        ld a, b
-        or c
-        jr nz, cr_beep_wait
-        dec hl
-        ld a, h
-        or l
-        jr nz, cr_beep_flip
-        xor a
-        out ($FE), a
-    End Asm
-End Sub
-
 Sub s_stage_crawl()
     Dim lub_leave       As UByte = false
     Dim lub_direction   As UByte
@@ -638,11 +592,15 @@ Sub s_stage_crawl()
     If lub_from_store = false Then s_core_call_library( UB_PAGED_CODE_LIB_MONSTERS , UB_LIB_MONSTERS_UPDATE )
 
     ' N.B: a game brought back from a save carries on with the turn it was saved in, no new one begins
-    ' N.B: coming out of a store, what the store left is kept: an ESCAPE at "Which one?" when selling sets it, as
-    ' Moria's inventoryGetInputForItemId() does, and then the turn the player stepped in on is free, the monsters do not
-    ' have theirs and no new turn begins, Moria's own oddity, see umoria-oddities.md (found 17 October 2026, comparing an
-    ' Elf ranger selling)
-    If lub_from_store = false Then gub_game_free_turn = lub_counted
+    ' N.B: coming out of a store, the step in always took a turn, NOT Moria's (sdo, 22 October): in Moria an ESCAPE at
+    ' "Which one?" when selling leaves its inventoryGetInputForItemId()'s free turn set, and the turn the player stepped
+    ' in on is free, the monsters do not have theirs and no new turn begins, Moria's own oddity, see umoria-oddities.md
+    ' (found 17 October 2026, comparing an Elf ranger selling)
+    If lub_from_store = false Then
+        gub_game_free_turn = lub_counted
+    Else
+        gub_game_free_turn = false
+    End If
     gub_game_disturb   = false
     ' the rest of the turn in which the player stepped into a store: Moria's storeEnter() is called in the middle of
     ' the player's move, and when the player comes out that turn goes on, the monsters have theirs, Moria's
@@ -670,7 +628,7 @@ Sub s_stage_crawl()
                 If ( gsl_game_turn Mod 1000 ) = 0 Then s_core_call_library( UB_PAGED_CODE_LIB_STORES , UB_LIB_STORES_MAINTAIN )
             End If
             ' check for creature generation
-            If ful_core_random_number( 160 ) = 1 Then
+            If ful_core_random_number( UB_MON_CHANCE_OF_NEW ) = 1 Then
                 guw_lib_param_2 = 1
                 gub_lib_param_1 = UB_MON_MAX_SIGHT
                 s_core_call_library( UB_PAGED_CODE_LIB_MONSTERS , UB_LIB_MONSTERS_PLACE_AWAKE )
@@ -718,9 +676,10 @@ Sub s_stage_crawl()
                 gub_game_running = gub_game_running + 1
                 If gub_game_running > 102 Then
                     ' prevent infinite loops in find mode, will stop after moving 100 times
+                    ' N.B: and the stop takes a turn, as in Moria, whose playerRunAndFind() leaves player_free_turn
+                    ' false (found 22 October 2026 by reading the two, it was a free turn here, a turn short of Moria's)
                     s_core_message( UW_MSG_CATCH_BREATH )
                     gub_game_running   = 0
-                    gub_game_free_turn = true
                 Else
                     lub_direction = gub_game_run_direction
                 End If
@@ -728,7 +687,7 @@ Sub s_stage_crawl()
                 lub_no_command = false
                 If guw_game_command_count <> 0 Then
                     ' a command that was given a count goes round again, Moria's command_count
-                    gub_key_char = gub_game_repeat_key bAnd 127
+                    gub_key_char = gub_game_repeat_key bAnd ( 255 - MB_REPEAT_DONE )
                     guw_key_code = gub_key_char
                     lub_counted  = true
                     ' the last round's message is not run on into this round's, nor waits for -more-, as Moria's
@@ -749,7 +708,7 @@ Sub s_stage_crawl()
                     ' N.B: the first time round the key must stay down for a third of a second, so that a tap is one step
                     ' N.B: lub_held is 0 when no key that can carry a repeat on was the last pressed, see below, and a key
                     ' scan that finds no key at all is 0 too, so 0 is never taken for a key held down
-                    While lub_again <> 0 And lub_held <> 0 And lub_wait < 16 And fub_core_scan_key() = lub_held
+                    While lub_again <> 0 And lub_held <> 0 And lub_wait < UB_HOLD_FRAMES And fub_core_scan_key() = lub_held
                         ' the next frame, a fiftieth of a second on, as the core's s_core_wait_for_vblank() waits for it
                         Asm
                             ei
@@ -762,7 +721,7 @@ Sub s_stage_crawl()
                         gub_key_char = lub_again
                         guw_key_code = lub_again
                         ' N.B: this is how a command given a count goes round, it uses the direction it had the first time
-                        gub_game_repeat_key = lub_again bOr 128
+                        gub_game_repeat_key = lub_again bOr MB_REPEAT_DONE
                     Else
                         s_core_get_key()
                         lub_held = 0
@@ -810,7 +769,7 @@ Sub s_stage_crawl()
             ' every other command is the commands library's, it says what is to be done here afterwards
             gub_game_turn_flags     = 0
             gub_game_step_direction = 0
-            gub_game_step_code      = 0
+            gub_game_step_code      = UB_STEP_NONE
             s_core_call_library( UB_PAGED_CODE_LIB_COMMANDS , UB_LIB_COMMANDS_KEY )
             lub_answer = gsw_lib_result
             ' the game has been saved: back to the core, and so to NextZXOS
@@ -819,10 +778,10 @@ Sub s_stage_crawl()
                 ' a key that means nothing
                 gub_game_free_turn = true
             Else
-                If ( lub_answer bAnd MB_COMMAND_UNKNOWN ) <> 0 Then s_cr_beep()
+                If ( lub_answer bAnd MB_COMMAND_UNKNOWN ) <> 0 Then s_core_beep()
                 If ( lub_answer bAnd MB_COMMAND_DRAW_AROUND ) <> 0 Then s_cr_draw_around()
                 If ( lub_answer bAnd MB_COMMAND_DRAW_ALL ) <> 0 Then s_cr_draw_all()
-                If gub_game_step_code = 3 Then
+                If gub_game_step_code = UB_STEP_PLAIN Then
                     ' a step without picking anything up
                     lub_leave = fub_cr_move( gub_game_step_direction , false )
                 ElseIf gub_game_step_direction <> 0 Then
@@ -830,7 +789,7 @@ Sub s_stage_crawl()
                     lsw_confused = gsw_player_confused
                     gsw_player_confused = 0
                     lub_leave = fub_cr_move( gub_game_step_direction , false )
-                    If gub_game_step_code = 1 Then
+                    If gub_game_step_code = UB_STEP_DISARMED Then
                         gsw_player_confused = lsw_confused
                         s_core_call_library( UB_PAGED_CODE_LIB_EFFECTS , UB_LIB_EFFECTS_DISPLAY_EXP )
                     Else
@@ -845,13 +804,13 @@ Sub s_stage_crawl()
             ' the first time round, the command may have asked which way, and the key that answered may still be down:
             ' it must be let go of first, or it is taken for a key pressed to break the count off (found 17 October
             ' 2026, #30T6 tunnelled once and stopped, Moria's count went on: the key it read was gone from its input)
-            If ( gub_game_repeat_key bAnd 128 ) = 0 Then
+            If ( gub_game_repeat_key bAnd MB_REPEAT_DONE ) = 0 Then
                 While fub_core_scan_key() <> 0
                 End While
             End If
             ' from now on the command uses the direction it was first given, and one fewer is left to do, or
             ' none if it could not be done at all
-            gub_game_repeat_key = gub_game_repeat_key bOr 128
+            gub_game_repeat_key = gub_game_repeat_key bOr MB_REPEAT_DONE
             If gub_game_free_turn Then
                 guw_game_command_count = 0
             ElseIf guw_game_command_count <> 0 Then
@@ -867,14 +826,14 @@ Sub s_stage_crawl()
         ' middle of the command (found 16 October 2026: after a kill, SPACE or ESCAPE held down a moment at the -more-
         ' made the player walk on, a step a turn, for as long as it was held, the attack's direction being repeated)
         If lub_held = 0 Then
-            If ( gub_key_char >= Code( "1" ) And gub_key_char <= Code( "9" ) ) Or ( gub_key_char >= 130 And gub_key_char <= 133 ) Or gub_key_char = Code( "s" ) Then lub_held = gub_key_char
+            If ( gub_key_char >= Code( "1" ) And gub_key_char <= Code( "9" ) ) Or ( gub_key_char >= Cast( UByte , UW_KEY_UP ) And gub_key_char <= Cast( UByte , UW_KEY_RIGHT ) ) Or gub_key_char = Code( "s" ) Then lub_held = gub_key_char
         End If
         ' N.B: the direction a held key or a rogue like command brought with it is done with, but not a count that
         ' has just been given, which begins next time round
         If lub_counted = false And guw_game_command_count = 0 Then gub_game_repeat_key = 0
         lub_again = 0
         If lub_no_command = false And lub_counted = false And gub_game_free_turn = false Then
-            If ( lub_this >= Code( "1" ) And lub_this <= Code( "9" ) ) Or ( lub_this >= 130 And lub_this <= 133 ) Then lub_again = lub_this
+            If ( lub_this >= Code( "1" ) And lub_this <= Code( "9" ) ) Or ( lub_this >= Cast( UByte , UW_KEY_UP ) And lub_this <= Cast( UByte , UW_KEY_RIGHT ) ) Then lub_again = lub_this
             If lub_this = Code( "s" ) Or lub_this = Code( "B" ) Or lub_this = Code( "T" ) Then lub_again = lub_this
         End If
 

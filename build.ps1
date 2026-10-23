@@ -37,12 +37,12 @@ $ErrorActionPreference = 'Stop'
 #                               older than the script; there is no src\font.fon any more.
 #   v0.25   18-Oct-2026   sdo   The emulator settings for zf, za, zb and zd are made in build when src\zesarux.cfg, or this
 #                               script, is newer than them, not at every start; the breakpoints in it are commented out.
-#   v0.26   18-Oct-2026   sdo   zxmoria: a copy of poc4uat to be shared, without the spoken line in the opening; the Umoria
-#                               source is found in the root folder with the tools, and without images\tbblue\new.mmc the
-#                               base card is copied from the one that comes with ZEsarUX.
-#   v0.27   22-Oct-2026   sdo   The tools are in version folders (boriel\1.19.0, sjasmplus\1.24.0, zesarux\13.0), and the
+#   v0.26   22-Oct-2026   sdo   The tools are in version folders (boriel\1.19.0, sjasmplus\1.24.0, zesarux\13.0), and the
 #                               newest of each is used unless one is pinned ($CompilerPinned and so on), the folders' names
 #                               compared as [version]s made up to four parts with 0s, as 13.0 against 13.0.0 goes wrong.
+#   v0.27   23-Oct-2026   sdo   One build.ps1 for poc4uat and zxmoria: the Umoria source is found in the root folder with
+#                               the tools, without images\tbblue\new.mmc the base card is copied from the one that comes with
+#                               ZEsarUX, and there is no spoken line in the opening any more.
 ###################################################################################################################################
 $myScriptVersion = 'v0.27'
 ###################################################################################################################################

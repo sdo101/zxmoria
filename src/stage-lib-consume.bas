@@ -151,71 +151,71 @@ Function fub_cn_eat() As UByte
     While lul_flags <> 0
         If ( lul_flags bAnd lul_mask ) <> 0 Then
             lul_flags = lul_flags bAnd ( $FFFFFFFF - lul_mask )
-            If lub_effect = 1 Then
+            If lub_effect = UB_FOOD_POISON Then
                 ' poison
                 gsw_player_poisoned = gsw_player_poisoned + fuw_cn_random( 10 ) + lub_depth
                 lub_identified = true
-            ElseIf lub_effect = 2 Then
+            ElseIf lub_effect = UB_FOOD_BLINDNESS Then
                 ' blindness
                 gsw_player_blind = gsw_player_blind + fuw_cn_random( 250 ) + 10 * Cast( UInteger , lub_depth ) + 100
                 s_core_message( UW_MSG_A_VEIL_OF_DARKNESS_SURROUNDS_YOU )
                 lub_identified = true
-            ElseIf lub_effect = 3 Then
+            ElseIf lub_effect = UB_FOOD_PARANOIA Then
                 ' paranoia
                 gsw_player_afraid = gsw_player_afraid + fuw_cn_random( 10 ) + lub_depth
                 s_core_message( UW_MSG_YOU_FEEL_TERRIFIED )
                 lub_identified = true
-            ElseIf lub_effect = 4 Then
+            ElseIf lub_effect = UB_FOOD_CONFUSION Then
                 ' confusion
                 gsw_player_confused = gsw_player_confused + fuw_cn_random( 10 ) + lub_depth
                 s_core_message( UW_MSG_YOU_FEEL_DRUGGED )
                 lub_identified = true
-            ElseIf lub_effect = 5 Then
+            ElseIf lub_effect = UB_FOOD_HALLUCINATION Then
                 ' hallucination
                 gsw_player_image = gsw_player_image + fuw_cn_random( 200 ) + 25 * Cast( UInteger , lub_depth ) + 200
                 s_core_message( UW_MSG_YOU_FEEL_DRUGGED )
                 lub_identified = true
-            ElseIf lub_effect = 6 Then
+            ElseIf lub_effect = UB_FOOD_CURE_POISON Then
                 lub_identified = fub_cn_cure( @gsw_player_poisoned )
-            ElseIf lub_effect = 7 Then
+            ElseIf lub_effect = UB_FOOD_CURE_BLINDNESS Then
                 lub_identified = fub_cn_cure( @gsw_player_blind )
-            ElseIf lub_effect = 8 Then
+            ElseIf lub_effect = UB_FOOD_CURE_PARANOIA Then
                 If fub_cn_cure( @gsw_player_afraid ) Then lub_identified = true
-            ElseIf lub_effect = 9 Then
+            ElseIf lub_effect = UB_FOOD_CURE_CONFUSION Then
                 lub_identified = fub_cn_cure( @gsw_player_confused )
-            ElseIf lub_effect = 10 Then
+            ElseIf lub_effect = UB_FOOD_WEAKNESS Then
                 ' weakness
                 gub_shared_1 = fub_cn_effect( UB_LIB_EFFECTS_LOSE_STAT , UB_STAT_STR , 0 )
                 lub_identified = true
-            ElseIf lub_effect = 11 Then
+            ElseIf lub_effect = UB_FOOD_UNHEALTH Then
                 ' unhealth
                 gub_shared_1 = fub_cn_effect( UB_LIB_EFFECTS_LOSE_STAT , UB_STAT_CON , 0 )
                 lub_identified = true
-            ElseIf lub_effect = 16 Then
+            ElseIf lub_effect = UB_FOOD_RESTORE_STR Then
                 If fub_cn_restore( UB_STAT_STR , "You feel your strength returning." ) Then lub_identified = true
-            ElseIf lub_effect = 17 Then
+            ElseIf lub_effect = UB_FOOD_RESTORE_CON Then
                 If fub_cn_restore( UB_STAT_CON , "You feel your health returning." ) Then lub_identified = true
-            ElseIf lub_effect = 18 Then
+            ElseIf lub_effect = UB_FOOD_RESTORE_INT Then
                 If fub_cn_restore( UB_STAT_INT , "Your head spins a moment." ) Then lub_identified = true
-            ElseIf lub_effect = 19 Then
+            ElseIf lub_effect = UB_FOOD_RESTORE_WIS Then
                 If fub_cn_restore( UB_STAT_WIS , "You feel your wisdom returning." ) Then lub_identified = true
-            ElseIf lub_effect = 20 Then
+            ElseIf lub_effect = UB_FOOD_RESTORE_DEX Then
                 If fub_cn_restore( UB_STAT_DEX , "You feel more dexterous." ) Then lub_identified = true
-            ElseIf lub_effect = 21 Then
+            ElseIf lub_effect = UB_FOOD_RESTORE_CHR Then
                 If fub_cn_restore( UB_STAT_CHR , "Your skin stops itching." ) Then lub_identified = true
-            ElseIf lub_effect = 22 Then
+            ElseIf lub_effect = UB_FOOD_FIRST_AID Then
                 ' first aid
                 lub_identified = fub_cn_effect( UB_LIB_EFFECTS_HP_CHANGE , 0 , fuw_cn_random( 6 ) )
-            ElseIf lub_effect = 23 Then
+            ElseIf lub_effect = UB_FOOD_MINOR_CURES Then
                 ' minor cures
                 lub_identified = fub_cn_effect( UB_LIB_EFFECTS_HP_CHANGE , 0 , fuw_cn_random( 12 ) )
-            ElseIf lub_effect = 24 Then
+            ElseIf lub_effect = UB_FOOD_LIGHT_CURES Then
                 ' light cures
                 lub_identified = fub_cn_effect( UB_LIB_EFFECTS_HP_CHANGE , 0 , fuw_cn_random( 18 ) )
-            ElseIf lub_effect = 26 Then
+            ElseIf lub_effect = UB_FOOD_MAJOR_CURES Then
                 ' major cures
                 lub_identified = fub_cn_effect( UB_LIB_EFFECTS_HP_CHANGE , 0 , fuw_core_dice_roll( 3 , 12 ) )
-            ElseIf lub_effect = 27 Then
+            ElseIf lub_effect = UB_FOOD_POISONOUS_FOOD Then
                 ' poisonous food
                 s_hit_killer( "poisonous food." )
                 s_hit_player( fuw_cn_random( 18 ) )
@@ -256,51 +256,51 @@ Function fub_cn_potion( pul_flags As ULong , pub_effect As UByte ) As UByte
     While pul_flags <> 0
         If ( pul_flags bAnd lul_mask ) <> 0 Then
             pul_flags = pul_flags bAnd ( $FFFFFFFF - lul_mask )
-            If pub_effect = 1 Then
+            If pub_effect = UB_POTION_STRENGTH Then
                 If fub_cn_increase( UB_STAT_STR , "Wow!  What bulging muscles!" ) Then lub_identified = true
-            ElseIf pub_effect = 2 Then
+            ElseIf pub_effect = UB_POTION_WEAKNESS Then
                 gub_shared_1 = fub_cn_effect( UB_LIB_EFFECTS_LOSE_STAT , UB_STAT_STR , 0 )
                 lub_identified = true
-            ElseIf pub_effect = 3 Then
+            ElseIf pub_effect = UB_POTION_RESTORE_STRENGTH Then
                 If fub_cn_restore( UB_STAT_STR , "You feel warm all over." ) Then lub_identified = true
-            ElseIf pub_effect = 4 Then
+            ElseIf pub_effect = UB_POTION_INTELLIGENCE Then
                 If fub_cn_increase( UB_STAT_INT , "Aren't you brilliant!" ) Then lub_identified = true
-            ElseIf pub_effect = 5 Then
+            ElseIf pub_effect = UB_POTION_LOSE_INTELLIGENCE Then
                 gub_shared_1 = fub_cn_effect( UB_LIB_EFFECTS_LOSE_STAT , UB_STAT_INT , 0 )
                 lub_identified = true
-            ElseIf pub_effect = 6 Then
+            ElseIf pub_effect = UB_POTION_RESTORE_INTELLIGENCE Then
                 If fub_cn_restore( UB_STAT_INT , "You have have a warm feeling." ) Then lub_identified = true
-            ElseIf pub_effect = 7 Then
+            ElseIf pub_effect = UB_POTION_WISDOM Then
                 If fub_cn_increase( UB_STAT_WIS , "You suddenly have a profound thought!" ) Then lub_identified = true
-            ElseIf pub_effect = 8 Then
+            ElseIf pub_effect = UB_POTION_LOSE_WISDOM Then
                 gub_shared_1 = fub_cn_effect( UB_LIB_EFFECTS_LOSE_STAT , UB_STAT_WIS , 0 )
                 lub_identified = true
-            ElseIf pub_effect = 9 Then
+            ElseIf pub_effect = UB_POTION_RESTORE_WISDOM Then
                 If fub_cn_restore( UB_STAT_WIS , "You feel your wisdom returning." ) Then lub_identified = true
-            ElseIf pub_effect = 10 Then
+            ElseIf pub_effect = UB_POTION_CHARISMA Then
                 If fub_cn_increase( UB_STAT_CHR , "Gee, ain't you cute!" ) Then lub_identified = true
-            ElseIf pub_effect = 11 Then
+            ElseIf pub_effect = UB_POTION_UGLINESS Then
                 gub_shared_1 = fub_cn_effect( UB_LIB_EFFECTS_LOSE_STAT , UB_STAT_CHR , 0 )
                 lub_identified = true
-            ElseIf pub_effect = 12 Then
+            ElseIf pub_effect = UB_POTION_RESTORE_CHARISMA Then
                 If fub_cn_restore( UB_STAT_CHR , "You feel your looks returning." ) Then lub_identified = true
-            ElseIf pub_effect = 13 Then
+            ElseIf pub_effect = UB_POTION_CURE_LIGHT_WOUNDS Then
                 ' cure light wounds
                 lub_identified = fub_cn_effect( UB_LIB_EFFECTS_HP_CHANGE , 0 , fuw_core_dice_roll( 2 , 7 ) )
-            ElseIf pub_effect = 14 Then
+            ElseIf pub_effect = UB_POTION_CURE_SERIOUS_WOUNDS Then
                 ' cure serious wounds
                 lub_identified = fub_cn_effect( UB_LIB_EFFECTS_HP_CHANGE , 0 , fuw_core_dice_roll( 4 , 7 ) )
-            ElseIf pub_effect = 15 Then
+            ElseIf pub_effect = UB_POTION_CURE_CRITICAL_WOUNDS Then
                 ' cure critical wounds
                 lub_identified = fub_cn_effect( UB_LIB_EFFECTS_HP_CHANGE , 0 , fuw_core_dice_roll( 6 , 7 ) )
-            ElseIf pub_effect = 16 Then
+            ElseIf pub_effect = UB_POTION_HEALING Then
                 ' healing
                 lub_identified = fub_cn_effect( UB_LIB_EFFECTS_HP_CHANGE , 0 , 1000 )
-            ElseIf pub_effect = 17 Then
+            ElseIf pub_effect = UB_POTION_CONSTITUTION Then
                 If fub_cn_increase( UB_STAT_CON , "You feel tingly for a moment." ) Then lub_identified = true
-            ElseIf pub_effect = 18 Then
+            ElseIf pub_effect = UB_POTION_GAIN_EXPERIENCE Then
                 ' gain experience
-                If gsl_player_exp < 9999999 Then
+                If gsl_player_exp < UL_PLAYER_MAX_EXP Then
                     lsl_exp = ( gsl_player_exp / 2 ) + 10
                     If lsl_exp > 100000 Then lsl_exp = 100000
                     gsl_player_exp = gsl_player_exp + lsl_exp
@@ -308,53 +308,53 @@ Function fub_cn_potion( pul_flags As ULong , pub_effect As UByte ) As UByte
                     gub_shared_1 = fub_cn_effect( UB_LIB_EFFECTS_DISPLAY_EXP , 0 , 0 )
                     lub_identified = true
                 End If
-            ElseIf pub_effect = 19 Then
+            ElseIf pub_effect = UB_POTION_SLEEP Then
                 ' sleep
                 If gub_player_free_action = false Then
                     s_core_message( UW_MSG_YOU_FALL_ASLEEP )
                     gsw_player_paralysis = gsw_player_paralysis + fuw_cn_random( 4 ) + 4
                     lub_identified = true
                 End If
-            ElseIf pub_effect = 20 Then
+            ElseIf pub_effect = UB_POTION_BLINDNESS Then
                 ' blindness
                 If gsw_player_blind = 0 Then
                     s_core_message( UW_MSG_YOU_ARE_COVERED_BY_A_VEIL_OF )
                     lub_identified = true
                 End If
                 gsw_player_blind = gsw_player_blind + fuw_cn_random( 100 ) + 100
-            ElseIf pub_effect = 21 Then
+            ElseIf pub_effect = UB_POTION_CONFUSION Then
                 ' confusion
                 If gsw_player_confused = 0 Then
                     s_core_message( UW_MSG_HEY_THIS_IS_GOOD_STUFF_HICK )
                     lub_identified = true
                 End If
                 gsw_player_confused = gsw_player_confused + fuw_cn_random( 20 ) + 12
-            ElseIf pub_effect = 22 Then
+            ElseIf pub_effect = UB_POTION_POISON Then
                 ' poison
                 If gsw_player_poisoned = 0 Then
                     s_core_message( UW_MSG_YOU_FEEL_VERY_SICK )
                     lub_identified = true
                 End If
                 gsw_player_poisoned = gsw_player_poisoned + fuw_cn_random( 15 ) + 10
-            ElseIf pub_effect = 23 Then
+            ElseIf pub_effect = UB_POTION_HASTE_SELF Then
                 ' haste self
                 If fub_cn_timed( @gsw_player_fast , fuw_cn_random( 25 ) + 15 ) Then lub_identified = true
-            ElseIf pub_effect = 24 Then
+            ElseIf pub_effect = UB_POTION_SLOWNESS Then
                 ' slowness
                 If fub_cn_timed( @gsw_player_slow , fuw_cn_random( 25 ) + 15 ) Then lub_identified = true
-            ElseIf pub_effect = 26 Then
+            ElseIf pub_effect = UB_POTION_DEXTERITY Then
                 If fub_cn_increase( UB_STAT_DEX , "You feel more limber!" ) Then lub_identified = true
-            ElseIf pub_effect = 27 Then
+            ElseIf pub_effect = UB_POTION_RESTORE_DEXTERITY Then
                 If fub_cn_restore( UB_STAT_DEX , "You feel less clumsy." ) Then lub_identified = true
-            ElseIf pub_effect = 28 Then
+            ElseIf pub_effect = UB_POTION_RESTORE_CONSTITUTION Then
                 If fub_cn_restore( UB_STAT_CON , "You feel your health returning!" ) Then lub_identified = true
-            ElseIf pub_effect = 29 Then
+            ElseIf pub_effect = UB_POTION_CURE_BLINDNESS Then
                 lub_identified = fub_cn_cure( @gsw_player_blind )
-            ElseIf pub_effect = 30 Then
+            ElseIf pub_effect = UB_POTION_CURE_CONFUSION Then
                 lub_identified = fub_cn_cure( @gsw_player_confused )
-            ElseIf pub_effect = 31 Then
+            ElseIf pub_effect = UB_POTION_CURE_POISON Then
                 lub_identified = fub_cn_cure( @gsw_player_poisoned )
-            ElseIf pub_effect = 34 Then
+            ElseIf pub_effect = UB_POTION_LOSE_EXPERIENCE Then
                 ' lose experience
                 If gsl_player_exp > 0 Then
                     s_core_message( UW_MSG_YOU_FEEL_YOUR_MEMORIES_FADE )
@@ -369,38 +369,38 @@ Function fub_cn_potion( pul_flags As ULong , pub_effect As UByte ) As UByte
                     gub_shared_1   = fub_cn_effect( UB_LIB_EFFECTS_LOSE_EXP , 0 , 0 )
                     lub_identified = true
                 End If
-            ElseIf pub_effect = 35 Then
+            ElseIf pub_effect = UB_POTION_SALT_WATER Then
                 ' salt water
                 gub_shared_1 = fub_cn_cure( @gsw_player_poisoned )
                 If gsw_player_food > 150 Then gsw_player_food = 150
                 gsw_player_paralysis = 4
                 s_core_message( UW_MSG_THE_POTION_MAKES_YOU_VOMIT )
                 lub_identified = true
-            ElseIf pub_effect = 36 Then
+            ElseIf pub_effect = UB_POTION_INVULNERABILITY Then
                 ' invulnerability
                 If fub_cn_timed( @gsw_player_invulnerability , fuw_cn_random( 10 ) + 10 ) Then lub_identified = true
-            ElseIf pub_effect = 37 Then
+            ElseIf pub_effect = UB_POTION_HEROISM Then
                 ' heroism
                 If fub_cn_timed( @gsw_player_heroism , fuw_cn_random( 25 ) + 25 ) Then lub_identified = true
-            ElseIf pub_effect = 38 Then
+            ElseIf pub_effect = UB_POTION_SUPER_HEROISM Then
                 ' super heroism
                 If fub_cn_timed( @gsw_player_super_heroism , fuw_cn_random( 25 ) + 25 ) Then lub_identified = true
-            ElseIf pub_effect = 39 Then
+            ElseIf pub_effect = UB_POTION_BOLDNESS Then
                 ' boldness
                 lub_identified = fub_cn_cure( @gsw_player_afraid )
-            ElseIf pub_effect = 40 Then
+            ElseIf pub_effect = UB_POTION_RESTORE_LIFE_LEVELS Then
                 ' restore life levels
                 lub_identified = fub_cn_effect( UB_LIB_EFFECTS_RESTORE_LEVELS , 0 , 0 )
-            ElseIf pub_effect = 41 Then
+            ElseIf pub_effect = UB_POTION_RESIST_HEAT Then
                 ' resist heat
                 If fub_cn_timed( @gsw_player_heat_resistance , fuw_cn_random( 10 ) + 10 ) Then lub_identified = true
-            ElseIf pub_effect = 42 Then
+            ElseIf pub_effect = UB_POTION_RESIST_COLD Then
                 ' resist cold
                 If fub_cn_timed( @gsw_player_cold_resistance , fuw_cn_random( 10 ) + 10 ) Then lub_identified = true
-            ElseIf pub_effect = 43 Then
+            ElseIf pub_effect = UB_POTION_DETECT_INVISIBLE Then
                 ' detect invisible
                 If fub_cn_timed( @gsw_player_detect_invisible , fuw_cn_random( 12 ) + 12 ) Then lub_identified = true
-            ElseIf pub_effect = 44 Then
+            ElseIf pub_effect = UB_POTION_SLOW_POISON Then
                 ' slow poison, Moria's spellSlowPoison()
                 If gsw_player_poisoned > 0 Then
                     gsw_player_poisoned = gsw_player_poisoned / 2
@@ -408,10 +408,10 @@ Function fub_cn_potion( pul_flags As ULong , pub_effect As UByte ) As UByte
                     s_core_message( UW_MSG_THE_EFFECT_OF_THE_POISON_HAS_BEEN )
                     lub_identified = true
                 End If
-            ElseIf pub_effect = 45 Then
+            ElseIf pub_effect = UB_POTION_NEUTRALIZE_POISON Then
                 ' neutralize poison
                 lub_identified = fub_cn_cure( @gsw_player_poisoned )
-            ElseIf pub_effect = 46 Then
+            ElseIf pub_effect = UB_POTION_RESTORE_MANA Then
                 ' restore mana
                 If gsw_player_current_mana < gsw_player_mana Then
                     gsw_player_current_mana = gsw_player_mana
@@ -419,7 +419,7 @@ Function fub_cn_potion( pul_flags As ULong , pub_effect As UByte ) As UByte
                     s_core_call_library( UB_PAGED_CODE_LIB_CHARACTER , UB_LIB_CHAR_PRINT_BLOCK )
                     lub_identified = true
                 End If
-            ElseIf pub_effect = 47 Then
+            ElseIf pub_effect = UB_POTION_INFRA_VISION Then
                 ' infravision
                 If gsw_player_timed_infra = 0 Then
                     s_core_message( UW_MSG_YOUR_EYES_BEGIN_TO_TINGLE )

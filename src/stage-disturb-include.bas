@@ -16,6 +16,14 @@ Sub s_dst_rest_off()
         gul_player_status        = gul_player_status bAnd ( $FFFFFFFF - UL_PY_REST )
         gsw_player_food_digested = gsw_player_food_digested + 1
         gub_game_rest_broken     = true
+        ' and Moria's printMessage( CNIL ), at once too: a message showing waits for -more- now, before whatever
+        ' disturbed the rest says its piece (found 20 October 2026: done later, by the commands library, it waited
+        ' after a monster's messages instead, and the key that answered it was a key lost, a turn short of Moria)
+        ' N.B: through the core's jump table, not every page that includes this file has stage-message-include.bas
+        Asm
+            call A_JUMP_MSG_FLUSH
+            call A_JUMP_MSG_CLEAR
+        End Asm
     End If
     gub_game_disturb = gub_game_disturb bOr MB_DISTURB_SCREEN
 End Sub

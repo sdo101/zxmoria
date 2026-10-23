@@ -32,8 +32,7 @@ End Asm
 ' N.B: the order things are done in matters, each random number must be asked for exactly when Moria asks for it
 
 
-' --- working storage, private to this page, see A_LIB_PRIVATE in constants.bas ---
-#define A_FT_THROWN         A_LIB_PRIVATE               ' 64 bytes, the thing in flight
+' --- its working storage is in globals.bas, under "private to stage-lib-throw.bas", moved there on 22 October 2026 ---
 
 Function fs_ft_thrown_name() As String
     ' what the thing in flight is called, without "a" or its numbers
@@ -254,7 +253,7 @@ Sub s_lib_throw()
     lub_saved_page_1 = gub_core_MMU1_page_number
     lub_saved_page_2 = gub_core_MMU2_page_number
     If gub_lib_function = UB_LIB_THROW_ITEM Then s_ft_throw()
-    If lub_saved_page_0 <> 255 Then s_core_swap_paged_data( UB_SLOT_MONSTERS , lub_saved_page_0 )
-    If lub_saved_page_1 <> 255 Then s_core_swap_paged_data( UB_SLOT_ITEMS , lub_saved_page_1 )
-    If lub_saved_page_2 <> 255 Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved_page_2 )
+    If lub_saved_page_0 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_MONSTERS , lub_saved_page_0 )
+    If lub_saved_page_1 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_ITEMS , lub_saved_page_1 )
+    If lub_saved_page_2 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved_page_2 )
 End Sub

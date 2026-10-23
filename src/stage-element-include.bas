@@ -3,9 +3,6 @@
 ' breath, and the aimed spells library, for bolts and balls, include this file, each has its own copy of these routines
 ' the kinds are the UB_ELEMENT_ numbers in constants.bas, with two more that only spells use:
 
-#define UB_ELEMENT_MISSILE  0       ' a magic missile, nothing resists it and nothing is hurt more by it
-#define UB_ELEMENT_HOLY_ORB 11      ' the priest's orb of draining, double to anything evil
-
 
 Function ful_el_resists( pub_element As UByte ) As ULong
     ' the bit of a creature's "spells" that says it breathes this itself, and so is hurt only a quarter as much

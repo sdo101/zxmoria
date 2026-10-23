@@ -78,6 +78,6 @@ End Function
 Sub s_pl_welcome()
     ' ? while a character is being made: Moria's words of welcome, the text library shows them and puts the
     ' screen back
-    gub_lib_param_1 = 3
+    gub_lib_param_1 = UB_TEXT_WELCOME
     s_core_call_library( UB_PAGED_CODE_LIB_TEXT , UB_LIB_TEXT_SHOW )
 End Sub

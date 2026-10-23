@@ -26,25 +26,24 @@ End Asm
 ' Moria's commandPreviousMessage(), the core keeps them, see s_core_print_char_at_logged() in core.bas
 
 
-' --- working storage, private to this page, see A_LIB_PRIVATE in constants.bas ---
-Dim gub_in_saved_page       As UByte    At A_LIB_PRIVATE            ' the page the caller had in the first data slot, while the screen is put aside there
+' --- its working storage is in globals.bas, under "private to stage-lib-text.bas", moved there on 22 October 2026 ---
 
 '##################################################################################################################################
 ' --- the screen ---
 
 Sub s_in_screen_save()
     ' puts the screen aside, in the corridor scratchpad page, Moria's terminalSaveScreen()
-    gub_in_saved_page = gub_core_MMU0_page_number
+    gub_tx_saved_page = gub_core_MMU0_page_number
     s_core_swap_paged_data( UB_SLOT_CORRIDORS , UB_PAGE_CORRIDORS )
-    s_core_ram_copy( A_SCREEN_BASE , A_MMU_SLOT_PAGED_CORRIDORS , 5120 )
+    s_core_ram_copy( A_SCREEN_BASE , A_MMU_SLOT_PAGED_CORRIDORS , UW_SCREEN_CELLS_SIZE )
 End Sub
 
 
 Sub s_in_screen_restore()
     ' Moria's terminalRestoreScreen()
     s_core_swap_paged_data( UB_SLOT_CORRIDORS , UB_PAGE_CORRIDORS )
-    s_core_ram_copy( A_MMU_SLOT_PAGED_CORRIDORS , A_SCREEN_BASE , 5120 )
-    If gub_in_saved_page <> 255 Then s_core_swap_paged_data( UB_SLOT_CORRIDORS , gub_in_saved_page )
+    s_core_ram_copy( A_MMU_SLOT_PAGED_CORRIDORS , A_SCREEN_BASE , UW_SCREEN_CELLS_SIZE )
+    If gub_tx_saved_page <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_CORRIDORS , gub_tx_saved_page )
 End Sub
 
 
@@ -53,9 +52,9 @@ End Sub
 
 Function fuw_in_text( pub_which As UByte ) As UInteger
     ' where a text is: lines that each end in a 13, and a 0 after the last
-    If pub_which = 1 Then Return @in_help
-    If pub_which = 3 Then Return @in_welcome
-    If pub_which = 4 Then Return @in_wizard
+    If pub_which = UB_TEXT_HELP Then Return @in_help
+    If pub_which = UB_TEXT_WELCOME Then Return @in_welcome
+    If pub_which = UB_TEXT_WIZARD Then Return @in_wizard
     Return @in_versions
 in_help:
     Asm
@@ -127,6 +126,12 @@ in_help:
         defm "carries on from there when next started. CTRL-W is wizard mode."
         defb 13
         defm "A count: type #, the number, then the command (space first if it is a digit)."
+        defb 13
+        defm "[ cycles the mini map and ] the colours (as = can too), at a command prompt."
+        defb 13
+        defm "} cycles the live monitor anywhere, even in a menu or a store: the memory,"
+        defb 13
+        defm "then MMU 2's misses as well, then off. None of the three takes a turn."
         defb 13
         defb 13
         defm "ZXMoria, a port of Umoria 5.7.15 to the ZX Spectrum Next."
@@ -311,12 +316,12 @@ Sub s_in_text( pub_which As UByte )
     s_in_screen_save()
     luw_at = fuw_in_text( pub_which )
     lub_saved_page = gub_core_MMU2_page_number
-    If pub_which >= 6 Then
+    If pub_which >= UB_TEXT_ROGUE_HELP Then
         ' the two rogue like help texts are not in this page, they are a data page of their own, read through the third
         ' data slot, see create-data.ps1 for where in it each begins
         lub_page = UB_PAGE_HELP_TEXT
         luw_at   = A_MMU_SLOT_PAGED_DB_MAPS
-        If pub_which = 7 Then luw_at = A_MMU_SLOT_PAGED_DB_MAPS + 4096
+        If pub_which = UB_TEXT_ROGUE_WIZARD Then luw_at = A_MMU_SLOT_PAGED_DB_MAPS + UW_HELP_ROGUE_WIZARD_AT
     End If
     While lub_done = false
         s_core_clear_screen()
@@ -327,19 +332,19 @@ Sub s_in_text( pub_which As UByte )
             lub_char = Peek( luw_at )
             luw_at   = luw_at + 1
 
-            If lub_char = 13 Then
+            If lub_char = UC_ENTER Then
                 lub_row = lub_row + 1
                 lub_col = 0
             Else
-                If lub_col < 80 Then s_core_print_char_at( lub_row , lub_col , lub_char , UB_WHITE )
+                If lub_col < UB_SCREEN_COLS Then s_core_print_char_at( lub_row , lub_col , lub_char , UB_WHITE )
                 lub_col = lub_col + 1
             End If
         End While
         s_core_print_string_at( 23 , 23 , "[ press any key to continue ]" , UB_BRIGHT_WHITE )
         s_core_get_key()
-        If gub_key_char = 27 Or guw_key_code = 0 Or Peek( luw_at ) = 0 Then lub_done = true
+        If gub_key_char = UC_ESCAPE Or guw_key_code = 0 Or Peek( luw_at ) = 0 Then lub_done = true
     End While
-    If lub_saved_page <> 255 Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved_page )
+    If lub_saved_page <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved_page )
     s_in_screen_restore()
 End Sub
 
@@ -353,10 +358,10 @@ Sub s_in_message( pub_back As UByte , pub_row As UByte , pub_col As UByte )
     lsw_place = Cast( Integer , gub_log_next ) - 1 - pub_back
     If lsw_place < 0 Then lsw_place = lsw_place + UB_MESSAGE_HISTORY
     s_core_swap_paged_data( UB_SLOT_ITEMS , UB_PAGE_MESSAGES )
-    luw_at = A_MMU_SLOT_1 + Cast( UInteger , lsw_place ) * 80
-    For i = 0 To 79 - pub_col
+    luw_at = A_MMU_SLOT_1 + Cast( UInteger , lsw_place ) * UB_MESSAGE_SIZE
+    For i = 0 To UB_MESSAGE_SIZE - 1 - pub_col
         lub_char = Peek( luw_at + i )
-        If lub_char = 0 Then lub_char = 32
+        If lub_char = 0 Then lub_char = UC_SPACE
         ' N.B: plain white, so that this is not taken for a new message
         s_core_print_char_at( pub_row , pub_col + i , lub_char , UB_WHITE )
     Next
@@ -386,7 +391,7 @@ Sub s_in_messages( pub_all As UByte )
         s_core_get_key()
         s_in_screen_restore()
     End If
-    If lub_saved <> 255 Then s_core_swap_paged_data( UB_SLOT_ITEMS , lub_saved )
+    If lub_saved <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_ITEMS , lub_saved )
 End Sub
 
 

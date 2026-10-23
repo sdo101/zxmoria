@@ -48,7 +48,7 @@ End Asm
 '   Ctrl-P      the last message again, twice for all that are remembered (the text library, the core keeps them)
 '   Q Ctrl-K    quit, after "Do you really want to quit?", the character is dead of "Quitting"
 '   space ESC   nothing
-'   ]           (symbol shift and U) is not one of ours: the core takes it, in every stage, to turn its live monitor on and off
+'   }           (symbol shift and G) is not one of ours: the core takes it, in every stage, for its live monitor
 '   o c s       open a door, close a door, search (the moves library)
 '   D T         disarm a trap, tunnel (the traps library)
 '   m p         cast a spell, recite a prayer (the cast library)
@@ -63,8 +63,7 @@ End Asm
 '   - nothing that is known of, the whole of Moria's list is in
 
 
-' --- working storage, private to this page, see A_LIB_PRIVATE in constants.bas ---
-Dim gub_cm_last_was_ctrl_p  As UByte    At A_LIB_PRIVATE + 100      ' true if the last command was Ctrl-P, Moria's last_command
+' --- its working storage is in globals.bas, under "private to stage-lib-commands.bas", moved there on 22 October 2026 ---
 
 
 Function fub_cm_call( pub_page As UByte , pub_function As UByte , pub_param As UByte , puw_param As UInteger ) As UByte
@@ -129,9 +128,9 @@ Sub s_cm_rest()
     End If
     While lub_done = false
         s_core_get_key()
-        If gub_key_char = 13 Then
+        If gub_key_char = UC_ENTER Then
             lub_done = true
-        ElseIf gub_key_char = 27 Or guw_key_code = 0 Then
+        ElseIf gub_key_char = UC_ESCAPE Or guw_key_code = 0 Then
             lsl_turns = 0
             lub_star  = false
             lub_done  = true
@@ -145,6 +144,10 @@ Sub s_cm_rest()
             lub_length = lub_length + 1
         End If
     End While
+    ' what was typed is not a message, Moria keeps nothing of it for Ctrl-P
+    Asm
+        call A_JUMP_HISTORY_FORGET
+    End Asm
     s_msg_clear()
 
     If lub_star Then lsl_turns = -32767
@@ -193,7 +196,7 @@ Function fub_cm_direction() As UByte
     ' a command that is being repeated uses the direction it had the first time, without asking, and asking
     ' does not end a count that has just been given, Moria's use_last_direction
     luw_count = guw_game_command_count
-    If gub_game_repeat_key >= 128 Then
+    If gub_game_repeat_key >= MB_REPEAT_DONE Then
         lub_direction = gub_player_prev_dir
     Else
         s_core_message( UW_MSG_WHICH_DIRECTION )
@@ -205,7 +208,11 @@ Function fub_cm_direction() As UByte
             If guw_key_code = UW_KEY_DOWN Then lub_direction = 2
             If guw_key_code = UW_KEY_LEFT Then lub_direction = 4
             If guw_key_code = UW_KEY_RIGHT Then lub_direction = 6
-        Loop Until lub_direction <> 0 Or gub_key_char = 27 Or guw_key_code = 0
+        Loop Until lub_direction <> 0 Or gub_key_char = UC_ESCAPE Or guw_key_code = 0
+        ' the question is not a message, Moria asks it with getCommand() and keeps nothing of it for Ctrl-P
+        Asm
+            call A_JUMP_HISTORY_FORGET
+        End Asm
         s_msg_clear()
     End If
     guw_game_command_count = luw_count
@@ -297,7 +304,7 @@ Function fub_cm_drop() As UByte
         s_core_print_string_at( 0 , 0 , ls_prompt , UB_BRIGHT_WHITE )
         s_core_get_key()
         s_msg_clear()
-        If gub_key_char = 27 Or guw_key_code = 0 Then Return false
+        If gub_key_char = UC_ESCAPE Or guw_key_code = 0 Then Return false
         If gub_key_char <> Code( "y" ) And gub_key_char <> Code( "Y" ) Then lub_all = false
     End If
     gub_game_free_turn = false
@@ -417,7 +424,7 @@ Function fub_cm_key( pub_key As UByte ) As UByte
         gub_game_step_direction = fub_cm_direction()
         If gub_game_step_direction <> 0 Then
             gub_game_free_turn = false
-            gub_game_step_code = 3
+            gub_game_step_code = UB_STEP_PLAIN
         End If
     ElseIf pub_key = Code( "F" ) Then
         gub_shared_1 = fub_cm_call( UB_PAGED_CODE_LIB_COMMANDS_2 , UB_LIB_COMMANDS_2_REFILL , 0 , 0 )
@@ -456,8 +463,15 @@ Function fub_cm_key( pub_key As UByte ) As UByte
     ElseIf pub_key = 91 Then
         ' [ (symbol shift and Y), ours, not Moria's ([ is no command in either of Moria's key sets, nor the wizard's): the
         ' mini map, off, 1:1, 1:2, and round again, it takes no turn, see stage-lib-minimap.bas, N.B: it was O until 16
-        ' October 2026, when the author chose [ (and ] for the live monitor, which the core takes)
+        ' October 2026, when sdo chose [ (and } for the live monitor, which the core takes)
         gub_shared_1 = fub_cm_call( UB_PAGED_CODE_LIB_MINIMAP , UB_LIB_MINIMAP_CYCLE , 0 , 0 )
+        gub_game_free_turn = true
+    ElseIf pub_key = 93 Then
+        ' ] (symbol shift and U), ours, not Moria's (] is no command in either of Moria's key sets, nor the wizard's):
+        ' the map's colours off and on, the same as "Plain map, no colours" on the options screen, it takes no turn
+        ' (sdo, 23 October 2026, it was } for the morning, and ] the live monitor's)
+        guw_game_options = guw_game_options bXor MW_OPTION_PLAIN_MAP
+        gub_game_turn_flags = gub_game_turn_flags bOr MB_TURN_REDRAW_MAP
         gub_game_free_turn = true
     ElseIf pub_key = Code( "V" ) Then
         gub_shared_1 = fub_cm_call( UB_PAGED_CODE_LIB_SCORES , UB_LIB_SCORES_SHOW , 0 , 0 )
@@ -478,13 +492,13 @@ Function fub_cm_key( pub_key As UByte ) As UByte
         ' game): the ? of a PC keyboard is shift and /, and the emulator hands that over as caps shift, symbol shift
         ' and V, which is our Ctrl-V
         If ( guw_game_options bAnd MW_OPTION_ROGUELIKE ) <> 0 Then
-            gub_shared_1 = fub_cm_call( UB_PAGED_CODE_LIB_TEXT , UB_LIB_TEXT_SHOW , 6 , 0 )
+            gub_shared_1 = fub_cm_call( UB_PAGED_CODE_LIB_TEXT , UB_LIB_TEXT_SHOW , UB_TEXT_ROGUE_HELP , 0 )
         Else
-            gub_shared_1 = fub_cm_call( UB_PAGED_CODE_LIB_TEXT , UB_LIB_TEXT_SHOW , 1 , 0 )
+            gub_shared_1 = fub_cm_call( UB_PAGED_CODE_LIB_TEXT , UB_LIB_TEXT_SHOW , UB_TEXT_HELP , 0 )
         End If
         gub_game_free_turn = true
     ElseIf pub_key = Code( "v" ) Then
-        gub_shared_1 = fub_cm_call( UB_PAGED_CODE_LIB_TEXT , UB_LIB_TEXT_SHOW , 2 , 0 )
+        gub_shared_1 = fub_cm_call( UB_PAGED_CODE_LIB_TEXT , UB_LIB_TEXT_SHOW , UB_TEXT_VERSIONS , 0 )
         gub_game_free_turn = true
     ElseIf pub_key = 16 And ( gub_key_modifiers bAnd MB_KEY_CTRL ) <> 0 Then
         ' Ctrl-P: the last message again, and asked for twice running, all that are remembered

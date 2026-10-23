@@ -46,9 +46,8 @@ End Asm
 ' N.B: the order things are done in matters, each random number must be asked for exactly when Moria asks for it
 
 
-' --- working storage, private to this page, see A_LIB_PRIVATE in constants.bas ---
+' --- its working storage is in globals.bas, under "private to stage-lib-monster-moves.bas", moved there on 22 October 2026 ---
 #include "stage-monster-moves-include.bas"
-Dim gub_mm_wake             As UByte    At A_LIB_PRIVATE + 21       ' 1 if it woke, 2 if it stirred and slept on
 
 
 Function fuw_mm_record( pub_monster As UByte ) As UInteger
@@ -62,7 +61,7 @@ Sub s_mon_update_visibility( pub_monster As UByte )
     ' monsterUpdateVisibility(), but only if it could matter: a monster that is not showing, and is too far away
     ' to be seen or the player is blind, stays as it is
     If gub_monster_lit = 0 Then
-        If gub_monster_distance > UB_MON_MAX_SIGHT Or gsw_player_blind > 0 Then Return
+        If gub_monster_distance > UB_MON_MAX_SIGHT Or ( gul_player_status bAnd UL_PY_BLIND ) <> 0 Then Return
     End If
     gub_lib_param_1 = pub_monster
     s_core_call_library( UB_PAGED_CODE_LIB_MONSTERS , UB_LIB_MONSTERS_VISIBILITY )
@@ -305,7 +304,7 @@ Sub s_mm_make_move()
             If gub_mm_do_move And lub_item <> 0 Then
                 luw_square = fuw_core_record_address( UB_SLOT_ITEMS , gub_level_items_page , lub_item )
                 If Peek( luw_square + UB_ITEM_CATEGORY_OFFSET ) = UB_TV_VIS_TRAP And Peek( luw_square + UB_ITEM_SUB_CATEGORY_OFFSET ) = 99 Then
-                    If fuw_mm_random( 3000 ) < gub_creature_level Then
+                    If fuw_mm_random( UW_OBJECTS_RUNE_PROTECTION ) < gub_creature_level Then
                         If lub_y = gub_player_row And lub_x = gub_player_col Then s_core_message( UW_MSG_THE_RUNE_OF_PROTECTION_IS_BROKEN )
                         gub_lib_param_1 = lub_y
                         guw_lib_param_2 = lub_x
@@ -372,14 +371,14 @@ Sub s_mm_move()
         Return
     End If
     ' a creature that casts spells may do that instead of moving, Moria's monsterCastSpell()
-    If ( gul_creature_spells bAnd 15 ) <> 0 Then
+    If ( gul_creature_spells bAnd UL_CS_FREQ ) <> 0 Then
         gub_lib_param_1 = gub_mm_monster
         s_core_call_library( UB_PAGED_CODE_LIB_MONSTER_SPELLS , UB_LIB_MONSTER_SPELLS_CAST )
         If gsw_lib_result Then
             ' the player remembers that this kind of creature casts this spell, how often they have seen one
-            ' cast, and that one killed them, the spell's number comes back in gub_shared_2
+            ' cast, and that one killed them, the spell's number is the answer, 1 to 17
             If gub_monster_lit Then
-                ful_core_recall( guw_monster_creature , UB_RECALL_SPELLS , Cast( ULong , 1 ) << ( gub_shared_2 - 1 ) )
+                ful_core_recall( guw_monster_creature , UB_RECALL_SPELLS , Cast( ULong , 1 ) << ( gsw_lib_result - 1 ) )
                 ful_core_recall( guw_monster_creature , UB_RECALL_SPELL_SEEN , 0 )
                 If gub_game_character_dead Then ful_core_recall( guw_monster_creature , UB_RECALL_DEATHS , 1 )
             End If
@@ -614,7 +613,7 @@ Sub s_lib_monster_moves()
         s_mm_remove_from_level( gub_lib_param_1 )
         s_mm_delete_record( gub_lib_param_1 )
     End If
-    If lub_saved_page_0 <> 255 Then s_core_swap_paged_data( UB_SLOT_MONSTERS , lub_saved_page_0 )
-    If lub_saved_page_1 <> 255 Then s_core_swap_paged_data( UB_SLOT_ITEMS , lub_saved_page_1 )
-    If lub_saved_page_2 <> 255 Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved_page_2 )
+    If lub_saved_page_0 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_MONSTERS , lub_saved_page_0 )
+    If lub_saved_page_1 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_ITEMS , lub_saved_page_1 )
+    If lub_saved_page_2 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved_page_2 )
 End Sub

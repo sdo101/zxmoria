@@ -2,18 +2,7 @@
 ' their working storage, talking to the player, taking an offer, insults, and the record of how well the player bargains...
 ' ...each page includes this file, so each has its own copy of the routines, and its own storage at the top of its own page
 
-' --- working storage, private to this page, see A_LIB_PRIVATE in constants.bas ---
-#define A_HG_INPUT              A_LIB_PRIVATE               ' 44 bytes, what the player has typed
-Dim gsw_hg_last_increment       As Integer  At A_LIB_PRIVATE + 44   ' the last "+10" style raise, so that just Enter repeats it (store_last_increment)
-Dim gsl_hg_new_offer            As Long     At A_LIB_PRIVATE + 46   ' the offer being made
-Dim gub_hg_store                As UByte    At A_LIB_PRIVATE + 50
-Dim guw_hg_state                As UInteger At A_LIB_PRIVATE + 51   ' where this store's 16 bytes of state are
-Dim gub_hg_owner_haggle         As UByte    At A_LIB_PRIVATE + 53   ' three things about the store's owner...
-Dim gub_hg_owner_max_inflate    As UByte    At A_LIB_PRIVATE + 54
-Dim gub_hg_owner_max_insults    As UByte    At A_LIB_PRIVATE + 55
-Dim gub_hg_owner_min_inflate    As UByte    At A_LIB_PRIVATE + 56
-Dim gub_hg_owner_race           As UByte    At A_LIB_PRIVATE + 57
-Dim gsw_hg_owner_max_cost       As Integer  At A_LIB_PRIVATE + 58   ' the most the owner will pay for anything
+' --- its working storage is in globals.bas, under "private to stage-lib-haggle-include.bas", moved there on 22 October 2026 ---
 
 
 Function fsw_hg_random( psw_max As Integer ) As Integer
@@ -121,15 +110,21 @@ Function fub_hg_input( pub_col As UByte ) As UByte
     s_core_print_char_at( 0 , pub_col , Code( "_" ) , UB_WHITE )
     Do
         s_core_get_key()
-        If gub_key_char = 27 Or guw_key_code = 0 Then Return false
-        If gub_key_char = 13 Then Exit Do
-        If gub_key_char = 8 Then
+        ' what was typed is not a message, Moria's getStringInput() keeps nothing of it for Ctrl-P
+        If gub_key_char = UC_ESCAPE Or guw_key_code = 0 Or gub_key_char = UC_ENTER Then
+            Asm
+                call A_JUMP_HISTORY_FORGET
+            End Asm
+        End If
+        If gub_key_char = UC_ESCAPE Or guw_key_code = 0 Then Return false
+        If gub_key_char = UC_ENTER Then Exit Do
+        If gub_key_char = UC_BACKSPACE Then
             If lub_length > 0 Then
                 s_core_print_char_at( 0 , pub_col + lub_length , 32 , UB_WHITE )
                 lub_length = lub_length - 1
                 s_core_print_char_at( 0 , pub_col + lub_length , Code( "_" ) , UB_WHITE )
             End If
-        ElseIf gub_key_char >= 32 And gub_key_char < 127 And lub_length < 40 And pub_col + lub_length < UB_SCREEN_COLS - 1 Then
+        ElseIf gub_key_char >= UC_SPACE And gub_key_char < UC_DELETE And lub_length < 40 And pub_col + lub_length < UB_SCREEN_COLS - 1 Then
             Poke A_HG_INPUT + lub_length , gub_key_char
             s_core_print_char_at( 0 , pub_col + lub_length , gub_key_char , UB_BRIGHT_WHITE )
             lub_length = lub_length + 1

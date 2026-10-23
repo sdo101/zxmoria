@@ -7,12 +7,7 @@
 '   s_tf_write( "a line" )              a line feed is put after it
 '   fub_tf_end()                        true if all of it was written
 
-' --- working storage, at the top of the page's own, see A_LIB_PRIVATE in constants.bas ---
-Dim guw_tf_at               As UInteger At A_LIB_PRIVATE + 440      ' how much of the page being filled is full
-Dim gub_tf_slot             As UByte    At A_LIB_PRIVATE + 442      ' which 8KB of the file that page is
-Dim gub_tf_failed           As UByte    At A_LIB_PRIVATE + 443      ' true once the file would not write
-Dim gub_tf_saved_page       As UByte    At A_LIB_PRIVATE + 444      ' the page the caller had in the first data slot
-#define A_TF_NAME           A_LIB_PRIVATE + 448                     ' 32 bytes, the name of the file, text ending in a 0
+' --- its working storage is in globals.bas, under "private to stage-textfile-include.bas", moved there on 22 October 2026 ---
 
 
 Sub s_tf_begin( puw_name As UInteger )
@@ -80,7 +75,7 @@ Function fub_tf_end() As UByte
         gub_shared_1 = fub_core_file_save_page( fs_core_text_at( A_TF_NAME ) , UB_PAGE_TEST_FILE )
         gub_core_file_slot = 255
     End If
-    If gub_tf_saved_page <> 255 Then s_core_swap_paged_data( UB_SLOT_CORRIDORS , gub_tf_saved_page )
+    If gub_tf_saved_page <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_CORRIDORS , gub_tf_saved_page )
     If gub_tf_failed Then Return false
     Return true
 End Function

@@ -55,13 +55,11 @@ End Asm
 ' N.B: the pack and the equipment are one list of 34 records in the core data, A_INVENTORY, places 0 to 21 are the pack
 ' and 22 to 33 the equipment, so nothing here needs a page swapped in to look at them
 '
-' what is NOT here yet:
-'   - wearing and wielding, taking off, dropping, and the inventory and equipment screens of the game itself
-'   - a weapon too heavy to wield properly, playerStrength() checks for it, there is no wielding yet
+' what is NOT here yet, each is marked "NOT YET" where it belongs:
+'   - nothing that is known of, wearing and wielding, taking off, dropping, and the inventory and equipment
+'     screens are the equipment library's, stage-lib-equipment.bas, UB_LIB_EQUIP_COMMAND
 
 
-#define UB_ITEM_SINGLE_STACK_MIN    64      ' items with a sub category from here up can be stacked
-#define UB_ITEM_GROUP_MIN           192     ' above this they are a batch, like arrows, that only stacks with itself
 
 
 Function fuw_inv_record( pub_place As UByte ) As UInteger
@@ -93,7 +91,7 @@ Function fub_inv_kind_is_known( pub_category As UByte , pub_sub_category As UByt
     lub_page = gub_core_MMU2_page_number
     s_core_swap_paged_data( UB_SLOT_DB_MAPS , UB_PAGE_KNOWLEDGE )
     lub_flags = Peek( A_KNOW_IDENTIFIED + ( Cast( UInteger , lub_family ) << 6 ) + ( pub_sub_category bAnd 63 ) )
-    If lub_page <> 255 Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_page )
+    If lub_page <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_page )
     If ( lub_flags bAnd MB_OD_KNOWN1 ) <> 0 Then Return true
     Return false
 End Function
@@ -262,7 +260,7 @@ Sub s_inv_set_kind_known( pub_category As UByte , pub_sub_category As UByte , pu
     Else
         Poke luw_flags , ( Peek( luw_flags ) bOr MB_OD_KNOWN1 ) bAnd ( 255 - MB_OD_TRIED )
     End If
-    If lub_page <> 255 Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_page )
+    If lub_page <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_page )
 End Sub
 
 
@@ -292,7 +290,7 @@ Sub s_inv_destroy( pub_place As UByte )
     lub_count  = Peek( luw_record + UB_ITEM_COUNT_OFFSET )
     lub_sub    = Peek( luw_record + UB_ITEM_SUB_CATEGORY_OFFSET )
     luw_weight = Peek( UInteger , luw_record + UB_ITEM_WEIGHT_OFFSET )
-    If lub_count > 1 And lub_sub <= 192 Then
+    If lub_count > 1 And lub_sub <= UB_ITEM_SINGLE_STACK_MAX Then
         Poke luw_record + UB_ITEM_COUNT_OFFSET , lub_count - 1
         gsw_player_pack_weight = gsw_player_pack_weight - luw_weight
     Else
@@ -323,7 +321,7 @@ Function fub_inv_identify( pub_place As UByte ) As UByte
     s_inv_set_kind_known( lub_category , lub_sub , false )
 
     ' cmp tval first, because tval/subval is not unique for the things that never stack
-    If lub_sub < UB_ITEM_SINGLE_STACK_MIN Or lub_sub > 192 Then Return lub_place
+    If lub_sub < UB_ITEM_SINGLE_STACK_MIN Or lub_sub > UB_ITEM_SINGLE_STACK_MAX Then Return lub_place
 
     i = 0
     While Cast( Integer , i ) < gsw_player_pack_unique
@@ -374,8 +372,8 @@ Sub s_inv_new_character()
         gub_shared_1 = fub_inv_carry()
     Next
     ' weird place for it, but why not?
-    For i = 0 To 31
-        Poke A_PLAYER_SPELL_ORDER + i , 99
+    For i = 0 To UB_SPELL_ORDER_SIZE - 1
+        Poke A_PLAYER_SPELL_ORDER + i , UB_SPELL_ORDER_END
     Next
 End Sub
 
@@ -462,7 +460,7 @@ Function fub_inv_verify( pub_place As UByte , pub_mode As UByte ) As UByte
     s_core_print_string_at( 0 , 0 , ls_prompt , UB_BRIGHT_WHITE )
     Do
         s_core_get_key()
-    Loop While gub_key_char = 32
+    Loop While gub_key_char = UC_SPACE
     s_msg_clear()
     If gub_key_char = Code( "y" ) Or gub_key_char = Code( "Y" ) Then Return true
     Return false
@@ -508,7 +506,7 @@ Function fsw_inv_choose( pub_first As UByte , pub_last As UByte , pub_mode As UB
         If lub_menu Then
             ' N.B: the screen as it was first, the list before may have been the longer
             s_core_swap_paged_data( UB_SLOT_CORRIDORS , UB_PAGE_CORRIDORS )
-            s_core_ram_copy( A_MMU_SLOT_PAGED_CORRIDORS , A_SCREEN_BASE , 5120 )
+            s_core_ram_copy( A_MMU_SLOT_PAGED_CORRIDORS , A_SCREEN_BASE , UW_SCREEN_CELLS_SIZE )
             If lub_equip Then
                 s_core_call_library( UB_PAGED_CODE_LIB_EQUIPMENT , UB_LIB_EQUIP_SHOW )
             Else
@@ -549,7 +547,7 @@ Function fsw_inv_choose( pub_first As UByte , pub_last As UByte , pub_mode As UB
 
         s_core_get_key()
         lub_key = gub_key_char
-        If lub_key = 27 Or guw_key_code = 0 Then
+        If lub_key = UC_ESCAPE Or guw_key_code = 0 Then
             ' backing out takes no time, Moria sets player_free_turn here itself
             lub_done = true
             gub_game_free_turn = true
@@ -576,7 +574,7 @@ Function fsw_inv_choose( pub_first As UByte , pub_last As UByte , pub_mode As UB
             If lub_menu = false Then
                 lub_saved_page = gub_core_MMU0_page_number
                 s_core_swap_paged_data( UB_SLOT_CORRIDORS , UB_PAGE_CORRIDORS )
-                s_core_ram_copy( A_SCREEN_BASE , A_MMU_SLOT_PAGED_CORRIDORS , 5120 )
+                s_core_ram_copy( A_SCREEN_BASE , A_MMU_SLOT_PAGED_CORRIDORS , UW_SCREEN_CELLS_SIZE )
                 lub_menu = true
             End If
         Else
@@ -627,8 +625,8 @@ Function fsw_inv_choose( pub_first As UByte , pub_last As UByte , pub_mode As UB
 
     If lub_menu Then
         s_core_swap_paged_data( UB_SLOT_CORRIDORS , UB_PAGE_CORRIDORS )
-        s_core_ram_copy( A_MMU_SLOT_PAGED_CORRIDORS , A_SCREEN_BASE , 5120 )
-        If lub_saved_page <> 255 Then s_core_swap_paged_data( UB_SLOT_CORRIDORS , lub_saved_page )
+        s_core_ram_copy( A_MMU_SLOT_PAGED_CORRIDORS , A_SCREEN_BASE , UW_SCREEN_CELLS_SIZE )
+        If lub_saved_page <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_CORRIDORS , lub_saved_page )
     End If
     s_msg_clear()
     Poke A_PROMPT , 0

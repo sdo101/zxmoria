@@ -51,13 +51,6 @@ End Asm
 '   - Moria keeps up to 1000 scores, we keep the best 90
 
 
-#define UB_SC_ENTRY         88
-#define UB_SC_MAX           90
-#define UB_SC_OLD_ENTRY     80                      ' the scores as they were until 14 October 2026...
-#define UB_SC_OLD_MAX       100                     ' ...and as many as there were
-#define A_SC_FILE_NAME      A_LIB_PRIVATE + 200     ' 16 bytes, the name of the text file while it is being written
-#define A_SC_CLOCK          A_LIB_PRIVATE + 300     ' 7 bytes, the clock's own, as they were read from it
-
 #include "stage-textfile-include.bas"
 
 Declare Function fub_sc_date() As UByte
@@ -83,10 +76,10 @@ Function fub_sc_table() As UByte
     i = lub_count
     While i > 0
         i = i - 1
-        s_core_ram_copy( A_MMU_SLOT_1 + 2 + Cast( UInteger , i ) * UB_SC_OLD_ENTRY , A_LIB_PRIVATE , UB_SC_OLD_ENTRY )
-        Poke ULong A_LIB_PRIVATE + 80 , 0
-        Poke ULong A_LIB_PRIVATE + 84 , 0
-        s_core_ram_copy( A_LIB_PRIVATE , fuw_sc_entry( i ) , UB_SC_ENTRY )
+        s_core_ram_copy( A_MMU_SLOT_1 + 2 + Cast( UInteger , i ) * UB_SC_OLD_ENTRY , A_SC_ENTRY , UB_SC_OLD_ENTRY )
+        Poke ULong A_SC_ENTRY + UB_SC_BIRTH , 0
+        Poke ULong A_SC_ENTRY + UB_SC_DEATH , 0
+        s_core_ram_copy( A_SC_ENTRY , fuw_sc_entry( i ) , UB_SC_ENTRY )
     End While
     Poke A_MMU_SLOT_1 , lub_count
     Poke A_MMU_SLOT_1 + 1 , Code( "T" )
@@ -168,14 +161,12 @@ Function fs_sc_line( pub_rank As UByte ) As String
     s_core_swap_paged_data( UB_SLOT_ITEMS , UB_PAGE_SCORES )
     luw_entry = fuw_sc_entry( pub_rank )
     ls_line = fs_sc_pad( fs_core_number( pub_rank + 1 ) , 4 , true ) + fs_sc_pad( fs_core_number( Peek( ULong , luw_entry ) ) , 8 , false ) + " "
-    ls_line = ls_line + fs_sc_pad( fs_core_text_at( luw_entry + 8 ) , 19 , true ) + " " + fs_core_char( Peek( luw_entry + 5 ) ) + " "
-    ls_line = ls_line + fs_sc_pad( fs_core_text_at( luw_entry + 60 ) , 10 , true ) + " " + fs_sc_pad( fs_core_text_at( luw_entry + 71 ) , 7 , true )
-    ls_line = ls_line + fs_sc_pad( fs_core_number( Peek( luw_entry + 4 ) ) , 3 , false ) + " " + fs_sc_pad( fs_core_text_at( luw_entry + 35 ) , 22 , true )
+    ls_line = ls_line + fs_sc_pad( fs_core_text_at( luw_entry + UB_SC_NAME ) , 19 , true ) + " " + fs_core_char( Peek( luw_entry + UB_SC_SEX ) ) + " "
+    ls_line = ls_line + fs_sc_pad( fs_core_text_at( luw_entry + UB_SC_RACE_NAME ) , 10 , true ) + " " + fs_sc_pad( fs_core_text_at( luw_entry + UB_SC_CLASS_NAME ) , 7 , true )
+    ls_line = ls_line + fs_sc_pad( fs_core_number( Peek( luw_entry + UB_SC_LEVEL ) ) , 3 , false ) + " " + fs_sc_pad( fs_core_text_at( luw_entry + UB_SC_DIED_FROM ) , 22 , true )
     Return ls_line
 End Function
 
-
-#define S_SC_HEADING    "Rank  Points Name              Sex Race       Class  Lvl Killed By"
 
 Sub s_sc_write_text()
     ' the whole table as a text file, scores.txt, for reading away from the game, N.B: the table must be in its page
@@ -215,10 +206,10 @@ Function fub_sc_saved( pub_index As UByte ) As UByte
     Dim lub_sex     As UByte
 
     luw_entry = fuw_sc_entry( pub_index )
-    If Peek( ULong , luw_entry + 80 ) <> gsl_player_birth Then Return false
+    If Peek( ULong , luw_entry + UB_SC_BIRTH ) <> gsl_player_birth Then Return false
     lub_sex = Code( "F" )
     If gub_player_male Then lub_sex = Code( "M" )
-    If Peek( luw_entry + 5 ) <> lub_sex Or Peek( luw_entry + 6 ) <> gub_player_race Or Peek( luw_entry + 7 ) <> gub_player_class Then Return false
+    If Peek( luw_entry + UB_SC_SEX ) <> lub_sex Or Peek( luw_entry + UB_SC_RACE ) <> gub_player_race Or Peek( luw_entry + UB_SC_CLASS ) <> gub_player_class Then Return false
     Return fub_sc_is_saved( luw_entry )
 End Function
 
@@ -261,19 +252,19 @@ Sub s_sc_record()
         lub_move = lub_count - 1
     End If
     While lub_move > lub_place
-        s_core_ram_copy( fuw_sc_entry( lub_move - 1 ) , A_LIB_PRIVATE , UB_SC_ENTRY )
-        s_core_ram_copy( A_LIB_PRIVATE , fuw_sc_entry( lub_move ) , UB_SC_ENTRY )
+        s_core_ram_copy( fuw_sc_entry( lub_move - 1 ) , A_SC_ENTRY , UB_SC_ENTRY )
+        s_core_ram_copy( A_SC_ENTRY , fuw_sc_entry( lub_move ) , UB_SC_ENTRY )
         lub_move = lub_move - 1
     End While
 
     luw_entry = fuw_sc_entry( lub_place )
     Poke Long luw_entry , lsl_points
-    Poke luw_entry + 4 , guw_player_level
-    Poke luw_entry + 5 , Code( "F" )
-    If gub_player_male Then Poke luw_entry + 5 , Code( "M" )
-    Poke luw_entry + 6 , gub_player_race
-    Poke luw_entry + 7 , gub_player_class
-    s_sc_text( A_PLAYER_NAME , luw_entry + 8 , 27 )
+    Poke luw_entry + UB_SC_LEVEL , guw_player_level
+    Poke luw_entry + UB_SC_SEX , Code( "F" )
+    If gub_player_male Then Poke luw_entry + UB_SC_SEX , Code( "M" )
+    Poke luw_entry + UB_SC_RACE , gub_player_race
+    Poke luw_entry + UB_SC_CLASS , gub_player_class
+    s_sc_text( A_PLAYER_NAME , luw_entry + UB_SC_NAME , UB_SC_NAME_SIZE )
     ' what it died of, without the "a" or "an" it begins with
     luw_text = A_DIED_FROM
     If Peek( luw_text ) = Code( "a" ) Then
@@ -283,13 +274,13 @@ Sub s_sc_record()
             luw_text = luw_text + 3
         End If
     End If
-    s_sc_text( luw_text , luw_entry + 35 , 25 )
-    s_sc_text( A_RACE , luw_entry + 60 , 11 )
-    s_sc_text( A_CLASS , luw_entry + 71 , 9 )
-    Poke ULong luw_entry + 80 , gsl_player_birth
+    s_sc_text( luw_text , luw_entry + UB_SC_DIED_FROM , UB_SC_DIED_SIZE )
+    s_sc_text( A_RACE , luw_entry + UB_SC_RACE_NAME , UB_SC_RACE_SIZE )
+    s_sc_text( A_CLASS , luw_entry + UB_SC_CLASS_NAME , UB_SC_CLASS_SIZE )
+    Poke ULong luw_entry + UB_SC_BIRTH , gsl_player_birth
     gub_shared_1 = fub_sc_date()
     s_core_swap_paged_data( UB_SLOT_ITEMS , UB_PAGE_SCORES )
-    Poke ULong luw_entry + 84 , gsl_lib_long_1
+    Poke ULong luw_entry + UB_SC_DEATH , gsl_lib_long_1
     Poke A_MMU_SLOT_1 , lub_count
 
     gub_shared_1 = fub_core_file_save_page( "scores.dat" , UB_PAGE_SCORES )
@@ -317,7 +308,7 @@ Sub s_sc_show()
         End While
         s_core_print_string_at( 23 , 23 , "[ press any key to continue ]" , UB_BRIGHT_WHITE )
         s_core_get_key()
-    Loop Until lub_rank >= lub_count Or gub_key_char = 27 Or guw_key_code = 0
+    Loop Until lub_rank >= lub_count Or gub_key_char = UC_ESCAPE Or guw_key_code = 0
 End Sub
 
 
@@ -350,15 +341,14 @@ Function fub_sc_date() As UByte
     gsl_lib_long_1 = 0
     Asm
         push ix
-        ld bc, A_NEXTREG_SELECT     ; the speed the game runs at, nextreg $07, kept in IXL, and 3.5MHz meanwhile
-        ld a, $07
+        ld bc, A_NEXTREG_SELECT     ; the speed the game runs at, nextreg NEXTREG_CPU_SPEED, kept in IXL, and 3.5MHz meanwhile
+        ld a, NEXTREG_CPU_SPEED
         out (c), a
         inc b                       ; $253B, the data port
         in a, (c)
         and 3
         ld ixl, a
-        xor a
-        out (c), a
+        nextreg NEXTREG_CPU_SPEED, 0    ; 3.5MHz, UB_CPU_SPEED_3MHZ
 
         ; the chip is at i2c address $D0: register 0 is where the reading starts...
         call sc_i2c_start
@@ -386,12 +376,8 @@ sc_clock_more:
         djnz sc_clock_next
         call sc_i2c_stop
 
-        ld bc, A_NEXTREG_SELECT     ; the game's own speed back
-        ld a, $07
-        out (c), a
-        inc b
-        ld a, ixl
-        out (c), a
+        ld a, ixl                   ; the game's own speed back
+        nextreg NEXTREG_CPU_SPEED, a
         pop ix
         jp sc_clock_end
 
@@ -535,7 +521,7 @@ Function fub_sc_dead( pul_birth As ULong ) As UByte
     i = 0
     While i < lub_count
         ' N.B: a score from when it was saved does not count, the character lived on
-        If Peek( ULong , fuw_sc_entry( i ) + 80 ) = pul_birth And fub_sc_is_saved( fuw_sc_entry( i ) ) = false Then Return true
+        If Peek( ULong , fuw_sc_entry( i ) + UB_SC_BIRTH ) = pul_birth And fub_sc_is_saved( fuw_sc_entry( i ) ) = false Then Return true
         i = i + 1
     End While
     Return false
@@ -549,16 +535,16 @@ Sub s_lib_scores()
     lub_saved_page_1 = gub_core_MMU1_page_number
     lub_saved_page_2 = gub_core_MMU2_page_number
     ' N.B: the working item is used for the valuing, and is put back as it was
-    s_core_ram_copy( A_ITEM , A_LIB_PRIVATE + 128 , UB_RECORD_SIZE )
+    s_core_ram_copy( A_ITEM , A_SC_ITEM , UB_RECORD_SIZE )
     If gub_lib_function = UB_LIB_SCORES_RECORD Then
         s_sc_record()
     ElseIf gub_lib_function = UB_LIB_SCORES_SHOW Then
         ' the screen is put aside, in the corridor scratchpad page, and put back afterwards
         s_core_swap_paged_data( UB_SLOT_CORRIDORS , UB_PAGE_CORRIDORS )
-        s_core_ram_copy( A_SCREEN_BASE , A_MMU_SLOT_PAGED_CORRIDORS , 5120 )
+        s_core_ram_copy( A_SCREEN_BASE , A_MMU_SLOT_PAGED_CORRIDORS , UW_SCREEN_CELLS_SIZE )
         s_sc_show()
         s_core_swap_paged_data( UB_SLOT_CORRIDORS , UB_PAGE_CORRIDORS )
-        s_core_ram_copy( A_MMU_SLOT_PAGED_CORRIDORS , A_SCREEN_BASE , 5120 )
+        s_core_ram_copy( A_MMU_SLOT_PAGED_CORRIDORS , A_SCREEN_BASE , UW_SCREEN_CELLS_SIZE )
     ElseIf gub_lib_function = UB_LIB_SCORES_DATE Then
         gsw_lib_result = fub_sc_date()
         If gsw_lib_result And gub_lib_param_1 Then s_sc_day_text()
@@ -567,8 +553,8 @@ Sub s_lib_scores()
     ElseIf gub_lib_function = UB_LIB_SCORES_POINTS Then
         gsl_lib_long_1 = fsl_sc_points()
     End If
-    s_core_ram_copy( A_LIB_PRIVATE + 128 , A_ITEM , UB_RECORD_SIZE )
-    If lub_saved_page_0 <> 255 Then s_core_swap_paged_data( UB_SLOT_MONSTERS , lub_saved_page_0 )
-    If lub_saved_page_1 <> 255 Then s_core_swap_paged_data( UB_SLOT_ITEMS , lub_saved_page_1 )
-    If lub_saved_page_2 <> 255 Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved_page_2 )
+    s_core_ram_copy( A_SC_ITEM , A_ITEM , UB_RECORD_SIZE )
+    If lub_saved_page_0 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_MONSTERS , lub_saved_page_0 )
+    If lub_saved_page_1 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_ITEMS , lub_saved_page_1 )
+    If lub_saved_page_2 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved_page_2 )
 End Sub

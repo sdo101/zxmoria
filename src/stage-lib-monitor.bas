@@ -15,7 +15,8 @@ End Asm
 #include "stage-include.bas"
 
 ' this page is a LIBRARY, not a stage: the live monitor, ours, not Moria's, the last five rows of the screen show how
-' the memory is being used while the game runs, the ] key (symbol shift and U) turns it on and off...
+' the memory is being used while the game runs, the } key (symbol shift and G) goes round the memory, then the memory
+' and MMU 2's misses, then off...
 ' ...only the core calls it, from s_core_get_key(), through s_core_monitor(), the routines are:
 '
 '   UB_LIB_MONITOR_SHOW     draws it, every time the game waits for a key while it is on
@@ -52,14 +53,13 @@ End Function
 
 
 ' where slot 2's misses by page go, rows 24 to 26: as far to the right as they go, their widest line, four counts of 7
-' with their names, is 46 characters, and ends at the screen's last column, 79 (the author, 16 October 2026, they were at
+' with their names, is 46 characters, and ends at the screen's last column, 79 (sdo, 16 October 2026, they were at
 ' UB_MONITOR_LEFT, 17, beside the mini map)
-#define UB_MN_MISSES_LEFT   34
 
 
 Function fs_mn_kind( pub_kind As UByte ) As String
     ' one of the counts of what slot 2's page changes were for, seven characters wide
-    Return fs_mn_number_wide( Peek( ULong , A_CORE_MMU2_KINDS + 4 * Cast( UInteger , pub_kind ) ) Mod 1000000 , 7 )
+    Return fs_mn_number_wide( Peek( ULong , A_CORE_MMU2_KINDS + UB_MN_KIND_SIZE * Cast( UInteger , pub_kind ) ) Mod UL_MN_COUNT_WRAP , UB_MN_COLUMN_WIDTH )
 End Function
 
 
@@ -67,7 +67,7 @@ Sub s_mn_clear()
     ' rubs out the eight rows the monitor is drawn in, to the right of the mini map
     Dim x As UByte
 
-    For x = UB_MONITOR_ROW - 3 To UB_MONITOR_ROW + 4
+    For x = UB_MONITOR_ROW - UB_MN_MISSES_ROWS To UB_MONITOR_ROW + UB_MONITOR_ROWS - 1
         s_core_clear_row( x , UB_MONITOR_LEFT , UB_BLACK )
     Next x
 End Sub
@@ -75,7 +75,7 @@ End Sub
 
 Sub s_mn_show()
     ' the live monitor: the last five rows of the screen, 27 to 31, well below Moria's own 24 lines, show how the memory is being used, it is
-    ' drawn again every time the game waits for a key, and the ] key turns it on and off, see s_core_get_key()
+    ' drawn again every time the game waits for a key, and the } key turns it on and off, see s_core_get_key()
     ' on the left, a table with a column for each of the MMU slots 0 to 3, and these rows:
     '   p = the 8KB page that is in the slot now, asked of the machine itself (Next registers $50 to $57)
     '   c = count, how often a page has been asked for in that slot, which is hits + misses
@@ -127,12 +127,12 @@ Sub s_mn_show()
     luw_heap_free    = 0
     luw_heap_biggest = 0
     lub_blocks       = 0
-    luw_block        = Peek( UInteger , luw_heap_start + 2 )
-    While luw_block <> 0 And lub_blocks < 64        ' the 64 is only a safety limit, in case the chain has been damaged
+    luw_block        = Peek( UInteger , luw_heap_start + UB_HEAP_NEXT_OFFSET )
+    While luw_block <> 0 And lub_blocks < UB_MN_HEAP_BLOCKS_MAX
         luw_size = Peek( UInteger , luw_block )
         luw_heap_free = luw_heap_free + luw_size
         If luw_size > luw_heap_biggest Then luw_heap_biggest = luw_size
-        luw_block  = Peek( UInteger , luw_block + 2 )
+        luw_block  = Peek( UInteger , luw_block + UB_HEAP_NEXT_OFFSET )
         lub_blocks = lub_blocks + 1
     End While
 
@@ -143,67 +143,70 @@ Sub s_mn_show()
     ls_count  = "c"
     ls_hits   = "h"
     ls_misses = "m"
-    For i = 0 To 3
+    For i = 0 To UB_MN_SLOTS - 1
         If i = 0 Then
-            ls_head = ls_head + fs_mn_number_wide( i , 5 )        ' two fewer, "MMU" is two longer than the other labels
+            ls_head = ls_head + fs_mn_number_wide( i , UB_MN_COLUMN_WIDTH - 2 )        ' two fewer, "MMU" is two longer than the other labels
         Else
-            ls_head = ls_head + fs_mn_number_wide( i , 7 )
+            ls_head = ls_head + fs_mn_number_wide( i , UB_MN_COLUMN_WIDTH )
         End If
-        If i = 3 Then
+        If i = UB_MN_SLOTS - 1 Then
             ' N.B: the code slot holds this page just now, what is shown is the page that was running
-            ls_page = ls_page + fs_mn_number_wide( gub_core_monitor_page , 7 )
+            ls_page = ls_page + fs_mn_number_wide( gub_core_monitor_page , UB_MN_COLUMN_WIDTH )
         Else
-            ls_page = ls_page + fs_mn_number_wide( fub_mn_read_next_reg( MMU_SLOT_0 + i ) , 7 )
+            ls_page = ls_page + fs_mn_number_wide( fub_mn_read_next_reg( MMU_SLOT_0 + i ) , UB_MN_COLUMN_WIDTH )
         End If
         ' where the slot's counters are, see globals.bas: the code slot's come first, then those of the three data slots
         luw_counters = A_CORE
-        If i < 3 Then luw_counters = A_CORE + 9 + 9 * Cast( UInteger , i )
+        If i < UB_MN_SLOTS - 1 Then luw_counters = A_CORE_SLOTS + UB_MN_SLOT_SIZE * Cast( UInteger , i )
         ' N.B: the counts themselves are ULongs and are left alone, the map asks for a page for every square anything
         ' looks at and must not be slowed down: it is what is SHOWN that rolls over, 999999 is followed by 0
-        lul_hits    = Peek( ULong , luw_counters + 1 ) Mod 1000000
-        lul_fetches = Peek( ULong , luw_counters + 5 ) Mod 1000000
-        ls_count  = ls_count  + fs_mn_number_wide( ( lul_hits + lul_fetches ) Mod 1000000 , 7 )
-        ls_hits   = ls_hits   + fs_mn_number_wide( lul_hits , 7 )
-        ls_misses = ls_misses + fs_mn_number_wide( lul_fetches , 7 )
+        lul_hits    = Peek( ULong , luw_counters + UB_MN_SLOT_HITS ) Mod UL_MN_COUNT_WRAP
+        lul_fetches = Peek( ULong , luw_counters + UB_MN_SLOT_SWAPS ) Mod UL_MN_COUNT_WRAP
+        ls_count  = ls_count  + fs_mn_number_wide( ( lul_hits + lul_fetches ) Mod UL_MN_COUNT_WRAP , UB_MN_COLUMN_WIDTH )
+        ls_hits   = ls_hits   + fs_mn_number_wide( lul_hits , UB_MN_COLUMN_WIDTH )
+        ls_misses = ls_misses + fs_mn_number_wide( lul_fetches , UB_MN_COLUMN_WIDTH )
     Next
     ' N.B: it is 29 characters wide, and starts at column 29, which leaves three spaces between it and the heap's figures
-    s_core_print_string_at( UB_MONITOR_ROW     , 29 , ls_head   , UB_DARK_GREY )
-    s_core_print_string_at( UB_MONITOR_ROW + 1 , 29 , ls_page   , UB_WHITE )
-    s_core_print_string_at( UB_MONITOR_ROW + 2 , 29 , ls_count  , UB_WHITE )
-    s_core_print_string_at( UB_MONITOR_ROW + 3 , 29 , ls_hits   , UB_WHITE )
-    s_core_print_string_at( UB_MONITOR_ROW + 4 , 29 , ls_misses , UB_WHITE )
+    s_core_print_string_at( UB_MONITOR_ROW     , UB_MN_SLOTS_LEFT , ls_head   , UB_DARK_GREY )
+    s_core_print_string_at( UB_MONITOR_ROW + 1 , UB_MN_SLOTS_LEFT , ls_page   , UB_WHITE )
+    s_core_print_string_at( UB_MONITOR_ROW + 2 , UB_MN_SLOTS_LEFT , ls_count  , UB_WHITE )
+    s_core_print_string_at( UB_MONITOR_ROW + 3 , UB_MN_SLOTS_LEFT , ls_hits   , UB_WHITE )
+    s_core_print_string_at( UB_MONITOR_ROW + 4 , UB_MN_SLOTS_LEFT , ls_misses , UB_WHITE )
 
     ' above the rest, the three rows between Moria's screen and the monitor's own, to the right of the mini map (which
     ' has columns 0 to 15 of rows 24 to 31, see stage-lib-minimap.bas): what slot 2's misses were for, the kind of
-    ' page that was asked for and was not there, see A_CORE_MMU2_KINDS in globals.bas, each shown up to 999999
-    s_core_print_string_at( UB_MONITOR_ROW - 3 , UB_MN_MISSES_LEFT , "MMU 2 misses, by page" , UB_DARK_GREY )
-    s_core_print_string_at( UB_MONITOR_ROW - 2 , UB_MN_MISSES_LEFT , "map" + fs_mn_kind( 0 ) + "  cre" + fs_mn_kind( 1 ) + "  obj" + fs_mn_kind( 2 ) + "  tab" + fs_mn_kind( 3 ) , UB_WHITE )
-    s_core_print_string_at( UB_MONITOR_ROW - 1 , UB_MN_MISSES_LEFT , "str" + fs_mn_kind( 4 ) + "  kno" + fs_mn_kind( 5 ) + "  oth" + fs_mn_kind( 6 ) , UB_WHITE )
+    ' page that was asked for and was not there, see A_CORE_MMU2_KINDS in globals.bas, each shown up to 999999, only
+    ' the second time round of the } key, the first leaves them out (sdo, 23 October 2026)
+    If gub_core_monitor = UB_MONITOR_MISSES Then
+        s_core_print_string_at( UB_MONITOR_ROW - 3 , UB_MN_MISSES_LEFT , "MMU 2 misses, by page" , UB_DARK_GREY )
+        s_core_print_string_at( UB_MONITOR_ROW - 2 , UB_MN_MISSES_LEFT , "map" + fs_mn_kind( 0 ) + "  cre" + fs_mn_kind( 1 ) + "  obj" + fs_mn_kind( 2 ) + "  tab" + fs_mn_kind( 3 ) , UB_WHITE )
+        s_core_print_string_at( UB_MONITOR_ROW - 1 , UB_MN_MISSES_LEFT , "str" + fs_mn_kind( 4 ) + "  kno" + fs_mn_kind( 5 ) + "  oth" + fs_mn_kind( 6 ) , UB_WHITE )
+    End If
 
     ' headers...
-    s_core_print_string_at( UB_MONITOR_ROW , 61 , "heap      stack" , UB_DARK_GREY )
+    s_core_print_string_at( UB_MONITOR_ROW , UB_MN_HEAP_LEFT , "heap      stack" , UB_DARK_GREY )
 
     ' the biggest free block in the heap, a string longer than this cannot be built even if the total free is more...
     ' ...and where the stack pointer is
-    s_core_print_string_at( UB_MONITOR_ROW + 1 , 61 , "b" + fs_mn_number_wide( luw_heap_biggest , 5 ) , UB_WHITE )
-    s_core_print_string_at( UB_MONITOR_ROW + 1 , 71 , "p" + fs_mn_number_wide( luw_stack_pos , 6 ) , UB_WHITE )
+    s_core_print_string_at( UB_MONITOR_ROW + 1 , UB_MN_HEAP_LEFT , "b" + fs_mn_number_wide( luw_heap_biggest , UB_MN_HEAP_WIDTH ) , UB_WHITE )
+    s_core_print_string_at( UB_MONITOR_ROW + 1 , UB_MN_STACK_LEFT , "p" + fs_mn_number_wide( luw_stack_pos , UB_MN_STACK_WIDTH ) , UB_WHITE )
 
     ' in use now... (the 4 is the heap's own header, which is never available)
-    s_core_print_string_at( UB_MONITOR_ROW + 2 , 61 , "s" + fs_mn_number_wide( luw_heap_size - 4 - luw_heap_free , 5 ) , UB_WHITE )
-    s_core_print_string_at( UB_MONITOR_ROW + 2 , 71 , "s" + fs_mn_number_wide( A_Z80_CPU_STACK - luw_stack_pos , 6 ) , UB_WHITE )
+    s_core_print_string_at( UB_MONITOR_ROW + 2 , UB_MN_HEAP_LEFT , "s" + fs_mn_number_wide( luw_heap_size - UB_HEAP_HEADER_SIZE - luw_heap_free , UB_MN_HEAP_WIDTH ) , UB_WHITE )
+    s_core_print_string_at( UB_MONITOR_ROW + 2 , UB_MN_STACK_LEFT , "s" + fs_mn_number_wide( A_Z80_CPU_STACK - luw_stack_pos , UB_MN_STACK_WIDTH ) , UB_WHITE )
 
     ' free now...
-    s_core_print_string_at( UB_MONITOR_ROW + 3 , 61 , "f" + fs_mn_number_wide( luw_heap_free , 5 ) , UB_WHITE )
-    s_core_print_string_at( UB_MONITOR_ROW + 3 , 71 , "f" + fs_mn_number_wide( luw_stack_pos - luw_screen_top , 6 ) , UB_WHITE )
+    s_core_print_string_at( UB_MONITOR_ROW + 3 , UB_MN_HEAP_LEFT , "f" + fs_mn_number_wide( luw_heap_free , UB_MN_HEAP_WIDTH ) , UB_WHITE )
+    s_core_print_string_at( UB_MONITOR_ROW + 3 , UB_MN_STACK_LEFT , "f" + fs_mn_number_wide( luw_stack_pos - luw_screen_top , UB_MN_STACK_WIDTH ) , UB_WHITE )
 
     ' the most the heap has ever used...
     ' ...the core filled the heap with UB_HEAP_FILL at start up, and the heap hands out memory from its top end downwards,
     ' so we walk up from just above the header and its first free block until we meet the first byte that has been overwritten
-    luw_scan = luw_heap_start + 8
+    luw_scan = luw_heap_start + UB_HEAP_FIRST_UNUSED
     While luw_scan < luw_heap_start + luw_heap_size And Peek( luw_scan ) = UB_HEAP_FILL
         luw_scan = luw_scan + 1
     End While
-    s_core_print_string_at( UB_MONITOR_ROW + 4 , 61 , "m" + fs_mn_number_wide( luw_heap_start + luw_heap_size - luw_scan , 5 ) , UB_WHITE )
+    s_core_print_string_at( UB_MONITOR_ROW + 4 , UB_MN_HEAP_LEFT , "m" + fs_mn_number_wide( luw_heap_start + luw_heap_size - luw_scan , UB_MN_HEAP_WIDTH ) , UB_WHITE )
 
     ' the most the stack has ever used...
     ' ...the core filled the whole stack area with UB_STACK_FILL at start up, and the stack grows downwards from the top,
@@ -212,10 +215,15 @@ Sub s_mn_show()
     While luw_scan < A_Z80_CPU_STACK And Peek( luw_scan ) = UB_STACK_FILL
         luw_scan = luw_scan + 1
     End While
-    s_core_print_string_at( UB_MONITOR_ROW + 4 , 71 , "m" + fs_mn_number_wide( A_Z80_CPU_STACK - luw_scan , 6 ) , UB_WHITE )
+    s_core_print_string_at( UB_MONITOR_ROW + 4 , UB_MN_STACK_LEFT , "m" + fs_mn_number_wide( A_Z80_CPU_STACK - luw_scan , UB_MN_STACK_WIDTH ) , UB_WHITE )
 
     If luw_stack_pos <= luw_screen_top Then
-        s_core_print_string_at( UB_MONITOR_ROW + 4 , 71 , "COLLISION" , UB_BRIGHT_RED )
+        ' N.B: white on the plain map, as everything else is (sdo, 22 October)
+        If ( guw_game_options bAnd MW_OPTION_PLAIN_MAP ) <> 0 Then
+            s_core_print_string_at( UB_MONITOR_ROW + 4 , UB_MN_STACK_LEFT , "COLLISION" , UB_WHITE )
+        Else
+            s_core_print_string_at( UB_MONITOR_ROW + 4 , UB_MN_STACK_LEFT , "COLLISION" , UB_BRIGHT_RED )
+        End If
         Asm
             di
             halt

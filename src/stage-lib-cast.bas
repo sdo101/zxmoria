@@ -80,7 +80,11 @@ Function fub_ca_direction() As UByte
         If guw_key_code = UW_KEY_DOWN Then lub_direction = 2
         If guw_key_code = UW_KEY_LEFT Then lub_direction = 4
         If guw_key_code = UW_KEY_RIGHT Then lub_direction = 6
-    Loop Until lub_direction <> 0 Or gub_key_char = 27 Or guw_key_code = 0
+    Loop Until lub_direction <> 0 Or gub_key_char = UC_ESCAPE Or guw_key_code = 0
+    ' the question is not a message, Moria asks it with getCommand() and keeps nothing of it for Ctrl-P
+    Asm
+        call A_JUMP_HISTORY_FORGET
+    End Asm
     s_msg_clear()
     If lub_direction <> 0 Then gub_player_prev_dir = lub_direction
     ' backing out takes no time, and s_ca_cast() then spares the mana, Moria's getDirectionWithMemory() sets
@@ -192,85 +196,85 @@ End Function
 
 Sub s_ca_mage_spell( pub_spell As UByte )
     ' Moria's castSpell(), the spells are numbered from 1 here, as there
-    If pub_spell = 1 Then
+    If pub_spell = UB_MAGE_MAGIC_MISSILE Then
         s_ca_bolt( UB_LIB_SPELLS_3_BOLT , 2 , 6 , 0 , 0 , "Magic Missile" )
-    ElseIf pub_spell = 2 Then
+    ElseIf pub_spell = UB_MAGE_DETECT_MONSTERS Then
         ' detect monsters
         gub_shared_1 = fub_ca_call( UB_PAGED_CODE_LIB_SPELLS_4 , UB_LIB_SPELLS_4_DETECT , 0 , 0 )
-    ElseIf pub_spell = 3 Then
+    ElseIf pub_spell = UB_MAGE_PHASE_DOOR Then
         ' phase door
         s_ca_spell( UB_LIB_SPELLS_TELEPORT , 10 )
-    ElseIf pub_spell = 4 Then
+    ElseIf pub_spell = UB_MAGE_LIGHT_AREA Then
         s_ca_spell( UB_LIB_SPELLS_LIGHT_AREA , 0 )
-    ElseIf pub_spell = 5 Then
+    ElseIf pub_spell = UB_MAGE_CURE_LIGHT_WOUNDS Then
         ' cure light wounds
         s_ca_heal( fuw_core_dice_roll( 4 , 4 ) )
-    ElseIf pub_spell = 6 Then
+    ElseIf pub_spell = UB_MAGE_FIND_HIDDEN_TRAPS_DOORS Then
         ' find hidden traps and doors
         s_ca_spell( UB_LIB_SPELLS_DETECT_DOORS , 0 )
         s_ca_spell( UB_LIB_SPELLS_DETECT_TRAPS , 0 )
-    ElseIf pub_spell = 7 Then
+    ElseIf pub_spell = UB_MAGE_STINKING_CLOUD Then
         s_ca_bolt( UB_LIB_SPELLS_3_BALL , 0 , 0 , 12 , UB_ELEMENT_GAS , "Stinking Cloud" )
-    ElseIf pub_spell = 8 Then
+    ElseIf pub_spell = UB_MAGE_CONFUSION Then
         s_ca_aimed( UB_PAGED_CODE_LIB_SPELLS_4 , UB_LIB_SPELLS_4_CONFUSE , 0 )
-    ElseIf pub_spell = 9 Then
+    ElseIf pub_spell = UB_MAGE_LIGHTNING_BOLT Then
         s_ca_bolt( UB_LIB_SPELLS_3_BOLT , 4 , 8 , 0 , UB_ELEMENT_LIGHTNING , "Lightning Bolt" )
-    ElseIf pub_spell = 10 Then
+    ElseIf pub_spell = UB_MAGE_TRAP_DOOR_DESTRUCTION Then
         ' trap and door destruction
         s_ca_spell( UB_LIB_SPELLS_DESTROY_DOORS , 0 )
-    ElseIf pub_spell = 11 Then
+    ElseIf pub_spell = UB_MAGE_SLEEP1 Then
         ' sleep I
         s_ca_aimed( UB_PAGED_CODE_LIB_SPELLS_4 , UB_LIB_SPELLS_4_SLEEP , 0 )
-    ElseIf pub_spell = 12 Then
+    ElseIf pub_spell = UB_MAGE_CURE_POISON Then
         s_ca_cure( @gsw_player_poisoned )
-    ElseIf pub_spell = 13 Then
+    ElseIf pub_spell = UB_MAGE_TELEPORT_SELF Then
         ' teleport self
         s_ca_spell( UB_LIB_SPELLS_TELEPORT , guw_player_level * 5 )
-    ElseIf pub_spell = 14 Then
+    ElseIf pub_spell = UB_MAGE_REMOVE_CURSE Then
         ' remove curse, from what is worn
         gub_shared_1 = fub_ca_call( UB_PAGED_CODE_LIB_SPELLS_2 , UB_LIB_SPELLS_2_REMOVE_CURSE , 0 , 0 )
-    ElseIf pub_spell = 15 Then
+    ElseIf pub_spell = UB_MAGE_FROST_BOLT Then
         s_ca_bolt( UB_LIB_SPELLS_3_BOLT , 6 , 8 , 0 , UB_ELEMENT_FROST , "Frost Bolt" )
-    ElseIf pub_spell = 16 Then
+    ElseIf pub_spell = UB_MAGE_WALL_TO_MUD Then
         ' turn stone to mud
         s_ca_aimed( UB_PAGED_CODE_LIB_SPELLS_5 , UB_LIB_SPELLS_5_WALL_TO_MUD , 0 )
-    ElseIf pub_spell = 17 Then
+    ElseIf pub_spell = UB_MAGE_CREATE_FOOD Then
         s_ca_spell( UB_LIB_SPELLS_CREATE_FOOD , 0 )
-    ElseIf pub_spell = 18 Then
+    ElseIf pub_spell = UB_MAGE_RECHARGE_ITEM1 Then
         ' recharge item I
         gub_shared_1 = fub_ca_call( UB_PAGED_CODE_LIB_SPELLS_2 , UB_LIB_SPELLS_2_RECHARGE , 0 , 20 )
-    ElseIf pub_spell = 19 Then
+    ElseIf pub_spell = UB_MAGE_SLEEP2 Then
         ' sleep II
         gub_shared_1 = fub_ca_call( UB_PAGED_CODE_LIB_SPELLS_2 , UB_LIB_SPELLS_2_SLEEP_ADJACENT , 0 , 0 )
-    ElseIf pub_spell = 20 Then
+    ElseIf pub_spell = UB_MAGE_POLYMORPH_OTHER Then
         s_ca_aimed( UB_PAGED_CODE_LIB_SPELLS_4 , UB_LIB_SPELLS_4_POLYMORPH , 0 )
-    ElseIf pub_spell = 21 Then
+    ElseIf pub_spell = UB_MAGE_IDENTIFY_ITEM Then
         gub_shared_1 = fub_ca_call( UB_PAGED_CODE_LIB_SPELLS_2 , UB_LIB_SPELLS_2_IDENTIFY , 0 , 0 )
-    ElseIf pub_spell = 22 Then
+    ElseIf pub_spell = UB_MAGE_SLEEP3 Then
         ' sleep III
         gub_shared_1 = fub_ca_call( UB_PAGED_CODE_LIB_SPELLS_4 , UB_LIB_SPELLS_4_SLEEP_ALL , 0 , 0 )
-    ElseIf pub_spell = 23 Then
+    ElseIf pub_spell = UB_MAGE_FIRE_BOLT Then
         s_ca_bolt( UB_LIB_SPELLS_3_BOLT , 9 , 8 , 0 , UB_ELEMENT_FIRE , "Fire Bolt" )
-    ElseIf pub_spell = 24 Then
+    ElseIf pub_spell = UB_MAGE_SPEED_MONSTER Then
         ' slow monster
         s_ca_aimed( UB_PAGED_CODE_LIB_SPELLS_4 , UB_LIB_SPELLS_4_SPEED , $FFFF )
-    ElseIf pub_spell = 25 Then
+    ElseIf pub_spell = UB_MAGE_FROST_BALL Then
         s_ca_bolt( UB_LIB_SPELLS_3_BALL , 0 , 0 , 48 , UB_ELEMENT_FROST , "Frost Ball" )
-    ElseIf pub_spell = 26 Then
+    ElseIf pub_spell = UB_MAGE_RECHARGE_ITEM2 Then
         ' recharge item II
         gub_shared_1 = fub_ca_call( UB_PAGED_CODE_LIB_SPELLS_2 , UB_LIB_SPELLS_2_RECHARGE , 0 , 60 )
-    ElseIf pub_spell = 27 Then
+    ElseIf pub_spell = UB_MAGE_TELEPORT_OTHER Then
         ' teleport other
         s_ca_aimed( UB_PAGED_CODE_LIB_SPELLS_4 , UB_LIB_SPELLS_4_TELEPORT_AWAY , 0 )
-    ElseIf pub_spell = 28 Then
+    ElseIf pub_spell = UB_MAGE_HASTE_SELF Then
         ' haste self
         s_ca_timed( @gsw_player_fast , fuw_ca_random( 20 ) + guw_player_level )
-    ElseIf pub_spell = 29 Then
+    ElseIf pub_spell = UB_MAGE_FIRE_BALL Then
         s_ca_bolt( UB_LIB_SPELLS_3_BALL , 0 , 0 , 72 , UB_ELEMENT_FIRE , "Fire Ball" )
-    ElseIf pub_spell = 30 Then
+    ElseIf pub_spell = UB_MAGE_WORD_OF_DESTRUCTION Then
         ' word of destruction
         s_ca_spell( UB_LIB_SPELLS_DESTROY_AREA , 0 )
-    ElseIf pub_spell = 31 Then
+    ElseIf pub_spell = UB_MAGE_GENOCIDE Then
         gub_shared_1 = fub_ca_call( UB_PAGED_CODE_LIB_SPELLS_2 , UB_LIB_SPELLS_2_GENOCIDE , 0 , 0 )
     End If
 End Sub
@@ -285,49 +289,49 @@ Sub s_ca_prayer( pub_prayer As UByte )
     Dim luw_record  As UInteger
     Dim lub_category As UByte
 
-    If pub_prayer = 1 Then
+    If pub_prayer = UB_PRIEST_DETECT_EVIL Then
         ' detect evil
         gub_shared_1 = fub_ca_call( UB_PAGED_CODE_LIB_SPELLS_4 , UB_LIB_SPELLS_4_DETECT , 0 , UW_CD_EVIL )
-    ElseIf pub_prayer = 2 Then
+    ElseIf pub_prayer = UB_PRIEST_CURE_LIGHT_WOUNDS Then
         ' cure light wounds
         s_ca_heal( fuw_core_dice_roll( 3 , 3 ) )
-    ElseIf pub_prayer = 3 Then
+    ElseIf pub_prayer = UB_PRIEST_BLESS Then
         ' bless
         s_ca_timed( @gsw_player_blessed , fuw_ca_random( 12 ) + 12 )
-    ElseIf pub_prayer = 4 Then
+    ElseIf pub_prayer = UB_PRIEST_REMOVE_FEAR Then
         s_ca_cure( @gsw_player_afraid )
-    ElseIf pub_prayer = 5 Then
+    ElseIf pub_prayer = UB_PRIEST_CALL_LIGHT Then
         ' call light
         s_ca_spell( UB_LIB_SPELLS_LIGHT_AREA , 0 )
-    ElseIf pub_prayer = 6 Then
+    ElseIf pub_prayer = UB_PRIEST_FIND_TRAPS Then
         s_ca_spell( UB_LIB_SPELLS_DETECT_TRAPS , 0 )
-    ElseIf pub_prayer = 7 Then
+    ElseIf pub_prayer = UB_PRIEST_DETECT_DOORS_STAIRS Then
         s_ca_spell( UB_LIB_SPELLS_DETECT_DOORS , 0 )
-    ElseIf pub_prayer = 8 Then
+    ElseIf pub_prayer = UB_PRIEST_SLOW_POISON Then
         ' slow poison, Moria's spellSlowPoison()
         If gsw_player_poisoned > 0 Then
             gsw_player_poisoned = gsw_player_poisoned / 2
             If gsw_player_poisoned < 1 Then gsw_player_poisoned = 1
             s_core_message( UW_MSG_THE_EFFECT_OF_THE_POISON_HAS_BEEN )
         End If
-    ElseIf pub_prayer = 9 Then
+    ElseIf pub_prayer = UB_PRIEST_BLIND_CREATURE Then
         ' blind creature, which in Moria confuses it
         s_ca_aimed( UB_PAGED_CODE_LIB_SPELLS_4 , UB_LIB_SPELLS_4_CONFUSE , 0 )
-    ElseIf pub_prayer = 10 Then
+    ElseIf pub_prayer = UB_PRIEST_PORTAL Then
         ' portal
         s_ca_spell( UB_LIB_SPELLS_TELEPORT , guw_player_level * 3 )
-    ElseIf pub_prayer = 11 Then
+    ElseIf pub_prayer = UB_PRIEST_CURE_MEDIUM_WOUNDS Then
         ' cure medium wounds
         s_ca_heal( fuw_core_dice_roll( 4 , 4 ) )
-    ElseIf pub_prayer = 12 Then
+    ElseIf pub_prayer = UB_PRIEST_CHANT Then
         ' chant
         s_ca_timed( @gsw_player_blessed , fuw_ca_random( 24 ) + 24 )
-    ElseIf pub_prayer = 13 Then
+    ElseIf pub_prayer = UB_PRIEST_SANCTUARY Then
         ' sanctuary
         gub_shared_1 = fub_ca_call( UB_PAGED_CODE_LIB_SPELLS_2 , UB_LIB_SPELLS_2_SLEEP_ADJACENT , 0 , 0 )
-    ElseIf pub_prayer = 14 Then
+    ElseIf pub_prayer = UB_PRIEST_CREATE_FOOD Then
         s_ca_spell( UB_LIB_SPELLS_CREATE_FOOD , 0 )
-    ElseIf pub_prayer = 15 Then
+    ElseIf pub_prayer = UB_PRIEST_REMOVE_CURSE Then
         ' remove curse: unlike the mage's it reaches what is in the pack as well, anything that can be wielded or worn
         For i = 0 To UB_INVENTORY_SIZE - 1
             luw_record   = A_INVENTORY + Cast( UInteger , i ) * UB_RECORD_SIZE
@@ -336,50 +340,50 @@ Sub s_ca_prayer( pub_prayer As UByte )
                 Poke luw_record + UB_ITEM_FLAGS_OFFSET + 3 , Peek( luw_record + UB_ITEM_FLAGS_OFFSET + 3 ) bAnd $7F     ' UL_TR_CURSED is the top bit
             End If
         Next
-    ElseIf pub_prayer = 16 Then
+    ElseIf pub_prayer = UB_PRIEST_RESIST_HEAD_COLD Then
         ' resist heat and cold
         s_ca_timed( @gsw_player_heat_resistance , fuw_ca_random( 10 ) + 10 )
         s_ca_timed( @gsw_player_cold_resistance , fuw_ca_random( 10 ) + 10 )
-    ElseIf pub_prayer = 17 Then
+    ElseIf pub_prayer = UB_PRIEST_NEUTRALIZE_POISON Then
         ' neutralize poison
         s_ca_cure( @gsw_player_poisoned )
-    ElseIf pub_prayer = 18 Then
+    ElseIf pub_prayer = UB_PRIEST_ORB_OF_DRAINING Then
         ' orb of draining, 11 is UB_ELEMENT_HOLY_ORB in stage-element-include.bas
         s_ca_bolt( UB_LIB_SPELLS_3_BALL , 3 , 6 , guw_player_level , 11 , "Black Sphere" )
-    ElseIf pub_prayer = 19 Then
+    ElseIf pub_prayer = UB_PRIEST_CURE_SERIOUS_WOUNDS Then
         ' cure serious wounds
         s_ca_heal( fuw_core_dice_roll( 8 , 4 ) )
-    ElseIf pub_prayer = 20 Then
+    ElseIf pub_prayer = UB_PRIEST_SENSE_INVISIBLE Then
         ' sense invisible
         s_ca_timed( @gsw_player_detect_invisible , fuw_ca_random( 24 ) + 24 )
-    ElseIf pub_prayer = 21 Then
+    ElseIf pub_prayer = UB_PRIEST_PROTECT_FROM_EVIL Then
         ' protection from evil, Moria's playerProtectEvil()
         s_ca_timed( @gsw_player_protect_evil , fuw_ca_random( 25 ) + 3 * guw_player_level )
-    ElseIf pub_prayer = 22 Then
+    ElseIf pub_prayer = UB_PRIEST_EARTHQUAKE Then
         gub_shared_1 = fub_ca_call( UB_PAGED_CODE_LIB_SPELLS_5 , UB_LIB_SPELLS_5_EARTHQUAKE , 0 , 0 )
-    ElseIf pub_prayer = 23 Then
+    ElseIf pub_prayer = UB_PRIEST_SENSE_SURROUNDINGS Then
         ' sense surroundings
         s_ca_spell( UB_LIB_SPELLS_MAP_AREA , 0 )
-    ElseIf pub_prayer = 24 Then
+    ElseIf pub_prayer = UB_PRIEST_CURE_CRITICAL_WOUNDS Then
         ' cure critical wounds
         s_ca_heal( fuw_core_dice_roll( 16 , 4 ) )
-    ElseIf pub_prayer = 25 Then
+    ElseIf pub_prayer = UB_PRIEST_TURN_UNDEAD Then
         gub_shared_1 = fub_ca_call( UB_PAGED_CODE_LIB_SPELLS_4 , UB_LIB_SPELLS_4_TURN_UNDEAD , 0 , 0 )
-    ElseIf pub_prayer = 26 Then
+    ElseIf pub_prayer = UB_PRIEST_PRAYER Then
         ' prayer
         s_ca_timed( @gsw_player_blessed , fuw_ca_random( 48 ) + 48 )
-    ElseIf pub_prayer = 27 Then
+    ElseIf pub_prayer = UB_PRIEST_DISPEL_UNDEAD Then
         ' dispel undead
         gub_shared_1 = fub_ca_call( UB_PAGED_CODE_LIB_SPELLS_2 , UB_LIB_SPELLS_2_DISPEL , 3 * guw_player_level , UW_CD_UNDEAD )
-    ElseIf pub_prayer = 28 Then
+    ElseIf pub_prayer = UB_PRIEST_HEAL Then
         ' heal
         s_ca_heal( 200 )
-    ElseIf pub_prayer = 29 Then
+    ElseIf pub_prayer = UB_PRIEST_DISPEL_EVIL Then
         ' dispel evil
         gub_shared_1 = fub_ca_call( UB_PAGED_CODE_LIB_SPELLS_2 , UB_LIB_SPELLS_2_DISPEL , 3 * guw_player_level , UW_CD_EVIL )
-    ElseIf pub_prayer = 30 Then
+    ElseIf pub_prayer = UB_PRIEST_GLYPH_OF_WARDING Then
         s_ca_spell( UB_LIB_SPELLS_GLYPH , 0 )
-    ElseIf pub_prayer = 31 Then
+    ElseIf pub_prayer = UB_PRIEST_HOLY_WORD Then
         ' holy word
         s_ca_cure( @gsw_player_afraid )
         s_ca_cure( @gsw_player_poisoned )
@@ -410,7 +414,7 @@ Sub s_ca_cast( pub_pray As UByte )
     gub_game_free_turn = true
     If pub_pray Then
         If fub_ca_can_read( "You can't see to read your prayer!" ) = false Then Return
-        If gub_class_spell_type <> 2 Then
+        If gub_class_spell_type <> UB_SPELL_TYPE_PRIEST Then
             s_core_message( UW_MSG_PRAY_HARD_ENOUGH_AND_YOUR_PRAYERS )
             Return
         End If
@@ -421,7 +425,7 @@ Sub s_ca_cast( pub_pray As UByte )
         lsw_place = fsw_ca_book( UB_TV_PRAYER_BOOK , "You are not carrying any Holy Books!" , "Use which Holy Book?" )
     Else
         If fub_ca_can_read( "You can't see to read your spell book!" ) = false Then Return
-        If gub_class_spell_type <> 1 Then
+        If gub_class_spell_type <> UB_SPELL_TYPE_MAGE Then
             s_core_message( UW_MSG_YOU_CANT_CAST_SPELLS )
             Return
         End If
@@ -454,7 +458,7 @@ Sub s_ca_cast( pub_pray As UByte )
 
     ' what the spell costs, from the table of them, see A_TABLE_SPELLS in constants.bas
     s_core_swap_paged_data( UB_SLOT_DB_MAPS , UB_PAGE_OBJECT_LEVELS )
-    luw_spell = A_TABLE_SPELLS + Cast( UInteger , gub_player_class - 1 ) * 124 + Cast( UInteger , lsw_spell ) * 4
+    luw_spell = A_TABLE_SPELLS + Cast( UInteger , gub_player_class - 1 ) * UB_CLASS_SPELLS_SIZE + Cast( UInteger , lsw_spell ) * UB_SPELL_SIZE
     lsw_mana  = Peek( luw_spell + 1 )
     lul_mask  = Cast( ULong , Peek( luw_spell + 3 ) )       ' the experience for the first time it works, kept for a moment
 
@@ -510,7 +514,7 @@ Sub s_lib_cast()
     ElseIf gub_lib_function = UB_LIB_CAST_PRAY Then
         s_ca_cast( true )
     End If
-    If lub_saved_page_2 <> 255 Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved_page_2 )
+    If lub_saved_page_2 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved_page_2 )
     gsw_lib_result = false
     If gub_game_free_turn = false Then gsw_lib_result = true
 End Sub

@@ -39,9 +39,7 @@ End Asm
 ' N.B: the order things are done in matters, each random number must be asked for exactly when Moria asks for it
 
 
-' --- working storage, private to this page, see A_LIB_PRIVATE in constants.bas ---
-Dim gub_ch_y                As UByte    At A_LIB_PRIVATE            ' where the chest is
-Dim gub_ch_x                As UByte    At A_LIB_PRIVATE + 1
+' --- its working storage is in globals.bas, under "private to stage-lib-chests.bas", moved there on 22 October 2026 ---
 
 
 Function fuw_ch_random( puw_max As UInteger ) As UInteger
@@ -372,8 +370,8 @@ Sub s_lib_chests()
     ElseIf gub_lib_function = UB_LIB_CHESTS_BLOCKED Then
         s_ch_blocked( gub_ch_y )
     End If
-    If lub_saved_page_0 <> 255 Then s_core_swap_paged_data( UB_SLOT_MONSTERS , lub_saved_page_0 )
-    If lub_saved_page_1 <> 255 Then s_core_swap_paged_data( UB_SLOT_ITEMS , lub_saved_page_1 )
-    If lub_saved_page_2 <> 255 Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved_page_2 )
+    If lub_saved_page_0 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_MONSTERS , lub_saved_page_0 )
+    If lub_saved_page_1 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_ITEMS , lub_saved_page_1 )
+    If lub_saved_page_2 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved_page_2 )
     gsw_lib_result = lub_answer
 End Sub

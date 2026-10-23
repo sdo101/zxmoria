@@ -1,9 +1,7 @@
 ' what the two wizard libraries share, stage-lib-wizard.bas and stage-lib-wizard-2.bas: asking the player a question
 ' on the top row of the screen, each page has its own copy of these routines
 
-' --- working storage, private to each page, see A_LIB_PRIVATE in constants.bas ---
-Dim gsl_wz_number           As Long     At A_LIB_PRIVATE            ' the number the player last typed
-Dim gub_wz_valid            As UByte    At A_LIB_PRIVATE + 4        ' true if what they typed was a number, Moria's stringToNumber()
+' --- its working storage is in globals.bas, under "private to stage-wizard-include.bas", moved there on 22 October 2026 ---
 
 
 Function fub_wz_confirm( ps_prompt As String ) As UByte
@@ -13,7 +11,7 @@ Function fub_wz_confirm( ps_prompt As String ) As UByte
     s_core_print_string_at( 0 , 0 , ps_prompt + " [y/n]" , UB_WHITE )
     Do
         s_core_get_key()
-    Loop While gub_key_char = 32
+    Loop While gub_key_char = UC_SPACE
     s_msg_clear()
     If gub_key_char = Code( "y" ) Or gub_key_char = Code( "Y" ) Then Return true
     Return false
@@ -35,21 +33,21 @@ Function fub_wz_ask( ps_prompt As String , pub_max As UByte ) As UByte
     lub_length = 0
     Do
         s_core_get_key()
-        If gub_key_char = 27 Or guw_key_code = 0 Then
+        If gub_key_char = UC_ESCAPE Or guw_key_code = 0 Then
             s_msg_clear()
             Return false
         End If
-        If gub_key_char = 8 Then
+        If gub_key_char = UC_BACKSPACE Then
             If lub_length > 0 Then
                 lub_length = lub_length - 1
                 s_core_print_char_at( 0 , lub_col + lub_length , 32 , UB_WHITE )
             End If
-        ElseIf gub_key_char >= 32 And gub_key_char < 127 And lub_length < pub_max Then
+        ElseIf gub_key_char >= UC_SPACE And gub_key_char < UC_DELETE And lub_length < pub_max Then
             Poke A_PROMPT + lub_length , gub_key_char
             s_core_print_char_at( 0 , lub_col + lub_length , gub_key_char , UB_WHITE )
             lub_length = lub_length + 1
         End If
-    Loop Until gub_key_char = 13
+    Loop Until gub_key_char = UC_ENTER
     Poke A_PROMPT + lub_length , 0
     ' N.B: Moria leaves the question and its answer on the screen until something else is written there
     s_msg_clear()
@@ -76,7 +74,7 @@ Function fub_wz_ask( ps_prompt As String , pub_max As UByte ) As UByte
         lub_char = Peek( A_PROMPT + i )
     End While
     ' N.B: getStringInput() has taken off any spaces after it
-    While lub_char = 32
+    While lub_char = UC_SPACE
         i = i + 1
         lub_char = Peek( A_PROMPT + i )
     End While

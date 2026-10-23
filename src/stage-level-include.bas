@@ -41,7 +41,7 @@ Function fub_gen_new_item( puw_object As UInteger ) As UByte
     For i = 0 To 31
         Poke A_ITEM + i , 0             ' no special name, nothing known about it, no inscription
     Next
-    s_core_ram_copy( A_OBJECT + 32 , A_ITEM + 32 , 32 )
+    s_core_ram_copy( A_OBJECT + UB_ITEM_OBJECT_FIELDS , A_ITEM + UB_ITEM_OBJECT_FIELDS , UB_RECORD_SIZE - UB_ITEM_OBJECT_FIELDS )
     guw_item_object = puw_object
     Return lub_number
 End Function
@@ -222,7 +222,7 @@ Sub s_gen_blank_level()
     ' wipes the level's map, a page at a time, as many pages as the level has rows, Moria's dungeonBlankEntireCave()
     Dim lub_page As UByte
 
-    For lub_page = 0 To ( ( gub_dungeon_rows - 1 ) >> 2 )   ' 4 rows to a page
+    For lub_page = 0 To ( ( gub_dungeon_rows - 1 ) >> UB_MAP_ROWS_SHIFT )
         s_core_swap_paged_data( UB_SLOT_DB_MAPS , gub_level_map_page + lub_page )
         Asm
             ld hl, A_MMU_SLOT_PAGED_DB_MAPS

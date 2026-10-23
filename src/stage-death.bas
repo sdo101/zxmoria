@@ -27,8 +27,9 @@ End Asm
 
 
 Function fuw_dt_art( pub_which As UByte ) As UInteger
-    ' where a picture is: lines that each end in a 13, and a 0 after the last
-    If pub_which = 1 Then Return @dt_tomb
+    ' where a picture is: lines that each end in a 13, and a 0 after the last, N.B: the pictures' own backslashes and
+    ' double quotes are written as their codes, 92 and 34, so that no assembler reads them as more than a character
+    If pub_which = UB_DT_ART_TOMB Then Return @dt_tomb
     Return @dt_royal
 dt_tomb:
     Asm
@@ -165,11 +166,11 @@ Sub s_dt_show( pub_which As UByte )
     While Peek( luw_at ) <> 0
         lub_char = Peek( luw_at )
         luw_at   = luw_at + 1
-        If lub_char = 13 Then
+        If lub_char = UC_ENTER Then
             lub_row = lub_row + 1
             lub_col = 0
         Else
-            If lub_col < 80 Then s_core_print_char_at( lub_row , lub_col , lub_char , UB_WHITE )
+            If lub_col < UB_SCREEN_COLS Then s_core_print_char_at( lub_row , lub_col , lub_char , UB_WHITE )
             lub_col = lub_col + 1
         End If
     End While
@@ -186,7 +187,7 @@ Sub s_dt_tomb()
     ' Moria's printTomb()
     Dim ls_text As String
 
-    s_dt_show( 1 )
+    s_dt_show( UB_DT_ART_TOMB )
     s_dt_centred( 6 , fs_core_text_at( A_PLAYER_NAME ) )
     If gub_game_total_winner Then
         s_dt_centred( 8 , "Magnificent" )
@@ -227,7 +228,7 @@ Sub s_stage_death()
         ' so that the save holds the King, the crown is shown after it
         guw_dungeon_level = 0
         ' the same place the walking stage's causes of death are left in
-        Poke A_DIED_FROM + 12 , 0
+        Poke A_DIED_FROM + UB_DT_AGE_LENGTH , 0
         Asm
             jr dt_age_end
         dt_age:
@@ -235,7 +236,7 @@ Sub s_stage_death()
         dt_age_end:
             ld hl, dt_age
             ld de, A_DIED_FROM
-            ld bc, 12
+            ld bc, UB_DT_AGE_LENGTH
             ldir
         End Asm
         ' Moria's spellRestorePlayerLevels(), the effects library
@@ -252,7 +253,7 @@ Sub s_stage_death()
 
     If gub_game_total_winner Then
         ' Moria's printCrown(): let the player know they did good
-        s_dt_show( 2 )
+        s_dt_show( UB_DT_ART_CROWN )
         If gub_player_male Then
             s_core_print_string_at( 17 , 45 , "King!" , UB_BRIGHT_YELLOW )
         Else
@@ -274,10 +275,10 @@ Sub s_stage_death()
         s_core_get_key()
         If gub_key_char = Code( "f" ) Or gub_key_char = Code( "F" ) Then
             lub_length   = 1
-            gub_key_char = 13
+            gub_key_char = UC_ENTER
         End If
-    Loop Until gub_key_char = 13 Or gub_key_char = 27 Or guw_key_code = 0
-    If gub_key_char = 13 Then
+    Loop Until gub_key_char = UC_ENTER Or gub_key_char = UC_ESCAPE Or guw_key_code = 0
+    If gub_key_char = UC_ENTER Then
         ' everything is identified now, the kind of thing it is and its own plusses and charges: Moria's
         ' itemSetAsIdentified() and spellItemIdentifyAndRemoveRandomInscription() for all 34 places
         For i = 0 To UB_INVENTORY_SIZE - 1
@@ -298,7 +299,7 @@ Sub s_stage_death()
         Else
             gub_lib_param_1 = true
             s_core_call_library( UB_PAGED_CODE_LIB_INFO , UB_LIB_INFO_CHARACTER )
-            If gub_key_char <> 27 Then
+            If gub_key_char <> UC_ESCAPE Then
                 ' "You are using:" and "You are carrying:", the equipment library has both lists, with the weights
                 ' shown, as Moria shows them here whatever the option says
                 s_core_clear_screen()

@@ -154,9 +154,9 @@
 '   v0.007   11-Oct-2026    The full player record, and Moria's character creation.
 '##################################################################################################################################
 ' --- PROJECT HISTORY: WHO BROUGHT WHAT ---
-' written by Claude on 12-Oct-2026, at the author's request, from what the three project folders and their histories show...
+' written by Claude on 12-Oct-2026, at sdo's request, from what the three project folders and their histories show...
 ' ...so that a reader can tell the design that was already here from the advice and the labour that came afterwards...
-' ...and revised on 13-Oct-2026, when the folders were given names that say the order they were made in, with the author's own account of why each was begun
+' ...and revised on 13-Oct-2026, when the folders were given names that say the order they were made in, with sdo's own account of why each was begun
 '
 ' the three folders, in order, each a "proof of concept":
 '   poc1design:     the first attempt, at everything at once: the memory management, the realization that paged code needs a vector/shim mechanism, ORG and
@@ -168,7 +168,7 @@
 '                   a "left" stage and a "right" stage that flip between each other...
 '                   ...which by the end of February 2026 had the core code, core data, paged code, paged data, screen and stack, and the shimmed core
 '                   routines all working, proved by stepping through the assembler in ZEsarUX, and most of the screen mode set up, but not yet a visible
-'                   80 by 32 tilemap or a working keyboard routine: it was left there for several months, and finished in October 2026 once the author had
+'                   80 by 32 tilemap or a working keyboard routine: it was left there for several months, and finished in October 2026 once sdo had
 '                   Claude to work with
 '   poc3game:       this folder, poc2demo finished and used as the platform for turning Umoria into ZXMoria
 ' N.B: on the evening of 13-Oct-2026 poc3game was renamed poc3dev, and copied to make poc4uat, where the work goes on:
@@ -176,7 +176,7 @@
 '   poc4uat:        a clone of poc3dev, the copy the game is played and tried out in, and worked on from then
 ' N.B: until 13-Oct-2026 the three were called "beforedemo" (and before that "zxproject"), "demo" and "poc1", older notes and logs use those names
 '
-' 1) what was already worked out, January and February 2026, by the author, with Google Gemini (the "poc1design" folder):
+' 1) what was already worked out, January and February 2026, by sdo, with Google Gemini (the "poc1design" folder):
 '   the aim:        a faithful port of Umoria to the ZX Next in compiled Boriel BASIC with a little assembler, and the house rules set out at the top of this file
 '   the memory:     the 64KB seen as eight 8KB MMU slots, some holding the core for good, the others a "virtual memory" of pages swapped in and out as needed:
 '                   paged code, paged lists of what is on a level, and paged databases and maps, with the page counts worked out in zxmoria.xlsx
@@ -192,10 +192,11 @@
 '   its state:      a design, and a great deal of thinking, but not yet a program: four of its six stages did not compile
 '
 ' 2) the foundation, the "poc2demo" folder, kept free of anything to do with the game:
-'   by the author, to 28 February 2026: the concept of screen and stack, core code, core data, paged code and paged data, and the shimmed core routines, all of it
+'   by sdo, to 28 February 2026: the concept of screen and stack, core code, core data, paged code and paged data, and the shimmed core routines, all of it
 '                   working, proved by stepping through the assembler in ZEsarUX, and most of the screen mode set up
 '   what it lacked: an actual visible 80 by 32 tilemap, and a working keyboard reading routine
-'   finished by the author with Claude, 9 and 10 October 2026: the visible tilemap and the keyboard reading, and the foundation as it then stood:
+'   finished by Claude, with sdo deciding, 9 and 10 October 2026: the visible tilemap, the keyboard reading, and the move from IM1 to IM2,
+'                   and the foundation as it then stood:
 '   the core moves: from $0000 to $8000 (MMU 4 and 5), with its data in MMU 6 and the screen and stack in MMU 7, paged code in MMU 3, and the three slots of paged
 '                   data at the bottom, MMU 0, 1 and 2, because NextZXOS only answers a file call with its ROM at the bottom of memory, so those are lent back for it
 '   IM1 to IM2:     which leaves nothing of ours at $0038, so the frame interrupt had to become mode 2, its handler and its table at the top of the core's second page
@@ -203,20 +204,21 @@
 '   one heap:       1KB at the end of the core's data, and every module compiled with the same heap address, which is what lets a stage hand a string to the core
 '   and:            keyboard scanning with EXTEND as Ctrl, a page saved to and loaded from the SD card, the nex file made by sjasmplus, NextZXOS starting it by itself
 '
-' 3) the architecture advised since, 10 to 12 October 2026, by Claude, with the author deciding (this "poc3game" folder):
+' 3) the architecture advised since, 10 to 12 October 2026, by Claude, with sdo deciding (this "poc3game" folder):
 '   libraries:      a page of code that any stage, or another library, may call through the core and return from, where a stage can only be handed over to...
 '                   ...each with the top 512 bytes of its own page as private working storage that is still there the next time it is called
-'   the rule:       a stage returns to the core and the core picks the next (the author's model, kept), a library puts back any data page it changes
+'   the rule:       a stage returns to the core and the core picks the next (sdo's model, kept), a library puts back any data page it changes
 '   the data:       every record 64 bytes, the databases and tables built from Moria's own source by create-data.ps1 so that nothing is typed in or left out,
 '                   data pages packed together from page 30, code pages from 96 upwards
 '   the map:        8 bytes a square and 256 squares a row, so a row never crosses a page and finding a square is two shifts
 '   saving:         the game IS a set of pages, so those pages are what is saved, one after another in one file
-'   messages:       fixed messages kept in the author's strings database and shown by number, the message line and the map drawing moved into the core, one copy of each
+'   messages:       fixed messages kept in sdo's strings database and shown by number, the message line and the map drawing moved into the core, one copy of each
 '   the build:      only what has changed is compiled, several modules at once, with checks on every page's size and start address
 '   discipline:     each random number asked for exactly when Moria asks for it, every gap marked NOT YET in the source and listed in not-yet.md, a test for each piece
 '   one hard bug:   Boriel's own CHR routine writes to a ZX system variable which, in this memory layout, is in the middle of a data page: found, replaced, guarded against
 '
-' 4) and the labour: the translation of Umoria 5.7.15, routine by routine, from C++ into Boriel BASIC, done by Claude and checked against Moria's source and in the emulator:
+' 4) and the labour: the translation of Umoria 5.7.15, routine by routine, from C++ into Boriel BASIC, done by Claude and checked against Moria's source and in the emulator,
+'    and the testing: the regression comparisons with the real Umoria, the soak tests and the emulator test scripts in tools\test, also Claude's:
 '   as of 12-Oct-2026 about 28,000 lines in 89 source files, compiled into 64 pages of code and a core, about 322KB of code and 176KB of data
 '##################################################################################################################################
 ' --- FUTURE IDEAS ---

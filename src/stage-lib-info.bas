@@ -32,9 +32,7 @@ End Asm
 '   - nothing that is known of
 
 
-' --- working storage, private to this page, see A_LIB_PRIVATE in constants.bas ---
-#define A_IN_MAP_ROW        A_LIB_PRIVATE               ' 66 bytes, one row of the reduced map while it is worked out
-Dim gub_in_saved_page       As UByte    At A_LIB_PRIVATE + 70       ' the page the caller had in the first data slot, while the screen is put aside there
+' --- its working storage is in globals.bas, under "private to stage-lib-info.bas", moved there on 22 October 2026 ---
 
 
 '##################################################################################################################################
@@ -44,15 +42,15 @@ Sub s_in_screen_save()
     ' puts the screen aside, in the corridor scratchpad page, Moria's terminalSaveScreen()
     gub_in_saved_page = gub_core_MMU0_page_number
     s_core_swap_paged_data( UB_SLOT_CORRIDORS , UB_PAGE_CORRIDORS )
-    s_core_ram_copy( A_SCREEN_BASE , A_MMU_SLOT_PAGED_CORRIDORS , 5120 )
+    s_core_ram_copy( A_SCREEN_BASE , A_MMU_SLOT_PAGED_CORRIDORS , UW_SCREEN_CELLS_SIZE )
 End Sub
 
 
 Sub s_in_screen_restore()
     ' Moria's terminalRestoreScreen()
     s_core_swap_paged_data( UB_SLOT_CORRIDORS , UB_PAGE_CORRIDORS )
-    s_core_ram_copy( A_MMU_SLOT_PAGED_CORRIDORS , A_SCREEN_BASE , 5120 )
-    If gub_in_saved_page <> 255 Then s_core_swap_paged_data( UB_SLOT_CORRIDORS , gub_in_saved_page )
+    s_core_ram_copy( A_MMU_SLOT_PAGED_CORRIDORS , A_SCREEN_BASE , UW_SCREEN_CELLS_SIZE )
+    If gub_in_saved_page <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_CORRIDORS , gub_in_saved_page )
 End Sub
 
 
@@ -67,18 +65,18 @@ Sub s_in_name()
     s_core_print_string_at( 2 , 15 , "_                      " , UB_WHITE )
     Do
         s_core_get_key()
-        If gub_key_char = 13 Then Exit Do
-        If gub_key_char = 27 Then           ' escape: give up, and take the default name
+        If gub_key_char = UC_ENTER Then Exit Do
+        If gub_key_char = UC_ESCAPE Then           ' escape: give up, and take the default name
             lub_length = 0
             Exit Do
         End If
-        If gub_key_char = 8 Then            ' delete
+        If gub_key_char = UC_BACKSPACE Then            ' delete
             If lub_length > 0 Then
                 s_core_print_char_at( 2 , 15 + lub_length , 32 , UB_WHITE )
                 lub_length = lub_length - 1
                 s_core_print_char_at( 2 , 15 + lub_length , Code( "_" ) , UB_WHITE )
             End If
-        ElseIf gub_key_char >= 32 And gub_key_char < 127 And lub_length < 23 Then
+        ElseIf gub_key_char >= UC_SPACE And gub_key_char < UC_DELETE And lub_length < 23 Then
             Poke A_PLAYER_NAME + lub_length , gub_key_char
             s_core_print_char_at( 2 , 15 + lub_length , gub_key_char , UB_BRIGHT_WHITE )
             lub_length = lub_length + 1
@@ -248,15 +246,12 @@ Sub s_in_character( pub_dead As UByte )
         ElseIf gub_key_char = Code( "c" ) Then
             s_in_name()
             lub_done = true
-        ElseIf gub_key_char = 27 Or gub_key_char = 32 Or gub_key_char = 13 Or guw_key_code = 0 Then
+        ElseIf gub_key_char = UC_ESCAPE Or gub_key_char = UC_SPACE Or gub_key_char = UC_ENTER Or guw_key_code = 0 Then
             lub_done = true
         End If
     End While
     s_in_screen_restore()
 End Sub
-
-
-
 
 
 '##################################################################################################################################
@@ -390,7 +385,7 @@ Sub s_in_locate()
             If guw_key_code = UW_KEY_DOWN Then lub_direction = 2
             If guw_key_code = UW_KEY_LEFT Then lub_direction = 4
             If guw_key_code = UW_KEY_RIGHT Then lub_direction = 6
-        Loop Until lub_direction <> 0 Or gub_key_char = 27 Or guw_key_code = 0
+        Loop Until lub_direction <> 0 Or gub_key_char = UC_ESCAPE Or guw_key_code = 0
         s_msg_clear()
 
         If lub_direction = 0 Then
@@ -438,7 +433,7 @@ Sub s_lib_info()
     ElseIf gub_lib_function = UB_LIB_INFO_MAP Then
         s_in_map()
     End If
-    If lub_saved_page_0 <> 255 Then s_core_swap_paged_data( UB_SLOT_MONSTERS , lub_saved_page_0 )
-    If lub_saved_page_1 <> 255 Then s_core_swap_paged_data( UB_SLOT_ITEMS , lub_saved_page_1 )
-    If lub_saved_page_2 <> 255 Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved_page_2 )
+    If lub_saved_page_0 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_MONSTERS , lub_saved_page_0 )
+    If lub_saved_page_1 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_ITEMS , lub_saved_page_1 )
+    If lub_saved_page_2 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved_page_2 )
 End Sub

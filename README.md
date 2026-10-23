@@ -12,7 +12,8 @@ It aims to play exactly as Umoria plays: the same dungeon, monsters, objects, sp
 **Just want to try it?** Download `zxmoria.nex` from the
 [latest release](https://github.com/sdo101/zxmoria/releases/latest) and run it in ZEsarUX (as a Next, with Smart Load)
 or, at your own risk while it is untested there, on your Next (copy it to the SD card and choose it in the Browser).
-In the game, `?` shows the commands, as in Umoria.
+In the game, `?` shows the commands, as in Umoria. `QUICKSTART.md` says more: playing on a Next or in ZEsarUX, a PC
+keyboard with and without AutoHotkey, a first game, and the few keys that are ZXMoria's own.
 
 ## Where it comes from
 
@@ -27,6 +28,19 @@ Its data (creatures, objects, spells, tables and text) is generated from the Umo
 Where ZXMoria differs from Umoria on purpose, the source file concerned says so near its top.
 
 The opening picture, the Bridge of Khazad-dum, is ZXMoria's own drawing, made by `tools\make-splash.py`.
+
+## Who did what
+
+ZXMoria was made by sdo working with Claude, Anthropic's AI model, in Claude Code.
+
+- **sdo**: the design of the memory as 8KB pages swapped in and out of the Next's MMU slots, the core reached through a
+  jump table and the shimmed routines that let each stage be compiled on its own, the frame interrupt in IM1, the
+  strings database, and the decisions throughout.
+- **Claude**: the visible 80 by 32 tilemap screen, the keyboard reading, the move from IM1 to IM2, the translation of
+  Umoria 5.7.15 from C++ into Boriel ZX BASIC, routine by routine, and the testing, above all the comparisons with
+  the real Umoria, which play the same game with the same random numbers in both and compare what comes out.
+
+The history in more detail is at the top of `src\goals.bas`.
 
 ## Copyright and licence
 
@@ -65,17 +79,19 @@ What you need:
 - optional: [AutoHotkey](https://www.autohotkey.com/) v2, for `tools\zesarux-keys.ahk` (see below)
 
 These are not part of ZXMoria and have their own licences.
-`build.ps1` finds them by looking upwards from its own folder for one that contains `boriel\zxbc.py`, so the layout is:
+`build.ps1` finds them by looking upwards from its own folder for one that contains `boriel\<version>\zxbc.py`.
+Boriel, sjasmplus and ZEsarUX each have a folder for each version, and the newest is used unless `build.ps1` names one
+(`$CompilerPinned`, `$LinkerPinned`, `$EmulatorPinned`). So the layout is:
 
 ```
 <any folder>\
-    boriel\         zxbc.py and the rest of Boriel ZX BASIC
-    sjasmplus\      sjasmplus.exe
-    zesarux\        zesarux.exe and its tbblue.mmc
-    tools\          hdfmonkey.exe
-    umoria\         the Umoria 5.7.15 source (its src\ folder is what the data is built from)
-    images\tbblue\  optional: new.mmc, a NextZXOS card image to use in place of ZEsarUX's
-    ...\zxmoria\    this folder, at any depth below
+    boriel\1.19.0\      zxbc.py and the rest of Boriel ZX BASIC
+    sjasmplus\1.24.0\   sjasmplus.exe
+    zesarux\13.0\       zesarux.exe and its tbblue.mmc
+    tools\              hdfmonkey.exe
+    umoria\             the Umoria 5.7.15 source (its src\ folder is what the data is built from)
+    images\tbblue\      optional: new.mmc, a NextZXOS card image to use in place of ZEsarUX's
+    ...\zxmoria\        this folder, at any depth below
 ```
 
 Then:
@@ -85,9 +101,10 @@ pwsh .\build.ps1
 ```
 
 This makes the font, the game's data from the Umoria source, and the opening pictures; compiles the loader, the core
-and every stage and library, only those that have changed; checks them; builds `zxmoria.nex` beside `build.ps1`; puts
+and every stage and library, only those that have changed; checks them; builds the nex file beside `build.ps1`; puts
 it on the SD card images; and starts ZEsarUX. Everything it makes on the way is in `build\`, and a dated copy of every
-build's log is kept in `logs\`.
+build's log is kept in `logs\`. The nex file and the card images are named after the folder `build.ps1` is in, so in a
+folder called `zxmoria` they are `zxmoria.nex`, `zxmoria-base.mmc` and so on, as below.
 
 Options: `-NoRun` builds without starting the emulator, `-Full` compiles everything, `-Jobs <n>` sets how many modules
 compile at once, and `-Start <x>` chooses how the emulator starts:

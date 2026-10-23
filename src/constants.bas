@@ -49,83 +49,361 @@
 Const   true    As UByte = 1
 Const   false   As UByte = 0
 
+' --- HUNGER AND HEALING, Moria's own constants, by Moria's names (config.cpp) ---
+Const   UW_PLAYER_FOOD_FULL         As UInteger = 10000     ' getting full
+Const   UW_PLAYER_FOOD_MAX          As UInteger = 15000     ' the most food, beyond is wasted
+Const   UW_PLAYER_FOOD_FAINT        As UInteger = 300       ' the character begins fainting
+Const   UW_PLAYER_FOOD_WEAK         As UInteger = 1000      ' warned of getting weak
+Const   UW_PLAYER_FOOD_ALERT        As UInteger = 2000      ' warned of getting low on food
+Const   UB_PLAYER_REGEN_FAINT       As UByte    = 33        ' how fast the character heals, times 2^16, when fainting
+Const   UB_PLAYER_REGEN_WEAK        As UByte    = 98        ' ...when weak
+Const   UB_PLAYER_REGEN_NORMAL      As UByte    = 197       ' ...when fed
+Const   UW_PLAYER_REGEN_HPBASE      As UInteger = 1442      ' the least that hit points heal, times 2^16
+Const   UW_PLAYER_REGEN_MNBASE      As UInteger = 524       ' the least that mana heals, times 2^16
+
+' --- MORE OF MORIA'S OWN CONSTANTS, by Moria's names ---
+#define UB_ITEM_SINGLE_STACK_MIN    64          ' items with a sub category from here up can be stacked...
+#define UB_ITEM_SINGLE_STACK_MAX    192         ' ...up to here they stack singly...
+#define UB_ITEM_GROUP_MIN           192         ' ...and above this they are a batch, like arrows, that only stacks with itself
+Const   UW_OBJECTS_RUNE_PROTECTION  As UInteger = 3000      ' a monster breaks a glyph of warding if 1 in this many is below its level
+Const   UL_PLAYER_MAX_EXP           As ULong    = 9999999   ' the most experience a character can have
+Const   UW_OBJECT_LAMP_MAX_CAPACITY As UInteger = 15000     ' the most turns of light a lamp holds
+Const   UB_MON_CHANCE_OF_NEW        As UByte    = 160       ' a new monster appears on 1 turn in this many
+
+' --- MORIA'S ENUMS, by Moria's names: what each kind of food, potion, staff, wand, spell, prayer and trap does ---
+' ...FoodMagicTypes, player_eat.cpp
+Const   UB_FOOD_POISON                       As UByte = 1
+Const   UB_FOOD_BLINDNESS                    As UByte = 2
+Const   UB_FOOD_PARANOIA                     As UByte = 3
+Const   UB_FOOD_CONFUSION                    As UByte = 4
+Const   UB_FOOD_HALLUCINATION                As UByte = 5
+Const   UB_FOOD_CURE_POISON                  As UByte = 6
+Const   UB_FOOD_CURE_BLINDNESS               As UByte = 7
+Const   UB_FOOD_CURE_PARANOIA                As UByte = 8
+Const   UB_FOOD_CURE_CONFUSION               As UByte = 9
+Const   UB_FOOD_WEAKNESS                     As UByte = 10
+Const   UB_FOOD_UNHEALTH                     As UByte = 11
+Const   UB_FOOD_RESTORE_STR                  As UByte = 16
+Const   UB_FOOD_RESTORE_CON                  As UByte = 17
+Const   UB_FOOD_RESTORE_INT                  As UByte = 18
+Const   UB_FOOD_RESTORE_WIS                  As UByte = 19
+Const   UB_FOOD_RESTORE_DEX                  As UByte = 20
+Const   UB_FOOD_RESTORE_CHR                  As UByte = 21
+Const   UB_FOOD_FIRST_AID                    As UByte = 22
+Const   UB_FOOD_MINOR_CURES                  As UByte = 23
+Const   UB_FOOD_LIGHT_CURES                  As UByte = 24
+Const   UB_FOOD_MAJOR_CURES                  As UByte = 26
+Const   UB_FOOD_POISONOUS_FOOD               As UByte = 27
+' ...PotionSpellTypes, player_quaff.cpp
+Const   UB_POTION_STRENGTH                   As UByte = 1
+Const   UB_POTION_WEAKNESS                   As UByte = 2
+Const   UB_POTION_RESTORE_STRENGTH           As UByte = 3
+Const   UB_POTION_INTELLIGENCE               As UByte = 4
+Const   UB_POTION_LOSE_INTELLIGENCE          As UByte = 5
+Const   UB_POTION_RESTORE_INTELLIGENCE       As UByte = 6
+Const   UB_POTION_WISDOM                     As UByte = 7
+Const   UB_POTION_LOSE_WISDOM                As UByte = 8
+Const   UB_POTION_RESTORE_WISDOM             As UByte = 9
+Const   UB_POTION_CHARISMA                   As UByte = 10
+Const   UB_POTION_UGLINESS                   As UByte = 11
+Const   UB_POTION_RESTORE_CHARISMA           As UByte = 12
+Const   UB_POTION_CURE_LIGHT_WOUNDS          As UByte = 13
+Const   UB_POTION_CURE_SERIOUS_WOUNDS        As UByte = 14
+Const   UB_POTION_CURE_CRITICAL_WOUNDS       As UByte = 15
+Const   UB_POTION_HEALING                    As UByte = 16
+Const   UB_POTION_CONSTITUTION               As UByte = 17
+Const   UB_POTION_GAIN_EXPERIENCE            As UByte = 18
+Const   UB_POTION_SLEEP                      As UByte = 19
+Const   UB_POTION_BLINDNESS                  As UByte = 20
+Const   UB_POTION_CONFUSION                  As UByte = 21
+Const   UB_POTION_POISON                     As UByte = 22
+Const   UB_POTION_HASTE_SELF                 As UByte = 23
+Const   UB_POTION_SLOWNESS                   As UByte = 24
+Const   UB_POTION_DEXTERITY                  As UByte = 26
+Const   UB_POTION_RESTORE_DEXTERITY          As UByte = 27
+Const   UB_POTION_RESTORE_CONSTITUTION       As UByte = 28
+Const   UB_POTION_CURE_BLINDNESS             As UByte = 29
+Const   UB_POTION_CURE_CONFUSION             As UByte = 30
+Const   UB_POTION_CURE_POISON                As UByte = 31
+Const   UB_POTION_LOSE_EXPERIENCE            As UByte = 34
+Const   UB_POTION_SALT_WATER                 As UByte = 35
+Const   UB_POTION_INVULNERABILITY            As UByte = 36
+Const   UB_POTION_HEROISM                    As UByte = 37
+Const   UB_POTION_SUPER_HEROISM              As UByte = 38
+Const   UB_POTION_BOLDNESS                   As UByte = 39
+Const   UB_POTION_RESTORE_LIFE_LEVELS        As UByte = 40
+Const   UB_POTION_RESIST_HEAT                As UByte = 41
+Const   UB_POTION_RESIST_COLD                As UByte = 42
+Const   UB_POTION_DETECT_INVISIBLE           As UByte = 43
+Const   UB_POTION_SLOW_POISON                As UByte = 44
+Const   UB_POTION_NEUTRALIZE_POISON          As UByte = 45
+Const   UB_POTION_RESTORE_MANA               As UByte = 46
+Const   UB_POTION_INFRA_VISION               As UByte = 47
+' ...StaffSpellTypes, staves.cpp
+Const   UB_STAFF_STAFF_LIGHT                 As UByte = 1
+Const   UB_STAFF_DETECT_DOORS_STAIRS         As UByte = 2
+Const   UB_STAFF_TRAP_LOCATION               As UByte = 3
+Const   UB_STAFF_TREASURE_LOCATION           As UByte = 4
+Const   UB_STAFF_OBJECT_LOCATION             As UByte = 5
+Const   UB_STAFF_TELEPORTATION               As UByte = 6
+Const   UB_STAFF_EARTHQUAKES                 As UByte = 7
+Const   UB_STAFF_SUMMONING                   As UByte = 8
+Const   UB_STAFF_DESTRUCTION                 As UByte = 10
+Const   UB_STAFF_STARLIGHT                   As UByte = 11
+Const   UB_STAFF_HASTE_MONSTERS              As UByte = 12
+Const   UB_STAFF_SLOW_MONSTERS               As UByte = 13
+Const   UB_STAFF_SLEEP_MONSTERS              As UByte = 14
+Const   UB_STAFF_CURE_LIGHT_WOUNDS           As UByte = 15
+Const   UB_STAFF_DETECT_INVISIBLE            As UByte = 16
+Const   UB_STAFF_SPEED                       As UByte = 17
+Const   UB_STAFF_SLOWNESS                    As UByte = 18
+Const   UB_STAFF_MASS_POLYMORPH              As UByte = 19
+Const   UB_STAFF_REMOVE_CURSE                As UByte = 20
+Const   UB_STAFF_DETECT_EVIL                 As UByte = 21
+Const   UB_STAFF_CURING                      As UByte = 22
+Const   UB_STAFF_DISPEL_EVIL                 As UByte = 23
+Const   UB_STAFF_DARKNESS                    As UByte = 25
+Const   UB_STAFF_STORE_BOUGHT_FLAG           As UByte = 32
+' ...WandSpellTypes, staves.cpp
+Const   UB_WAND_WAND_LIGHT                   As UByte = 1
+Const   UB_WAND_LIGHTNING_BOLT               As UByte = 2
+Const   UB_WAND_FROST_BOLT                   As UByte = 3
+Const   UB_WAND_FIRE_BOLT                    As UByte = 4
+Const   UB_WAND_STONE_TO_MUD                 As UByte = 5
+Const   UB_WAND_POLYMORPH                    As UByte = 6
+Const   UB_WAND_HEAL_MONSTER                 As UByte = 7
+Const   UB_WAND_HASTE_MONSTER                As UByte = 8
+Const   UB_WAND_SLOW_MONSTER                 As UByte = 9
+Const   UB_WAND_CONFUSE_MONSTER              As UByte = 10
+Const   UB_WAND_SLEEP_MONSTER                As UByte = 11
+Const   UB_WAND_DRAIN_LIFE                   As UByte = 12
+Const   UB_WAND_TRAP_DOOR_DESTRUCTION        As UByte = 13
+Const   UB_WAND_WAND_MAGIC_MISSILE           As UByte = 14
+Const   UB_WAND_WALL_BUILDING                As UByte = 15
+Const   UB_WAND_CLONE_MONSTER                As UByte = 16
+Const   UB_WAND_TELEPORT_AWAY                As UByte = 17
+Const   UB_WAND_DISARMING                    As UByte = 18
+Const   UB_WAND_LIGHTNING_BALL               As UByte = 19
+Const   UB_WAND_COLD_BALL                    As UByte = 20
+Const   UB_WAND_FIRE_BALL                    As UByte = 21
+Const   UB_WAND_STINKING_CLOUD               As UByte = 22
+Const   UB_WAND_ACID_BALL                    As UByte = 23
+Const   UB_WAND_WONDER                       As UByte = 24
+' ...MageSpellId, mage_spells.cpp
+' what magic a class has, Moria's config::spells::SPELL_TYPE_NONE, _MAGE and _PRIEST
+Const   UB_SPELL_TYPE_NONE                   As UByte = 0
+Const   UB_SPELL_TYPE_MAGE                   As UByte = 1
+Const   UB_SPELL_TYPE_PRIEST                 As UByte = 2
+
+Const   UB_MAGE_MAGIC_MISSILE                As UByte = 1
+Const   UB_MAGE_DETECT_MONSTERS              As UByte = 2
+Const   UB_MAGE_PHASE_DOOR                   As UByte = 3
+Const   UB_MAGE_LIGHT_AREA                   As UByte = 4
+Const   UB_MAGE_CURE_LIGHT_WOUNDS            As UByte = 5
+Const   UB_MAGE_FIND_HIDDEN_TRAPS_DOORS      As UByte = 6
+Const   UB_MAGE_STINKING_CLOUD               As UByte = 7
+Const   UB_MAGE_CONFUSION                    As UByte = 8
+Const   UB_MAGE_LIGHTNING_BOLT               As UByte = 9
+Const   UB_MAGE_TRAP_DOOR_DESTRUCTION        As UByte = 10
+Const   UB_MAGE_SLEEP1                       As UByte = 11
+Const   UB_MAGE_CURE_POISON                  As UByte = 12
+Const   UB_MAGE_TELEPORT_SELF                As UByte = 13
+Const   UB_MAGE_REMOVE_CURSE                 As UByte = 14
+Const   UB_MAGE_FROST_BOLT                   As UByte = 15
+Const   UB_MAGE_WALL_TO_MUD                  As UByte = 16
+Const   UB_MAGE_CREATE_FOOD                  As UByte = 17
+Const   UB_MAGE_RECHARGE_ITEM1               As UByte = 18
+Const   UB_MAGE_SLEEP2                       As UByte = 19
+Const   UB_MAGE_POLYMORPH_OTHER              As UByte = 20
+Const   UB_MAGE_IDENTIFY_ITEM                As UByte = 21
+Const   UB_MAGE_SLEEP3                       As UByte = 22
+Const   UB_MAGE_FIRE_BOLT                    As UByte = 23
+Const   UB_MAGE_SPEED_MONSTER                As UByte = 24
+Const   UB_MAGE_FROST_BALL                   As UByte = 25
+Const   UB_MAGE_RECHARGE_ITEM2               As UByte = 26
+Const   UB_MAGE_TELEPORT_OTHER               As UByte = 27
+Const   UB_MAGE_HASTE_SELF                   As UByte = 28
+Const   UB_MAGE_FIRE_BALL                    As UByte = 29
+Const   UB_MAGE_WORD_OF_DESTRUCTION          As UByte = 30
+Const   UB_MAGE_GENOCIDE                     As UByte = 31
+' ...PriestSpellTypes, player_pray.cpp
+Const   UB_PRIEST_DETECT_EVIL                As UByte = 1
+Const   UB_PRIEST_CURE_LIGHT_WOUNDS          As UByte = 2
+Const   UB_PRIEST_BLESS                      As UByte = 3
+Const   UB_PRIEST_REMOVE_FEAR                As UByte = 4
+Const   UB_PRIEST_CALL_LIGHT                 As UByte = 5
+Const   UB_PRIEST_FIND_TRAPS                 As UByte = 6
+Const   UB_PRIEST_DETECT_DOORS_STAIRS        As UByte = 7
+Const   UB_PRIEST_SLOW_POISON                As UByte = 8
+Const   UB_PRIEST_BLIND_CREATURE             As UByte = 9
+Const   UB_PRIEST_PORTAL                     As UByte = 10
+Const   UB_PRIEST_CURE_MEDIUM_WOUNDS         As UByte = 11
+Const   UB_PRIEST_CHANT                      As UByte = 12
+Const   UB_PRIEST_SANCTUARY                  As UByte = 13
+Const   UB_PRIEST_CREATE_FOOD                As UByte = 14
+Const   UB_PRIEST_REMOVE_CURSE               As UByte = 15
+Const   UB_PRIEST_RESIST_HEAD_COLD           As UByte = 16
+Const   UB_PRIEST_NEUTRALIZE_POISON          As UByte = 17
+Const   UB_PRIEST_ORB_OF_DRAINING            As UByte = 18
+Const   UB_PRIEST_CURE_SERIOUS_WOUNDS        As UByte = 19
+Const   UB_PRIEST_SENSE_INVISIBLE            As UByte = 20
+Const   UB_PRIEST_PROTECT_FROM_EVIL          As UByte = 21
+Const   UB_PRIEST_EARTHQUAKE                 As UByte = 22
+Const   UB_PRIEST_SENSE_SURROUNDINGS         As UByte = 23
+Const   UB_PRIEST_CURE_CRITICAL_WOUNDS       As UByte = 24
+Const   UB_PRIEST_TURN_UNDEAD                As UByte = 25
+Const   UB_PRIEST_PRAYER                     As UByte = 26
+Const   UB_PRIEST_DISPEL_UNDEAD              As UByte = 27
+Const   UB_PRIEST_HEAL                       As UByte = 28
+Const   UB_PRIEST_DISPEL_EVIL                As UByte = 29
+Const   UB_PRIEST_GLYPH_OF_WARDING           As UByte = 30
+Const   UB_PRIEST_HOLY_WORD                  As UByte = 31
+' ...TrapTypes, player_move.cpp
+Const   UB_TRAP_OPEN_PIT                     As UByte = 1
+Const   UB_TRAP_ARROW_PIT                    As UByte = 2
+Const   UB_TRAP_COVERED_PIT                  As UByte = 3
+Const   UB_TRAP_TRAP_DOOR                    As UByte = 4
+Const   UB_TRAP_SLEEPING_GAS                 As UByte = 5
+Const   UB_TRAP_HIDDEN_OBJECT                As UByte = 6
+Const   UB_TRAP_DART_OF_STR                  As UByte = 7
+Const   UB_TRAP_TELEPORT                     As UByte = 8
+Const   UB_TRAP_ROCKFALL                     As UByte = 9
+Const   UB_TRAP_CORRODING_GAS                As UByte = 10
+Const   UB_TRAP_SUMMON_MONSTER               As UByte = 11
+Const   UB_TRAP_FIRE_TRAP                    As UByte = 12
+Const   UB_TRAP_ACID_TRAP                    As UByte = 13
+Const   UB_TRAP_POISON_GAS_TRAP              As UByte = 14
+Const   UB_TRAP_BLINDING_GAS                 As UByte = 15
+Const   UB_TRAP_CONFUSE_GAS                  As UByte = 16
+Const   UB_TRAP_SLOW_DART                    As UByte = 17
+Const   UB_TRAP_DART_OF_CON                  As UByte = 18
+Const   UB_TRAP_SECRET_DOOR                  As UByte = 19
+Const   UB_TRAP_SCARE_MONSTER                As UByte = 99
+Const   UB_TRAP_GENERAL_STORE                As UByte = 101
+Const   UB_TRAP_ARMORY                       As UByte = 102
+Const   UB_TRAP_WEAPONSMITH                  As UByte = 103
+Const   UB_TRAP_TEMPLE                       As UByte = 104
+Const   UB_TRAP_ALCHEMIST                    As UByte = 105
+Const   UB_TRAP_MAGIC_SHOP                   As UByte = 106
+
+' --- MORIA'S ENUMS, by Moria's names: what each kind of food, potion, staff, wand, spell, prayer and trap does ---
+' ...InnerRoomTypes, dungeon_generate.cpp
+Const   UB_INNER_ROOM_PLAIN                  As UByte = 1
+Const   UB_INNER_ROOM_TREASURE_VAULT         As UByte = 2
+Const   UB_INNER_ROOM_PILLARS                As UByte = 3
+Const   UB_INNER_ROOM_MAZE                   As UByte = 4
+Const   UB_INNER_ROOM_FOUR_SMALL_ROOMS       As UByte = 5
+
+' --- THE WALKING STAGE'S OWN ---
+#define MB_REPEAT_DONE              128     ' gub_game_repeat_key: the command has been done once, use the direction it had (use_last_direction)
+#define UB_HOLD_FRAMES              16      ' a key held this many frames, a third of a second, goes on repeating its command
+#define UB_STEP_NONE                0       ' gub_game_step_code, what the walking stage does after a command: nothing...
+#define UB_STEP_DISARMED            1       ' ...step on to the trap just disarmed
+#define UB_STEP_SET_OFF             2       ' ...step on to the trap just set off
+#define UB_STEP_PLAIN               3       ' ...a plain step that picks nothing up
+
+' --- FILES, see fub_core_file_transfer() in core.bas ---
+Const   UB_FILE_NAME_MAX            As UByte    = 63
+Const   UB_FILE_SLOT_WHOLE          As UByte    = 255   ' gub_core_file_slot: a file of one page and no more
+Const   UB_FILE_SLOT_DONE           As UByte    = 254   ' ...the file of many pages is finished with, it is closed
+Const   UB_FILE_RESULT_BAD_NAME     As UByte    = 254   ' what the file routines answer: 0 if it worked, this for a name too long or empty
+Const   UB_FILE_RESULT_SHORT        As UByte    = 255   ' ...or this for fewer bytes than a page read or written
+Const   MB_FILE_PLAN_OPEN           As UByte    = 1     ' gub_core_file_plan, the steps a call takes: open the file
+Const   MB_FILE_PLAN_SEEK           As UByte    = 2     ' seek to the page's place in it
+Const   MB_FILE_PLAN_CLOSE          As UByte    = 4     ' close it afterwards
+Const   MB_FILE_PLAN_NO_DATA        As UByte    = 8     ' read or write nothing at all
+Const   UB_FILE_MODE_WRITE_NEW      As UByte    = $0E   ' NextZXOS: open for writing ($02), creating it and deleting any there was ($0C)
+Const   UB_FILE_MODE_READ           As UByte    = $01   ' open for reading, it must exist
+Const   UB_ESX_ENOENT               As UByte    = 5     ' esxDOS's error for \"No such file or dir\"
+' what the save library answers to UB_LIB_SAVE_RESTORE, besides false and true
+Const   UB_RESTORE_RESURRECTED      As UByte    = 2     ' a dead character brought back, in a game started as a wizard
+Const   UB_RESTORE_BAD_FILE         As UByte    = 3     ' Moria's "Error during reading of file."
+
+' the waits
+Const   UL_FRAMES_PER_HOUR          As ULong    = 180000    ' s_core_get_key() gives up after an hour, at 50 frames a second
+Const   UW_PAUSE_COUNT              As UInteger = 20000     ' s_core_pause(), about a second
+Const   UB_ENTROPY_MULTIPLIER       As UByte    = 33        ' each key's wait is stirred into gul_core_entropy so
+Const   UC_MONITOR_KEY              As UByte    = 125       ' }, the core's own key: the live monitor, the memory, then with MMU 2's misses, then off
+
 ' --- ZX NEXT HARDWARE ---
 ' some addresses are an IO address, other addresses are a RAM address
 #define A_NEXTREG_SELECT    $243B
 #define A_NEXTREG_DATA      $253B
+#define UB_DIVMMC_PORT      $E3     ' divMMC control
 #define A_Z80_CPU_STACK     $FFFE   ' i.e. one byte before last byte to cater for 16-bit width of 'SP' (the Stack Pointer)
 
-' nextreg register indices
-Const   UB_NEXTREG_MACHINE_ID       As UByte    = $00
-Const   UB_NEXTREG_VERSION          As UByte    = $01
-Const   UB_NEXTREG_RESET_CONFIG     As UByte    = $02
-Const   UB_NEXTREG_CPU_SPEED        As UByte    = $07
-Const   UB_NEXTREG_PERIPHERAL_1     As UByte    = $08
-Const   UB_NEXTREG_PALETTE_INDEX    As UByte    = $40
-Const   UB_NEXTREG_PALETTE_CONTROL  As UByte    = $43
-Const   UB_NEXTREG_TILEMAP_CTRL     As UByte    = $6B
+' the Next registers this program writes or reads, by their names in the official list, docs\nextzxos\registers.txt
+#define NEXTREG_MACHINE_ID           $00         ' Machine ID
+#define NEXTREG_VERSION              $01         ' Core Version
+#define NEXTREG_RESET                $02         ' Reset
+#define NEXTREG_PERIPHERAL_1         $05         ' Peripheral 1 Setting: joysticks, 50/60Hz, scandoubler
+#define NEXTREG_PERIPHERAL_2         $06         ' Peripheral 2 Setting
+#define NEXTREG_CPU_SPEED            $07         ' CPU Speed, see UB_CPU_SPEED_ below
+#define NEXTREG_PERIPHERAL_3         $08         ' Peripheral 3 Setting
+#define NEXTREG_JOYSTICK_IO          $0B         ' Joystick I/O Mode
+#define NEXTREG_VIDEO_TIMING         $11         ' Video Timing, writable in config mode only
+#define NEXTREG_LAYER2_BANK          $12         ' Layer 2 Active RAM bank
+#define NEXTREG_TRANSPARENCY         $14         ' Global Transparency Colour
+#define NEXTREG_SPRITES_LAYERS       $15         ' Sprite and Layers System
+#define NEXTREG_CLIP_LAYER2          $18         ' Clip Window Layer 2
+#define NEXTREG_CLIP_ULA             $1A         ' Clip Window ULA
+#define NEXTREG_CLIP_TILEMAP         $1B         ' Clip Window Tilemap
+#define NEXTREG_CLIP_CONTROL         $1C         ' Clip Window control
+#define NEXTREG_LINE_INTERRUPT       $22         ' Line Interrupt control
+#define NEXTREG_TILEMAP_X_MSB        $2F         ' Tilemap X Scroll MSB
+#define NEXTREG_TILEMAP_X_LSB        $30         ' Tilemap X Scroll LSB
+#define NEXTREG_TILEMAP_Y            $31         ' Tilemap Offset Y
+#define NEXTREG_PALETTE_INDEX        $40         ' Palette Index
+#define NEXTREG_PALETTE_VALUE        $41         ' Palette Value, 8 bit colour
+#define NEXTREG_PALETTE_CONTROL      $43         ' Palette Control
+#define NEXTREG_PALETTE_VALUE_9      $44         ' Palette Value, 9 bit colour
+#define NEXTREG_FALLBACK_COLOUR      $4A         ' Fallback Colour
+#define NEXTREG_SPRITE_TRANSPARENCY  $4B         ' Sprite Transparency Index
+#define NEXTREG_COPPER_CONTROL       $62         ' Copper Control
+#define NEXTREG_ULA_CONTROL          $68         ' ULA Control
+#define NEXTREG_DISPLAY_CONTROL_1    $69         ' Display Control 1
+#define NEXTREG_TILEMAP_CONTROL      $6B         ' Tilemap Control
+#define NEXTREG_TILEMAP_ATTRIBUTE    $6C         ' Default Tilemap Attribute
+#define NEXTREG_TILEMAP_BASE         $6E         ' Tilemap Base Address
+#define NEXTREG_TILE_DEFINITIONS     $6F         ' Tile Definitions Base Address
+#define NEXTREG_LAYER2_CONTROL       $70         ' Layer 2 Control
+#define NEXTREG_MEMORY_128K          $8E         ' Spectrum 128K Memory Mapping
+#define NEXTREG_MEMORY_MAPPING       $8F         ' Memory Mapping Mode
+#define NEXTREG_EXT_KEYS_0           $B0         ' Extended Keys 0: bit 7 ;   6 "   5 ,   4 .   3 up   2 down   1 left   0 right
+#define NEXTREG_EXT_KEYS_1           $B1         ' Extended Keys 1: bit 7 delete   6 edit   5 break   4 inv video   3 true video   2 graph   1 caps lock   0 extend
+#define MB_RESET_SOFT               %00000001   ' NEXTREG_RESET: a soft reset
+' NEXTREG_TILEMAP_CONTROL's bits
+#define MB_TILEMAP_ENABLE           %10000000
+#define MB_TILEMAP_80_COLS          %01000000   ' 80 x 32, not 40 x 32
+#define MB_TILEMAP_NO_ATTRIBUTES    %00100000   ' one byte a cell, the attribute from NEXTREG_TILEMAP_ATTRIBUTE
+#define MB_TILEMAP_PALETTE_2        %00010000   ' the second tilemap palette
+#define MB_TILEMAP_TEXT_MODE        %00001000   ' one bit a pixel, 8 bytes a character
+#define MB_TILEMAP_512_TILES        %00000010   ' an attribute's bit 0 is the ninth bit of the character
+#define MB_TILEMAP_ON_TOP           %00000001   ' the tilemap on top of the ULA
 
-' machine control
-Const   UB_NEXTREG_MACHINE_RESET    As UByte    = %00000001
-
-' machine speed
+' machine speed, NEXTREG_CPU_SPEED
 Const   UB_CPU_SPEED_3MHZ           As UByte    = 0          ' 00 =  3.5 MHz (original Z80 speed)
 Const   UB_CPU_SPEED_7MHZ           As UByte    = 1          ' 01 =  7 MHz mode
 Const   UB_CPU_SPEED_14MHZ          As UByte    = 2          ' 10 = 14 MHz mode
 Const   UB_CPU_SPEED_28MHZ          As UByte    = 3          ' 11 = 28 MHz mode
-
-' screen config
-Const   UB_TILE_ENABLE              As UByte    = %10000000  ' bit 7: tilemap enable (0=off, 1=on)
-Const   UB_TILE_RES6                As UByte    = %01000000  ' bit 6: reserved (always 0)
-Const   UB_TILE_4BIT_MODE           As UByte    = %00100000  ' bit 5: tile definitions (0=8-bit, 1=4-bit)
-Const   UB_TILE_ATTR_ENABLE         As UByte    = %00010000  ' bit 4: tile attributes/2-byte mode (0=off, 1=on)
-Const   UB_TILE_80COL               As UByte    = %00001000  ' bit 3: palette/columns (1=80 col / 256-color)
-Const   UB_TILE_TEXT_MODE           As UByte    = %00000100  ' bit 2: text mode (0=off, 1=on)
-Const   UB_TILE_OVER_SPRITES        As UByte    = %00000010  ' bit 1: tilemap over sprites (1=tilemap on top)
-Const   UB_TILE_512_ENABLE          As UByte    = %00000001  ' bit 0: enable 512 tile mode
-
-' periperal control
-Const   UB_PERIP_1_JOY_MASK         As UByte    = %11000000  ' bits 6-7: joystick configuration
-Const   UB_PERIP_1_TURBO_SOUND      As UByte    = %00100000  ' bit 5: turbo sound enable (set to 0 for off)
-Const   UB_PERIP_1_60HZ             As UByte    = %00000100  ' bit 2: 50hz/60hz select (0=50hz, 1=60hz)
-Const   UB_PERIP_1_MIC_EN           As UByte    = %00000010  ' bit 1: enable ear/mic port
-Const   UB_PERIP_1_PAGING_EN        As UByte    = %00000001  ' bit 0: enable rom/ram paging
-
-
-' N.B: some constants were removed from here because the registers are not what they claimed to be...
-' ...nextreg $05 is Peripheral 1 (joysticks, 50/60Hz, scandoubler), nextreg $11 is the video timing mode, and nextreg $02 is reset control...
-' ...there is no real time clock register, and no Ctrl or Alt keys, the Next's extra keys can be read from nextreg $B0 and $B1 if ever needed...
-' ...the keyboard itself is read in fub_core_scan_key() in core.bas, which explains the ports, so the constants below are no longer used
-
-' keyboard port and row selection masks
-Const   UW_PORT_ULA                 As UInteger = $FFFE
-Const   UB_KEY_ROW_CAPS_SHIFT       As UByte    = %11111110
-Const   UB_KEY_ROW_SYMBOL_SHIFT     As UByte    = %01111111
-
-' bit masks for specific keys in the ula response
-Const   UB_ULA_BIT_CAPS_SHIFT       As UByte    = %00001
-Const   UB_ULA_BIT_SYMBOL_SHIFT     As UByte    = %00010
-
-' mask for the 5-bit matrix data (bits 0-4)
-Const   UB_ULA_MATRIX_MASK          As UByte    = %00011111
-' value when no keys are pressed in a row
-Const   UB_ULA_MATRIX_IDLE          As UByte    = %00011111
+' N.B: the bits of the tilemap's and Peripheral 1's registers were here until 21 October 2026, unused, and wrong
+' for all but a few of them, as were the keyboard's port masks, unused since fub_core_scan_key() in core.bas came
 
 ' --- ZX NEXT / Z80 MMU SLOTS ---
 ' the slot numbers
-Const   MMU_SLOT_0                  As UByte = $50
-Const   MMU_SLOT_1                  As UByte = $51
-Const   MMU_SLOT_2                  As UByte = $52
-Const   MMU_SLOT_3                  As UByte = $53
-Const   MMU_SLOT_4                  As UByte = $54
-Const   MMU_SLOT_5                  As UByte = $55
-Const   MMU_SLOT_6                  As UByte = $56
-Const   MMU_SLOT_7                  As UByte = $57
+#define MMU_SLOT_0                  $50
+#define MMU_SLOT_1                  $51
+#define MMU_SLOT_2                  $52
+#define MMU_SLOT_3                  $53
+#define MMU_SLOT_4                  $54
+#define MMU_SLOT_5                  $55
+#define MMU_SLOT_6                  $56
+#define MMU_SLOT_7                  $57
 
 ' slot principal usage
 Const   MMU_SLOT_CORE_CODE          As UByte = MMU_SLOT_4  ' and also slot 5...
 Const   MMU_SLOT_CORE_DATA          As UByte = MMU_SLOT_6
-Const   MMU_SLOT_PAGED_CODE         As UByte = MMU_SLOT_3
+#define MMU_SLOT_PAGED_CODE         MMU_SLOT_3
 Const   MMU_SLOT_CORE_SCREEN        As UByte = MMU_SLOT_7
 Const   MMU_SLOT_PAGED_MONSTERS     As UByte = MMU_SLOT_0  ' the three paged data slots, each known by the names of what goes in it...
 Const   MMU_SLOT_PAGED_CORRIDORS    As UByte = MMU_SLOT_0  ' ...the corridor scratchpad shares MMU 0 with the monsters, it is only needed while a dungeon is being dug
@@ -188,48 +466,70 @@ Const   MMU_SLOT_PAGED_DB_MAPS       As UByte = MMU_SLOT_2
 '##################################################################################################################################
 
 ' --- ZX NEXT 8KB PAGE NUMBERS WITHIN THE 2MB RAM ---
-Const   UB_PAGE_CORE_CODE           As UByte    = 30   '  2 pages, 16KB
-Const   UB_PAGE_CORE_DATA           As UByte    = 32
-Const   UB_PAGE_FONT                As UByte    = 10   ' never mapped by us, the display hardware reads it directly
-Const   UB_PAGE_CORE_SCREEN         As UByte    = 11   ' the screen cells, and above them the core's stack
+#define UB_PAGE_CORE_CODE           30   '  2 pages, 16KB
+#define UB_PAGE_ROM                 255  ' the Next's number for the ROM in an MMU slot, as the system's file calls want it
+#define UB_PAGE_NONE                255  ' ...and so, kept for a slot, nothing of ours is in it (see the gub_core_MMU0_page_number and so on)
+#define UB_PAGE_SYSTEM_VARIABLES    10   ' the system's own page, which the file calls need in MMU 2, see fub_core_file_transfer()
+#define UW_PAGE_SIZE                8192
+#define UB_PAGE_CORE_DATA           32
+#define UB_PAGE_FONT                10   ' never mapped by us, the display hardware reads it directly
+#define UB_PAGE_CORE_SCREEN         11   ' the screen cells, and above them the core's stack
 
 ' the paged game data, the first page of each kind, see the plan above for how many pages each has...
-Const   UB_PAGE_DUNGEON_MONSTERS    As UByte    = 33
-Const   UB_PAGE_TOWN_MONSTERS       As UByte    = 34
-Const   UB_PAGE_CORRIDORS           As UByte    = 35
-Const   UB_PAGE_DUNGEON_ITEMS       As UByte    = 36
-Const   UB_PAGE_TOWN_ITEMS          As UByte    = 38
-Const   UB_PAGE_STORE_ITEMS         As UByte    = 40
-Const   UB_PAGE_SCENT_MAP           As UByte    = 42
-Const   UB_PAGE_MESSAGES            As UByte    = 42    ' the last messages, for Ctrl-P, see s_core_message_push() in core.bas, N.B: the scent map was never used, Umoria has no such thing, this is its first page
+#define UB_PAGE_DUNGEON_MONSTERS    33
+#define UB_PAGE_TOWN_MONSTERS       34
+#define UB_PAGE_CORRIDORS           35
+#define UB_PAGE_DUNGEON_ITEMS       36
+#define UB_PAGE_TOWN_ITEMS          38
+#define UB_PAGE_STORE_ITEMS         40
+#define UB_PAGE_SCENT_MAP           42
+#define UB_PAGE_MESSAGES            42    ' the last messages, for Ctrl-P, see s_core_history_push() in core.bas, N.B: the scent map was never used, Umoria has no such thing, this is its first page
 Const   UB_MESSAGE_HISTORY          As UByte    = 22    ' how many messages are kept, 80 bytes each (MESSAGE_HISTORY_SIZE)
-Const   UB_PAGE_SCORES              As UByte    = 43    ' the high scores, as they are in the file scores.dat, see stage-lib-scores.bas, the second of the unused scent map's pages
-Const   UB_PAGE_MINIMAP             As UByte    = 44    ' ours: the mini map's bitmap, one bit for each square of the level, 32 bytes a row, see stage-lib-minimap.bas
+Const   UB_MESSAGE_SIZE             As UByte    = 80    ' the bytes each message is kept in, Moria's MORIA_MESSAGE_SIZE
+#define UB_PAGE_SCORES              43    ' the high scores, as they are in the file scores.dat, see stage-lib-scores.bas, the second of the unused scent map's pages
+#define UB_PAGE_MINIMAP             44    ' ours: the mini map's bitmap, one bit for each square of the level, 32 bytes a row, see stage-lib-minimap.bas
 #define A_MESSAGE_LINE              A_MMU_SLOT_CORE_DATA + 6912     ' size 80, the message that is showing, between the player's record and the heap
-Const   UB_PAGE_CREATURES_DB        As UByte    = 47
-Const   UB_PAGE_OBJECTS_DB          As UByte    = 50
-Const   UB_PAGE_GAME_TABLES         As UByte    = 54
-Const   UB_PAGE_STRINGS_INDEX       As UByte    = 55
-Const   UB_PAGE_STRINGS_TEXT        As UByte    = 57
-Const   UB_PAGE_KNOWLEDGE           As UByte    = 63    ' monster memory in its first 5580 bytes, item knowledge from 6144
-Const   UB_PAGE_SCREENS             As UByte    = 64
-Const   UB_PAGE_DUNGEON_MAP         As UByte    = 66
-Const   UB_PAGE_TOWN_MAP            As UByte    = 83
+#define UB_PAGE_CREATURES_DB        47
+#define UB_PAGE_OBJECTS_DB          50
+#define UB_PAGE_GAME_TABLES         54
+#define UB_PAGE_STRINGS_INDEX       55
+#define UB_PAGE_STRINGS_TEXT        57
+' ...the index: 2048 strings to a page, 4 bytes each: the page of the text, its offset (2 bytes), its length + 1
+Const   UB_STRINGS_PAGE_SHIFT       As UByte    = 11    ' a string's number shifted down this far is its index page
+Const   UW_STRINGS_PAGE_MASK        As UInteger = 2047  ' and this much of it is its place in that page
+Const   UB_STRING_ENTRY_SHIFT       As UByte    = 2     ' 4 bytes an entry
+Const   UB_STRING_ENTRY_LENGTH      As UByte    = 3     ' where in an entry the length is
+#define UB_PAGE_KNOWLEDGE           63    ' monster memory in its first 5580 bytes, item knowledge from 6144
+#define UW_MONSTER_MEMORY_SIZE      5580                ' 279 creature types of 20 bytes, at the start of UB_PAGE_KNOWLEDGE
+' ...and each kind's 20 bytes, laid out as Moria's Recall_t, see ful_core_recall() in core.bas
+Const   UB_RECALL_SIZE              As UByte    = 20
+Const   UB_RECALL_OFFSET_SPELLS     As UByte    = 4     ' after the movement, 4 bytes each
+Const   UB_RECALL_OFFSET_KILLS      As UByte    = 8
+Const   UB_RECALL_OFFSET_DEATHS     As UByte    = 10
+Const   UB_RECALL_OFFSET_DEFENSES   As UByte    = 12
+Const   UB_RECALL_OFFSET_WAKE       As UByte    = 14    ' then ignore and the four attacks, a byte each
+Const   UW_RECALL_COUNT_MAX         As UInteger = 32767 ' kills and deaths stop here, Moria's SHRT_MAX
+Const   UB_RECALL_BYTE_MAX          As UByte    = 255   ' wake, ignore and the attacks stop here
+#define UB_PAGE_SCREENS             64
+#define UB_PAGE_LOADER_FONT         76    ' where the nex file holds the font, until load.bas copies it to UB_PAGE_FONT, see sjasmplus.cfg
+#define UB_BANK_LOADER_PICTURE      33    ' the opening's Next picture, in 16KB banks for Layer 2 (pages 66 to 75), ditto
+#define UB_PAGE_DUNGEON_MAP         66
+#define UB_PAGE_TOWN_MAP            83
 
 ' scratch pages, which hold none of the game's own data: they were the start up tests' (stage-init.bas, a screen of
 ' tests that ran before the opening screen, taken out on 14 October 2026), they now hold the saved game list, see
 ' stage-lib-save.bas, and a file's 8KB on its way to or from the card, UB_PAGE_TEST_FILE, the names are as they were
-Const   UB_PAGE_TEST_SLOT0_1        As UByte    = 89
-Const   UB_PAGE_TEST_SLOT0_2        As UByte    = 90
-Const   UB_PAGE_TEST_SLOT1_1        As UByte    = 91
-Const   UB_PAGE_TEST_SLOT1_2        As UByte    = 92
-Const   UB_PAGE_TEST_SLOT2_1        As UByte    = 93
-Const   UB_PAGE_TEST_SLOT2_2        As UByte    = 94
-Const   UB_PAGE_TEST_FILE           As UByte    = 94    ' the file test runs after the slot tests have finished with this page
+#define UB_PAGE_TEST_SLOT0_1        89
+#define UB_PAGE_TEST_SLOT0_2        90
+#define UB_PAGE_TEST_SLOT1_1        91
+#define UB_PAGE_TEST_SLOT1_2        92
+#define UB_PAGE_TEST_SLOT2_1        93
+#define UB_PAGE_TEST_SLOT2_2        94
+#define UB_PAGE_TEST_FILE           94    ' the file test runs after the slot tests have finished with this page
 
-Const   UB_PAGE_RESET_LANDING       As UByte    = 222   ' the page put at the bottom of memory for the reset that ends the game, see s_core_return_to_zxos() in core.bas
-Const   UB_PAGE_HELP_TEXT           As UByte    = 223   ' the last page there is: the two rogue like help texts, see stage-lib-text.bas and create-data.ps1, N.B: 219 to 222 held the licence until 13-Oct-2026 and are free
-Const   UB_PAGE_CHARACTER_DB        As UByte    = 95
+#define UB_PAGE_RESET_LANDING       222   ' the page put at the bottom of memory for the reset that ends the game, see s_core_return_to_zxos() in core.bas
+#define UB_PAGE_HELP_TEXT           223   ' the last page there is: the two rogue like help texts, see stage-lib-text.bas and create-data.ps1, N.B: 219 to 222 held the licence until 13-Oct-2026 and are free
+#define UB_PAGE_CHARACTER_DB        95
 
 ' the paged game code, one stage to a page, from here up to page 223...
 Const   UB_PAGED_CODE_FIRST                 As UByte    = 96
@@ -310,15 +610,18 @@ Const   UW_SCREEN_TEXT_SIZE         As UInteger = 2592  ' one screen: 32 rows of
 Const   UB_SCREEN_TEXT_PER_PAGE     As UByte    = 3
 Const   UW_SCREEN_TEXT_COUNT_AT     As UInteger = 8191  ' the number of screens is the last byte of the second page
 
-Const   UB_MAP_SQUARE_SIZE          As UByte    = 8     ' every map square is this long, and a row of 256 of them is 2048 bytes, 4 rows to a page
+#define UB_MAP_SQUARE_SIZE          8           ' every map square is this long, and a row of 256 of them is 2048 bytes, 4 rows to a page
+#define UW_MAP_ROW_SIZE             2048        ' ...a row of the map's pages
+#define UB_MAP_ROWS_PER_PAGE        4
+#define UB_MAP_ROWS_SHIFT           2           ' a row's number shifted down this far is its page, the rest of it its place there
 
 ' the three paged data slots by number, as s_core_swap_paged_data() and the record routines in the core want them...
-Const   UB_SLOT_MONSTERS            As UByte    = 0     ' MMU 0
-Const   UB_SLOT_CORRIDORS           As UByte    = 0
-Const   UB_SLOT_ITEMS               As UByte    = 1     ' MMU 1
-Const   UB_SLOT_CREATURES           As UByte    = 1     ' MMU 1 too: the creatures database, which the monsters' turn reads for every monster, shares the items' slot and not the maps', so that a monster, its creature and the map are all there at once (the live monitor counted the changes of page before and after, 13 October 2026)
-Const   UB_SLOT_SCENT_MAP           As UByte    = 1
-Const   UB_SLOT_DB_MAPS             As UByte    = 2     ' MMU 2
+#define UB_SLOT_MONSTERS            0     ' MMU 0
+#define UB_SLOT_CORRIDORS           0
+#define UB_SLOT_ITEMS               1     ' MMU 1
+#define UB_SLOT_CREATURES           1     ' MMU 1 too: the creatures database, which the monsters' turn reads for every monster, shares the items' slot and not the maps', so that a monster, its creature and the map are all there at once (the live monitor counted the changes of page before and after, 13 October 2026)
+#define UB_SLOT_SCENT_MAP           1
+#define UB_SLOT_DB_MAPS             2     ' MMU 2
 
 ' how many records the databases hold, these are Moria's own MON_MAX_CREATURES and MAX_OBJECTS_IN_GAME
 Const   UW_CREATURES_IN_GAME        As UInteger = 279
@@ -391,7 +694,7 @@ Const   UB_TILE_MAX_OPEN        As UByte    = 3
 Const   UB_TILE_MIN_CLOSED      As UByte    = 4
 Const   UB_TILE_TMP1_WALL       As UByte    = 8     ' used only while a level is being made
 Const   UB_TILE_TMP2_WALL       As UByte    = 9     ' ditto
-Const   UB_TILE_MIN_WALL        As UByte    = 12
+#define UB_TILE_MIN_WALL        12
 Const   UB_TILE_GRANITE_WALL    As UByte    = 12
 Const   UB_TILE_MAGMA_WALL      As UByte    = 13
 Const   UB_TILE_QUARTZ_WALL     As UByte    = 14
@@ -425,12 +728,15 @@ Const   UB_DUN_TREASURE_MAX_LEVELS  As UByte    = 50    ' the deepest level that
 
 ' which objects are found at which depth, these two tables share the last page of the objects database, after the last object...
 ' ...see "object levels" in create-data.ps1
-Const   UB_PAGE_OBJECT_LEVELS       As UByte    = 53
+#define UB_PAGE_OBJECT_LEVELS       53
 #define A_TABLE_TREASURE_LEVELS     A_MMU_SLOT_PAGED_DB_MAPS + 4096     ' 51 entries of 2 bytes: how many objects are found at this depth or above (treasure_levels)
 #define A_TABLE_SORTED_OBJECTS      A_MMU_SLOT_PAGED_DB_MAPS + 4224     ' 344 object numbers of 2 bytes, in order of depth (sorted_objects)
 ' ...and so do the spells, see "spells" in create-data.ps1
 #define A_TABLE_SPELLS              A_MMU_SLOT_PAGED_DB_MAPS + 5120     ' 5 classes of 31 spells of 4 bytes: level, mana, chance of failing, experience / 4 (magic_spells), the class is its number less 1
 #define A_TABLE_SPELL_NAMES         A_MMU_SLOT_PAGED_DB_MAPS + 5760     ' 62 names of 28 bytes, the 31 spells then the 31 prayers (spell_names)
+#define UB_SPELL_SIZE               4       ' a spell in A_TABLE_SPELLS
+#define UB_CLASS_SPELLS_SIZE        124     ' a class's 31 spells in A_TABLE_SPELLS
+#define UB_SPELL_NAME_SIZE          28      ' a name in A_TABLE_SPELL_NAMES
 
 ' the objects database numbers of the things the level maker puts down, and the object categories it asks about
 Const   UW_OBJ_OPEN_DOOR            As UInteger = 367
@@ -502,8 +808,71 @@ Const   UW_KEY_GRAPH        As UInteger = 144   ' caps shift + 9
 ' N.B: there is no key code for extend (caps shift + symbol shift), it is our Ctrl key, see MB_KEY_CTRL and fub_core_scan_key() in core.bas
 
 ' the two registers that hold the Next keyboard's extra keys, in both a bit is 1 while its key is down
-Const   UB_NEXTREG_EXT_KEYS_0       As UByte    = $B0   ' bit 7 ;   6 "   5 ,   4 .   3 up   2 down   1 left   0 right
-Const   UB_NEXTREG_EXT_KEYS_1       As UByte    = $B1   ' bit 7 delete   6 edit   5 break   4 inv video   3 true video   2 graph   1 caps lock   0 extend
+Const   UB_EXT_KEYS_ABSENT          As UByte    = 255   ' what either register reads where there is none, as if every key were down
+' ...their bits, the first register's
+Const   MB_EXT0_SEMICOLON           As UByte    = %10000000
+Const   MB_EXT0_QUOTE               As UByte    = %01000000
+Const   MB_EXT0_COMMA               As UByte    = %00100000
+Const   MB_EXT0_FULL_STOP           As UByte    = %00010000
+Const   MB_EXT0_UP                  As UByte    = %00001000
+Const   MB_EXT0_DOWN                As UByte    = %00000100
+Const   MB_EXT0_LEFT                As UByte    = %00000010
+Const   MB_EXT0_RIGHT               As UByte    = %00000001
+' ...and the second's
+Const   MB_EXT1_DELETE              As UByte    = %10000000
+Const   MB_EXT1_EDIT                As UByte    = %01000000
+Const   MB_EXT1_BREAK               As UByte    = %00100000
+Const   MB_EXT1_INV_VIDEO           As UByte    = %00010000
+Const   MB_EXT1_TRUE_VIDEO          As UByte    = %00001000
+Const   MB_EXT1_GRAPH               As UByte    = %00000100
+Const   MB_EXT1_CAPS_LOCK           As UByte    = %00000010
+Const   MB_EXT1_EXTEND              As UByte    = %00000001
+
+' the 8 x 5 matrix every Spectrum keyboard has: eight half rows read through port $FE, five keys in each, a key's
+' bit is 0 while it is down; a key's place in it is its half row times 5 plus its bit, as in fub_core_scan_key()
+Const   UB_KEY_MATRIX_ROWS          As UByte    = 8
+Const   UB_KEY_MATRIX_COLS          As UByte    = 5
+Const   MB_KEY_MATRIX_ROW           As UByte    = %00011111     ' the five keys of a half row
+#define UB_ULA_PORT                 $FE         ' the ULA's port, the low byte: the keyboard, the border's colour (bits 2-0) and the speaker (bit 4)
+#define UB_KEY_HALF_ROW_SPACE       $7F         ' the high byte that reads the half row with space, $7FFE...
+#define UB_KEY_HALF_ROW_CAPS        $FE         ' ...and the one with caps shift, $FEFE, both of them down is BREAK
+#define UB_BORDER_BLACK             0           ' the border's colours, the Spectrum's own numbers
+#define UB_BORDER_RED               2
+#define UB_BORDER_MAGENTA           3
+Const   UB_KEY_NONE                 As UByte    = 255           ' no key found, as a place in the matrix
+Const   UB_KEYPOS_CAPS_SHIFT        As UByte    = 0
+Const   UB_KEYPOS_1                 As UByte    = 15
+Const   UB_KEYPOS_2                 As UByte    = 16
+Const   UB_KEYPOS_3                 As UByte    = 17
+Const   UB_KEYPOS_4                 As UByte    = 18
+Const   UB_KEYPOS_5                 As UByte    = 19
+Const   UB_KEYPOS_0                 As UByte    = 20
+Const   UB_KEYPOS_9                 As UByte    = 21
+Const   UB_KEYPOS_8                 As UByte    = 22
+Const   UB_KEYPOS_7                 As UByte    = 23
+Const   UB_KEYPOS_6                 As UByte    = 24
+Const   UB_KEYPOS_SPACE             As UByte    = 35
+Const   UB_KEYPOS_SYMBOL_SHIFT      As UByte    = 36
+
+' character codes, ASCII, as the keys give them and the text holds them
+Const   UC_BACKSPACE                As UByte    = 8     ' delete on a Spectrum, caps shift + 0
+Const   UC_ENTER                    As UByte    = 13
+Const   UC_CONTROL_Z                As UByte    = 26    ' the last control code that is Ctrl and a letter, Ctrl-A is 1
+Const   UC_ESCAPE                   As UByte    = 27    ' break on a Spectrum, caps shift + space
+Const   UC_SPACE                    As UByte    = 32
+Const   UC_FIRST_PRINTABLE          As UByte    = 33    ' !, the first character that shows something
+Const   UC_QUOTE                    As UByte    = 34    ' "
+Const   UC_COMMA                    As UByte    = 44
+Const   UC_FULL_STOP                As UByte    = 46
+Const   UC_DIGIT_0                  As UByte    = 48
+Const   UC_SEMICOLON                As UByte    = 59
+Const   UC_LOWER_A                  As UByte    = 97
+Const   UC_LOWER_Z                  As UByte    = 122
+Const   UC_LAST_PRINTABLE           As UByte    = 126   ' ~
+Const   UC_DELETE                   As UByte    = 127   ' the ASCII delete, as some keyboards send it
+Const   UC_CONTROL_TO_LETTER        As UByte    = 64    ' added to Ctrl and a letter's code gives the upper case letter, 1 + 64 = A
+Const   UC_LOWER_TO_CONTROL         As UByte    = 96    ' taken from a lower case letter gives Ctrl and that letter, 97 - 96 = 1
+Const   UC_LOWER_TO_UPPER           As UByte    = 32    ' taken from a lower case letter gives the upper case one
 
 Const   MB_KEY_CTRL         As UByte    = %00000001     ' extend held, i.e. caps shift + symbol shift, or the Next's EXTEND key
 Const   MB_KEY_SHIFT        As UByte    = %00000010
@@ -512,9 +881,21 @@ Const   MB_KEY_SYMBOL       As UByte    = %00001000
 ' --- SCREEN GEOMETRY ---
 Const   UB_SCREEN_ROWS          As UByte    = 32
 Const   UB_SCREEN_COLS          As UByte    = 80
+' the crash report on the bottom rows, see s_core_crash()
+Const   UB_CRASH_FIRST_ROW      As UByte    = 29    ' the rows cleared for it, from here to the bottom
+Const   UB_CRASH_ROW            As UByte    = 30
+' the screen when the game has ended and the emulator cannot go back to NextZXOS, see s_core_nothing_to_return_to()
+Const   UB_ENDED_TITLE_ROW      As UByte    = 14
+Const   UB_ENDED_TITLE_COL      As UByte    = 31
+Const   UB_ENDED_TEXT_ROW       As UByte    = 16
+Const   UB_ENDED_TEXT_COL       As UByte    = 7
+' text printed from memory: a guard against a missing 0, fub_core_print_text_at() prints no more than this
+Const   UB_TEXT_PRINT_MAX       As UByte    = 250
+Const   UB_TEXT_STRING_MAX      As UByte    = 160   ' and fs_core_text_at() makes no longer a string, Moria's longest description
 
 ' --- SCREEN ADDRESSING ---
 #define A_SCREEN_BASE           $E000   ' the screen cells start at the very beginning of MMU 7 (page 14)
+#define UW_SCREEN_CELLS_SIZE    5120    ' 80 columns x 32 rows of a character and an attribute byte, $E000 to $F3FF
 
 ' --- PROGRAM CRASH AND ERROR CONSTANTS ---
 Const   UB_CRASH_BAD_CORE_STAGE             As UByte = 1
@@ -572,7 +953,7 @@ Const   UW_BRIGHT_WHITE_RGB   As UInteger = ( %111 Shl 6 ) Or ( %111 Shl 3 ) Or 
 #define A_JUMP_PRINT_CHAR_AT       $801C
 #define A_JUMP_PRINT_STRING_AT     $801F
 #define A_JUMP_GET_KEY             $8022
-#define A_JUMP_COUNTDOWN           $8025
+#define A_JUMP_SPARE1              $8025     ' spare, free for a new core routine: was s_core_countdown(), taken out 21 October 2026, goes to s_core_crash() meanwhile
 #define A_JUMP_NUMBER              $8028
 #define A_JUMP_SCAN_KEY            $802B
 #define A_JUMP_KEY_NAME            $802E
@@ -608,6 +989,8 @@ Const   UW_BRIGHT_WHITE_RGB   As UInteger = ( %111 Shl 6 ) Or ( %111 Shl 3 ) Or 
 #define A_JUMP_RANDOM_WORD          $8088
 #define A_JUMP_CHAR                 $808B
 #define A_JUMP_CLEAR_ROW            $808E
+#define A_JUMP_HISTORY_FORGET       $8091
+#define A_JUMP_BEEP                 $8094
 
 ' --- INTERRUPTS ---
 ' we use interrupt mode 2, so that the handler can live in the core and nothing of ours is needed at $0038...
@@ -623,6 +1006,31 @@ Const   UW_BRIGHT_WHITE_RGB   As UInteger = ( %111 Shl 6 ) Or ( %111 Shl 3 ) Or 
 #define A_STACK_BOTTOM          $F400   ' the lowest address the stack may reach, directly above the 5120 bytes of screen cells
 #define UB_STACK_FILL           $A5     ' the core fills the stack area with this at start up, so the memory monitor can see how deep it has ever been
 #define UB_MONITOR_ROW          27      ' the live monitor's main rows, 27 to 31, with 24 to 26 above them for MMU 2's misses, Moria's own 24 line screen ends at row 23
+#define UB_MONITOR_ROWS         5       ' ...five of them
+#define UB_MN_MISSES_ROWS       3       ' ...and the three above
+#define UB_MONITOR_OFF          0       ' gub_core_monitor: the live monitor is off...
+#define UB_MONITOR_MEMORY       1       ' ...shows the slots, the heap and the stack...
+#define UB_MONITOR_MISSES       2       ' ...and MMU 2's misses by page above them as well, the } key goes round the three
+#define UB_MN_MISSES_LEFT       34      ' where the misses by kind of page start
+#define UB_MN_SLOTS_LEFT        29      ' the table of the four slots
+#define UB_MN_HEAP_LEFT         61      ' the heap's column
+#define UB_MN_STACK_LEFT        71      ' the stack's
+#define UB_MN_SLOTS             4       ' MMU 0 to 3, the three paged data slots and the code's
+#define UB_MN_COLUMN_WIDTH      7       ' each slot's column
+#define UB_MN_HEAP_WIDTH        5
+#define UB_MN_STACK_WIDTH       6
+#define UL_MN_COUNT_WRAP        1000000 ' the counts are shown to six figures
+#define UB_MN_KIND_SIZE         4       ' each count of misses by kind, A_CORE_MMU2_KINDS
+#define A_CORE_SLOTS            A_CORE + 9      ' size 0, only where the slots' own bytes begin, gub_core_MMU0_page_number, see globals.bas
+#define UB_MN_SLOT_SIZE         9       ' each slot's own bytes from gub_core_MMU0_page_number: its page, hits and swaps
+#define UB_MN_SLOT_HITS         1       ' four bytes
+#define UB_MN_SLOT_SWAPS        5       ' four bytes
+#define UB_MN_HEAP_BLOCKS_MAX   64      ' a guard, in case the heap's chain of free blocks has been damaged
+' the heap, as Boriel's runtime keeps it: a 4 byte header, the same shape as a free block (size 0, then the address of
+' the first free block), and a chain of free blocks, each its size and the address of the next
+#define UB_HEAP_HEADER_SIZE     4
+#define UB_HEAP_NEXT_OFFSET     2       ' where in a block, or the header, the next free block's address is
+#define UB_HEAP_FIRST_UNUSED    8       ' the header and the first free block's two words, the first byte ever handed out
 #define UB_MONITOR_LEFT         17      ' ...and none of it left of column 17, the mini map has columns 0 to 15, see stage-lib-minimap.bas
 #define UB_HEAP_FILL            $5A     ' ...and the heap with this, for the same reason
 
@@ -663,6 +1071,7 @@ Const   UW_BRIGHT_WHITE_RGB   As UInteger = ( %111 Shl 6 ) Or ( %111 Shl 3 ) Or 
 #define A_TEXT_BUFFER   A_MMU_SLOT_CORE_DATA + 4224     'size  256
 ' ...the player, everything about the character except what they carry, see globals.bas for what is in it
 #define A_PLAYER        A_MMU_SLOT_CORE_DATA + 6144     'size  768, which ends at + 6912, the heap starts at + 7168
+#define UW_PLAYER_SIZE  768                             ' the player's record, see globals.bas for what is in it
 
 ' ...working storage for a library page: the top 512 bytes of the library's own page, $7E00 to $7FFF while it is running...
 ' ...it belongs to that library alone, it is in view exactly when the library is, and it costs no page swap,
@@ -722,6 +1131,7 @@ Const   UB_LIB_OBJECTS_LEVEL        As UByte    = 1
 Const   UB_LIB_OBJECTS_PLACE_OBJECT As UByte    = 2
 Const   UB_LIB_OBJECTS_RANDOM       As UByte    = 4
 Const   UB_LIB_OBJECTS_PLACE_GOLD   As UByte    = 3
+Const   UB_LIB_OBJECTS_FLAVOUR_COLOURS As UByte = 5
 
 ' the routines in the monsters library, see stage-lib-monsters.bas...
 Const   UB_LIB_MONSTERS_PLACE_ASLEEP    As UByte    = 1
@@ -923,8 +1333,10 @@ Const   UB_LIB_COMMANDS_2_ROGUELIKE     As UByte    = 5
 #define MW_OPTION_SHOW_WEIGHTS      $0040       ' show weights in inventory (show_inventory_weights)
 #define MW_OPTION_SEAMS             $0080       ' highlight and notice mineral seams (highlight_seams)
 #define MW_OPTION_IGNORE_DOORS      $0100       ' running: run through open doors (run_ignore_doors)
-#define MW_OPTION_BEEP              $0200       ' beep for invalid character (error_beep_sound), see s_cr_beep() in stage-crawl.bas
+#define MW_OPTION_BEEP              $0200       ' beep for invalid character (error_beep_sound), see s_core_beep() in core.bas
 #define MW_OPTION_DISPLAY_COUNTS    $0400       ' display rest/repeat counts (display_counts)
+#define MW_OPTION_PLAIN_MAP         $0800       ' ours: the map without colours, every symbol white as Moria's is (sdo, 22 October),
+                                                ' N.B: set means plain, so that a game saved before it was an option keeps its colours
 #define MW_OPTION_DEFAULTS          $0603       ' as Moria starts out: corners cut and examined, beep, counts shown
 
 ' the routines in the two wizard libraries, see stage-lib-wizard.bas and stage-lib-wizard-2.bas...
@@ -942,10 +1354,24 @@ Const   UB_LIB_MONITOR_CLEAR            As UByte    = 2
 ' the mini map library's routines, see stage-lib-minimap.bas
 Const   UB_LIB_MINIMAP_DRAW             As UByte    = 1     ' the mini map brought up to date on the screen, as the game waits for a command
 Const   UB_LIB_MINIMAP_CYCLE            As UByte    = 2     ' off, 1:1, 1:2, and round again, the [ key
-#define UB_PAGE_MINIMAP_NUMBER      44      ' UB_PAGE_MINIMAP, for Asm, which cannot see a Const
-#define MMU_SLOT_0_REG              $50     ' MMU_SLOT_0, for Asm, which cannot see a Const
 #define UB_MINIMAP_ROW              24      ' the mini map has rows 24 to 31 of the screen, columns 0 to 15, below Moria's 24 lines
 #define UB_MINIMAP_CHAR             128     ' ...and the upper half of the font, characters 128 to 255, one for each of its 16 by 8 cells
+#define UB_MM_CHARS_ACROSS          16      ' its 16 by 8 cells
+#define UB_MM_CHARS_DOWN            8
+#define UB_MM_BITS_ROW              32      ' the bitmap: a bit for each square of a 256 square row
+#define UB_MM_WINDOW_COLS           128     ' at 1:1 a window of the level, 128 squares across...
+#define UB_MM_WINDOW_ROWS           64      ' ...and 64 down
+#define MB_MM_WINDOW_STEP           $F8     ' ...that moves across in steps of 8, a byte of the bitmap
+#define UB_MM_HALF_ACROSS           13      ' at 1:2 the whole level, in the top left 13 by 5 cells
+#define UB_MM_HALF_DOWN             5
+#define UW_MM_FONT_SIZE             1024    ' the 128 characters it draws into, the upper half of the font
+#define UB_MM_NO_CELL               255     ' none of the cells is the player's, A_MM_GREEN
+#define UB_MM_MODE_OFF              0       ' gub_minimap_mode, the [ key goes round them
+#define UB_MM_MODE_FULL             1       ' 1:1
+#define UB_MM_MODE_HALF             2       ' 1:2
+#define UB_FONT_CHAR_SIZE           8       ' a character of the font, a byte for each of its rows
+#define MB_FONT_LEFT_PIXEL          $80     ' a row's top bit is its leftmost pixel
+#define UB_SCREEN_ROW_SIZE          160     ' a row of the screen's cells, a character and an attribute each
 
 ' the routines in the scores library, see stage-lib-scores.bas...
 Const   UB_LIB_SCORES_RECORD            As UByte    = 1
@@ -977,6 +1403,15 @@ Const   UB_LIB_INFO_MAP                 As UByte    = 3
 ' the routine in the text library, see stage-lib-text.bas...
 Const   UB_LIB_TEXT_SHOW                As UByte    = 1
 Const   UB_LIB_TEXT_MESSAGES            As UByte    = 2
+' ...the texts UB_LIB_TEXT_SHOW shows, gub_lib_param_1, N.B: there is no 5, it was the licence, Moria's Ctrl-V
+Const   UB_TEXT_HELP                    As UByte    = 1     ' Moria's help.txt
+Const   UB_TEXT_VERSIONS                As UByte    = 2     ' versions.txt, and the credits
+Const   UB_TEXT_WELCOME                 As UByte    = 3     ' welcome.txt, ? while a character is being made
+Const   UB_TEXT_WIZARD                  As UByte    = 4     ' help_wizard.txt
+Const   UB_TEXT_ROGUE_HELP              As UByte    = 6     ' rl_help.txt, from UB_PAGE_HELP_TEXT...
+Const   UB_TEXT_ROGUE_WIZARD            As UByte    = 7     ' ...and rl_help_wizard.txt, at UW_HELP_ROGUE_WIZARD_AT in it
+Const   UW_HELP_ROGUE_WIZARD_AT         As UInteger = 4096  ' see create-data.ps1
+Const   UC_NEWLINE                      As UByte    = 10    ' a line feed, Moria's newline character
 
 ' the routines in the run library, see stage-lib-run.bas...
 Const   UB_LIB_RUN_START                As UByte    = 1
@@ -1026,6 +1461,7 @@ Const   UB_MON_ENDGAME_LEVEL        As UByte    = 50    ' the level they begin t
 #define UL_CM_MOVE_NORMAL           $00000002
 #define UL_CM_ONLY_MAGIC            $00000004
 #define UL_CM_TREASURE              $7C000000   ' what a creature leaves behind when it dies, and in the monster memory how many things one has been seen to leave, from bit 26 up
+#define UB_CM_TR_SHIFT              26          ' where those bits begin, Moria's CM_TR_SHIFT
 #define UL_CM_20_RANDOM             $00000008
 #define UL_CM_40_RANDOM             $00000010
 #define UL_CM_75_RANDOM             $00000020
@@ -1056,6 +1492,8 @@ Const   UB_MON_ENDGAME_LEVEL        As UByte    = 50    ' the level they begin t
 #define UW_CD_STONE                 $0200
 #define UW_CD_NO_SLEEP              $1000
 ' ...and of its "spells" field: which breath it has, or shrugs off
+#define UL_CS_FREQ                  $0000000F   ' the low bits of a creature's spells: 1 in this many turns it casts; in the
+                                                ' monster memory, how often one has been seen to cast
 #define UL_CS_BR_LIGHT              $00080000
 #define UL_CS_BR_GAS                $00100000
 #define UL_CS_BR_ACID               $00200000
@@ -1424,6 +1862,7 @@ Const   UW_MSG_I_WILL_NOT_BUY_THAT                 As UInteger = 647
 Const   UW_MSG_THE_DOORS_ARE_LOCKED                As UInteger = 648
 Const   UW_MSG_ENTIRE_INVENTORY_IS_SHOWN           As UInteger = 649
 Const   UW_MSG_USE_CONTROL_K_WHEN_YOU_ARE_READY_TO_QUIT As UInteger = 650
+Const   UW_MSG_TYPE_OR_BACKSLASH_FOR_HELP          As UInteger = 651
 
 ' two of the bits of the player's status, and how much each point of strength lets the player carry (config.cpp)
 #define UL_PY_HUNGRY            $00000001
@@ -1690,6 +2129,17 @@ Const   UB_TV_MAX_OBJECT        As UByte    = 99    ' things up to this category
 ' how the game tables page is laid out, see create-data.ps1...
 #define A_TABLE_OWNERS          A_MMU_SLOT_PAGED_DB_MAPS            ' 18 store owners of 64 bytes
 #define A_TABLE_STORE_CHOICES   A_MMU_SLOT_PAGED_DB_MAPS + 1152     ' 6 stores of 26 object numbers, 2 bytes each
+' ...and the colours of things on the map, ours, from src\colours.txt, see create-data.ps1
+#define A_TABLE_FLAVOUR_COLOURS     A_MMU_SLOT_PAGED_DB_MAPS + 1536     ' each flavour's attribute byte, the six lists one after another...
+#define UB_FLAVOUR_POTIONS          0       ' ...where each list starts in it: 49 potion colours
+#define UB_FLAVOUR_MUSHROOMS        49      ' 22 mushroom kinds
+#define UB_FLAVOUR_WOODS            71      ' 25 staff woods
+#define UB_FLAVOUR_METALS           96      ' 25 wand metals
+#define UB_FLAVOUR_ROCKS            121     ' 32 ring stones
+#define UB_FLAVOUR_AMULETS          153     ' 11 amulet materials
+#define UB_FLAVOUR_COUNT            164
+#define A_TABLE_PALETTE             A_MMU_SLOT_PAGED_DB_MAPS + 1792     ' how many pairs, then each pair's ink, two bytes as NEXTREG_PALETTE_VALUE_9 takes them
+#define UB_FIRST_COLOUR_PAIR        16      ' the colours' pairs come after the screen's own 16, see load.bas
 #define A_TABLE_RACE_PRICES     A_MMU_SLOT_PAGED_DB_MAPS + 1464     ' 8 rows (the owner's race) of 8 bytes (the player's race)
 Const   UB_OWNER_SIZE           As UByte    = 64
 ' ...where things are in a store owner's record, the name is 52 bytes of text at its start
@@ -1716,7 +2166,13 @@ Const   UW_OBJ_WIZARD           As UInteger = 419       ' what an object made up
 #define A_CHARACTER_CLASSES     A_MMU_SLOT_PAGED_DB_MAPS + 512      ' 6 classes of 64 bytes
 #define A_CHARACTER_BACKGROUNDS A_MMU_SLOT_PAGED_DB_MAPS + 1024     ' 128 backgrounds of 56 bytes
 #define A_CHARACTER_PROVISIONS  A_MMU_SLOT_PAGED_DB_MAPS + 896      ' what each of the 6 classes starts with, 5 object numbers of 2 bytes each
+Const   UB_CHARACTER_RECORD_SIZE As UByte   = 64        ' a race or a class, in the database and at A_RACE and A_CLASS
 Const   UB_BACKGROUND_SIZE      As UByte    = 56
+Const   UB_BACKGROUND_ROLL      As UByte    = 0         ' a background's fields: the d100 roll it is taken up to
+Const   UB_BACKGROUND_CHART     As UByte    = 1         ' the chart it belongs to
+Const   UB_BACKGROUND_NEXT      As UByte    = 2         ' the chart that comes next, 0 at the end
+Const   UB_BACKGROUND_BONUS     As UByte    = 3         ' what it adds to the social class, 50 more than that
+Const   UB_BACKGROUND_TEXT      As UByte    = 4         ' its text, ending in a 0
 Const   UB_PLAYER_MAX_RACES     As UByte    = 8
 Const   UB_PLAYER_MAX_CLASSES   As UByte    = 6
 Const   UB_PLAYER_MAX_LEVEL     As UByte    = 40
@@ -1733,3 +2189,141 @@ Const   UB_STAT_CHR             As UByte    = 5
 ' a real game wants, any other number is used as it stands, so that the same character rolls and levels come up every time
 #define UL_GAME_FIXED_SEED      0
 '##################################################################################################################################
+
+'##################################################################################################################################
+' --- EACH STAGE'S AND LIBRARY'S OWN CONSTANTS, moved here from their own files on 22 October 2026, file by file ---
+
+' --- stage-aim-include.bas's own ---
+#define UB_AIM_MAX_RANGE    18      ' how far a bolt or ball goes, Moria's OBJECT_BOLTS_MAX_RANGE
+
+' --- stage-crawl.bas's own ---
+' whether a new character starts with "print self during run" on, which draws the player at every step of a run,
+' Moria starts with it off, N.B: it is here, and not in constants.bas, so that changing it compiles this stage alone,
+' and it only sets how the option starts out, = changes it in the game
+#define UB_CR_PRINT_SELF_AT_START    true
+' the same for "beep for invalid character": whether a new character starts with it on, as Moria does, the beep is
+' made when a key that is no command at all is pressed, s_core_beep() in core.bas, = turns it on and off in the game
+#define UB_CR_BEEP_AT_START          true
+' the same for "rogue like commands": whether a new character starts with them on, Moria starts with them off,
+' and so do ours, the digits are Moria's directions and a keyboard with a number pad is what they are meant for,
+' = turns them on and off in the game
+#define UB_CR_ROGUELIKE_AT_START     false
+
+' --- stage-death.bas's own ---
+#define UB_DT_ART_TOMB      1       ' the pictures fuw_dt_art() has, the tombstone, Moria's printTomb()
+#define UB_DT_ART_CROWN     2       ' and the crown, Moria's printCrown()
+#define UB_DT_AGE_LENGTH    12      ' the length of "Ripe Old Age", what a winner died from
+
+' --- stage-player-include.bas's own, for the two stages that make a new character ---
+#define UB_PL_NOT_CHOSEN    255     ' no race or class chosen yet
+#define UB_PL_LEAST_ESCAPED 255     ' the auto-roller's question about a least stat was left with ESC
+#define UB_PL_LEAST_DIGITS  6       ' how long the answer may be, as long as 18/100
+#define UB_PL_SHOW_ROLLS    7       ' the auto-roller shows its rolls one in eight, when these bits are 0
+
+' --- stage-element-include.bas's own ---
+#define UB_ELEMENT_MISSILE  0       ' a magic missile, nothing resists it and nothing is hurt more by it
+#define UB_ELEMENT_HOLY_ORB 11      ' the priest's orb of draining, double to anything evil
+
+' --- stage-lib-commands-2.bas's own ---
+#define UB_CM_OPTION_LAST   11      ' the options screen's last line, from 0, see fuw_cm_options()
+
+' --- stage-lib-equipment.bas's own ---
+#define UB_EQ_FIRST             22      ' the first equipment place in the one list, Moria's PlayerEquipment::Wield
+
+' --- stage-lib-items.bas's own ---
+' what the misc use number of an item means, and so how it is shown...
+#define UB_MISC_IGNORED     0
+#define UB_MISC_LIGHT       1       ' turns of light left
+#define UB_MISC_FLAGS       2       ' to strength or to stealth, the item's flags say which
+#define UB_MISC_ZPLUSSES    3       ' a plus that is shown even when it is 0
+#define UB_MISC_PLUSSES     4       ' a plus
+#define UB_MISC_CHARGES     5       ' charges left
+
+' --- stage-lib-look.bas's own ---
+#define SW_GRADF            10000       ' any sufficiently big number will do
+
+' --- stage-lib-minimap.bas's own ---
+#define UW_MM_BITS_SIZE 2176                    ' 68 rows of UB_MM_BITS_ROW bytes
+
+' --- stage-lib-monster-attack-2.bas's own ---
+#define UB_SET_FLAMMABLE    1       ' which things in the pack a kind of damage can destroy, Moria's setFlammableItems()...
+#define UB_SET_ACID         2
+#define UB_SET_CORRODABLE   3
+#define UB_SET_FROST        4
+#define UB_SET_LIGHTNING    5
+
+' --- stage-lib-objects.bas's own ---
+#define UB_SET_ROOMS        1       ' only on the floor of a room, Moria's setRooms()
+#define UB_SET_CORRIDORS    2       ' only in a corridor, Moria's setCorridors()
+#define UB_SET_FLOORS       3       ' on any floor, room or corridor, Moria's setFloors()
+#define UB_ALLOC_TRAP       1       ' Moria's own numbers for what to put down...
+#define UB_ALLOC_RUBBLE     3
+#define UB_ALLOC_GOLD       4
+#define UB_ALLOC_OBJECT     5
+
+' --- stage-lib-save.bas's own ---
+#define UB_SAVE_VERSION     2       ' N.B: 2 since the table of creature levels came to live in the core data page, which a save holds: a save from before has no such table in it
+' where the marks of a saved game are in the core's data, counted from its start, see gub_save_letter_1 in globals.bas
+#define UW_SV_AT_MARKS      6995
+#define UB_SV_MARK_LETTER_2 1       ' ...counted from the first: the second letter, M
+#define UB_SV_MARK_VERSION  2       ' ...the layout, UB_SAVE_VERSION
+#define UB_SV_MARK_ALIVE    3       ' ...false once the saved character has died
+' the game's part of the core's data, which a save brings back, see above
+#define UW_SV_GAME_FROM     512
+#define UW_SV_GAME_SIZE     6488    ' to 6999
+#define UB_SV_STOCK_PAGES   2       ' the stores' stock, the last two of a dead character's pages
+#define UB_SV_DOTS_COL      16      ' the progress, a dot for each page, after "Saving game..."
+' how many of the file's pages are written when a character dies: up to and including the stores' stock, pages 40
+' and 41, the 9th and 10th, see sv_pages below
+#define UB_SV_DEAD_PAGES    10
+
+' --- stage-lib-scores.bas's own ---
+#define UB_SC_ENTRY         88
+#define UB_SC_MAX           90
+#define UB_SC_OLD_ENTRY     80                      ' the scores as they were until 14 October 2026...
+' ...a score's fields, as the table above has them
+#define UB_SC_POINTS        0                       ' 4 bytes
+#define UB_SC_LEVEL         4
+#define UB_SC_SEX           5                       ' M or F
+#define UB_SC_RACE          6
+#define UB_SC_CLASS         7
+#define UB_SC_NAME          8
+#define UB_SC_NAME_SIZE     27
+#define UB_SC_DIED_FROM     35
+#define UB_SC_DIED_SIZE     25
+#define UB_SC_RACE_NAME     60
+#define UB_SC_RACE_SIZE     11
+#define UB_SC_CLASS_NAME    71
+#define UB_SC_CLASS_SIZE    9
+#define UB_SC_BIRTH         80                      ' 4 bytes, gsl_player_birth
+#define UB_SC_DEATH         84                      ' 4 bytes, when it died, 0 if there is no clock
+#define UB_SC_OLD_MAX       100                     ' ...and as many as there were
+#define S_SC_HEADING    "Rank  Points Name              Sex Race       Class  Lvl Killed By"
+
+' --- stage-lib-wizard-3.bas's own ---
+#define UB_W3_TABLE_WORN    0       ' fuw_w3_table(): what is worn...
+#define UB_W3_TABLE_PACK    1       ' ...and what goes in the pack
+#define UB_W3_WORN_END      255     ' the place that ends the table of what is worn
+#define UB_W3_WORN_OBJECT   1       ' the fields of what is worn: the place first, then the object (2 bytes)
+#define UB_W3_WORN_NAME     3       ' the special name
+#define UB_W3_WORN_TO_HIT   4
+#define UB_W3_WORN_TO_DAM   5
+#define UB_W3_WORN_TO_AC    6
+#define UB_W3_WORN_P1       7       ' 2 bytes
+#define UB_W3_WORN_FLAGS    9       ' 4 bytes
+#define UB_W3_WORN_SIZE     13
+#define UB_W3_PACK_COUNT    2       ' the fields of what goes in the pack: the object first (2 bytes, 0 ends it), how many
+#define UB_W3_PACK_P1       3       ' and P1, 2 bytes
+#define UB_W3_PACK_SIZE     5
+#define UB_W3_BOOKS         4       ' the first four in the pack are the mage's books, the priest's are four objects on
+#define UB_W3_STAT          118     ' 18/100
+#define UB_W3_LEVEL         39      ' the level it goes to, one at a time, the last but one
+#define UB_W3_LEVEL_TRIES   60      ' and how many tries it gets at that
+#define UW_W3_POINTS        30000   ' hit points and mana, N.B: not the 32767 a number can hold, see the file
+#define UL_W3_GOLD          500000
+#define UB_W3_WEAPON_DICE   9       ' the weapon's 9d9
+#define UB_W3_SPELL_PLACES  31      ' the places in A_PLAYER_SPELL_ORDER
+
+' --- stage-lib-wizard.bas's own ---
+#define UW_WZ_ROWS_SIZE     768                                     ' those three rows
+

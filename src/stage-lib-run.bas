@@ -36,16 +36,7 @@ End Asm
 ' N.B: a fourth, run_print_self, says whether the player is drawn while they run, the map routines see to that
 
 
-' --- working storage, private to this page, see A_LIB_PRIVATE in constants.bas ---
-Dim gub_rn_prev_dir         As UByte    At A_LIB_PRIVATE            ' the way the runner is taken to have come from (find_prevdir)
-Dim gub_rn_open_area        As UByte    At A_LIB_PRIVATE + 1        ' in the open on at least one side (find_openarea)
-Dim gub_rn_break_right      As UByte    At A_LIB_PRIVATE + 2        ' a wall on the right, stop if it opens (find_breakright)
-Dim gub_rn_break_left       As UByte    At A_LIB_PRIVATE + 3        ' the same on the left (find_breakleft)
-Dim gub_rn_y                As UByte    At A_LIB_PRIVATE + 4        ' the square fub_rn_step() last led to
-Dim gub_rn_x                As UByte    At A_LIB_PRIVATE + 5
-Dim gub_rn_check_dir        As UByte    At A_LIB_PRIVATE + 6        ' while looking round: the other diagonal beside the first way on
-Dim gub_rn_dir_a            As UByte    At A_LIB_PRIVATE + 7        ' the first way on, 0 for none yet
-Dim gub_rn_dir_b            As UByte    At A_LIB_PRIVATE + 8        ' the second
+' --- its working storage is in globals.bas, under "private to stage-lib-run.bas", moved there on 22 October 2026 ---
 
 
 Function fub_rn_cycle( pub_index As UByte ) As UByte
@@ -326,7 +317,7 @@ Sub s_lib_run()
     ElseIf gub_lib_function = UB_LIB_RUN_AREA Then
         s_rn_area()
     End If
-    If lub_saved_page_0 <> 255 Then s_core_swap_paged_data( UB_SLOT_MONSTERS , lub_saved_page_0 )
-    If lub_saved_page_1 <> 255 Then s_core_swap_paged_data( UB_SLOT_ITEMS , lub_saved_page_1 )
-    If lub_saved_page_2 <> 255 Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved_page_2 )
+    If lub_saved_page_0 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_MONSTERS , lub_saved_page_0 )
+    If lub_saved_page_1 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_ITEMS , lub_saved_page_1 )
+    If lub_saved_page_2 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved_page_2 )
 End Sub

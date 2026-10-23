@@ -129,21 +129,21 @@ Sub s_lib_compact()
     lub_saved_page_0 = gub_core_MMU0_page_number
     lub_saved_page_1 = gub_core_MMU1_page_number
     lub_saved_page_2 = gub_core_MMU2_page_number
-    s_core_ram_copy( A_MONSTER , A_LIB_PRIVATE , UB_RECORD_SIZE )
-    s_core_ram_copy( A_CREATURE , A_LIB_PRIVATE + 64 , UB_RECORD_SIZE )
-    s_core_ram_copy( A_OBJECT , A_LIB_PRIVATE + 128 , UB_RECORD_SIZE )
-    s_core_ram_copy( A_ITEM , A_LIB_PRIVATE + 192 , UB_RECORD_SIZE )
+    s_core_ram_copy( A_MONSTER , A_CP_MONSTER , UB_RECORD_SIZE )
+    s_core_ram_copy( A_CREATURE , A_CP_CREATURE , UB_RECORD_SIZE )
+    s_core_ram_copy( A_OBJECT , A_CP_OBJECT , UB_RECORD_SIZE )
+    s_core_ram_copy( A_ITEM , A_CP_ITEM , UB_RECORD_SIZE )
     If gub_lib_function = UB_LIB_COMPACT_OBJECTS Then
         s_cp_objects()
     ElseIf gub_lib_function = UB_LIB_COMPACT_MONSTERS Then
         lub_answer = fub_cp_monsters()
     End If
-    s_core_ram_copy( A_LIB_PRIVATE , A_MONSTER , UB_RECORD_SIZE )
-    s_core_ram_copy( A_LIB_PRIVATE + 64 , A_CREATURE , UB_RECORD_SIZE )
-    s_core_ram_copy( A_LIB_PRIVATE + 128 , A_OBJECT , UB_RECORD_SIZE )
-    s_core_ram_copy( A_LIB_PRIVATE + 192 , A_ITEM , UB_RECORD_SIZE )
-    If lub_saved_page_0 <> 255 Then s_core_swap_paged_data( UB_SLOT_MONSTERS , lub_saved_page_0 )
-    If lub_saved_page_1 <> 255 Then s_core_swap_paged_data( UB_SLOT_ITEMS , lub_saved_page_1 )
-    If lub_saved_page_2 <> 255 Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved_page_2 )
+    s_core_ram_copy( A_CP_MONSTER , A_MONSTER , UB_RECORD_SIZE )
+    s_core_ram_copy( A_CP_CREATURE , A_CREATURE , UB_RECORD_SIZE )
+    s_core_ram_copy( A_CP_OBJECT , A_OBJECT , UB_RECORD_SIZE )
+    s_core_ram_copy( A_CP_ITEM , A_ITEM , UB_RECORD_SIZE )
+    If lub_saved_page_0 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_MONSTERS , lub_saved_page_0 )
+    If lub_saved_page_1 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_ITEMS , lub_saved_page_1 )
+    If lub_saved_page_2 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved_page_2 )
     gsw_lib_result = lub_answer
 End Sub

@@ -104,7 +104,7 @@ def bezier(p0, p1, p2, steps=80):
 def noise(x, y):
     return (math.sin(x * 0.173 + y * 0.051) * math.sin(x * 0.067 - y * 0.29) + math.sin(x * 0.031 + y * 0.11) * 0.5) / 1.5
 
-# --- the scene, laid out as in the picture the author liked: the bridge running away from us to the Balrog, who stands on
+# --- the scene, laid out as in the picture sdo liked: the bridge running away from us to the Balrog, who stands on
 # it, huge, wings spread and crowned with fire, in the middle of the hall; its whip curling up, round and down across
 # the whole picture; Gandalf small at the lower right, seen from behind, Glamdring raised and his staff's light high;
 # the hall's columns blue on the left, green cliffs and a far dwarf-hall on the right, fire coming up out of the abyss

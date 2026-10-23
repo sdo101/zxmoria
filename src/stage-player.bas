@@ -97,14 +97,14 @@ Sub s_pl_get_history()
         lub_done = false
         While lub_done = false
             luw_record = A_CHARACTER_BACKGROUNDS + Cast( UInteger , lub_background ) * UB_BACKGROUND_SIZE
-            If Peek( luw_record + 1 ) = lub_history_id Then
+            If Peek( luw_record + UB_BACKGROUND_CHART ) = lub_history_id Then
                 luw_roll = fuw_pl_random( 100 )
-                While luw_roll > Peek( luw_record )
+                While luw_roll > Peek( luw_record + UB_BACKGROUND_ROLL )
                     lub_background = lub_background + 1
                     luw_record     = luw_record + UB_BACKGROUND_SIZE
                 End While
 
-                i = 4
+                i = UB_BACKGROUND_TEXT
                 Do
                     lub_char = Peek( luw_record + i )
                     If lub_char = 0 Or luw_length >= 240 Then Exit Do
@@ -112,9 +112,9 @@ Sub s_pl_get_history()
                     luw_length = luw_length + 1
                     i = i + 1
                 Loop
-                lsw_social = lsw_social + Cast( Integer , Peek( luw_record + 3 ) ) - 50
+                lsw_social = lsw_social + Cast( Integer , Peek( luw_record + UB_BACKGROUND_BONUS ) ) - 50
 
-                lub_next = Peek( luw_record + 2 )
+                lub_next = Peek( luw_record + UB_BACKGROUND_NEXT )
                 If lub_history_id > lub_next Then lub_background = 0
                 lub_history_id = lub_next
                 lub_done = true
@@ -132,24 +132,24 @@ Sub s_pl_get_history()
     ' break the block into lines of no more than 60 characters, at spaces
     lsw_start = 0
     lsw_end   = Cast( Integer , luw_length ) - 1
-    While Peek( A_TEXT_BUFFER + lsw_end ) = 32
+    While Peek( A_TEXT_BUFFER + lsw_end ) = UC_SPACE
         lsw_end = lsw_end - 1
     End While
     lub_line      = 0
     lsw_new_start = 0
     lub_done      = false
     While lub_done = false
-        While Peek( A_TEXT_BUFFER + lsw_start ) = 32
+        While Peek( A_TEXT_BUFFER + lsw_start ) = UC_SPACE
             lsw_start = lsw_start + 1
         End While
         lsw_count = lsw_end - lsw_start + 1
         If lsw_count > 60 Then
             lsw_count = 60
-            While Peek( A_TEXT_BUFFER + lsw_start + lsw_count - 1 ) <> 32
+            While Peek( A_TEXT_BUFFER + lsw_start + lsw_count - 1 ) <> UC_SPACE
                 lsw_count = lsw_count - 1
             End While
             lsw_new_start = lsw_start + lsw_count
-            While Peek( A_TEXT_BUFFER + lsw_start + lsw_count - 1 ) = 32
+            While Peek( A_TEXT_BUFFER + lsw_start + lsw_count - 1 ) = UC_SPACE
                 lsw_count = lsw_count - 1
             End While
         Else
@@ -192,7 +192,7 @@ End Sub
 Sub s_pl_choose_race()
     ' Moria's displayCharacterRaces() and characterChooseRace()
     Dim i , lub_row , lub_col   As UByte
-    Dim lub_chosen              As UByte = 255
+    Dim lub_chosen              As UByte = UB_PL_NOT_CHOSEN
 
     s_core_swap_paged_data( UB_SLOT_DB_MAPS , UB_PAGE_CHARACTER_DB )
     s_pl_clear_to_bottom( 20 )
@@ -200,7 +200,7 @@ Sub s_pl_choose_race()
     lub_row = 21
     lub_col = 2
     For i = 0 To UB_PLAYER_MAX_RACES - 1
-        s_pl_put( lub_row , lub_col , fs_core_char( 97 + i ) + ") " + fs_core_text_at( A_CHARACTER_RACES + Cast( UInteger , i ) * 64 ) )
+        s_pl_put( lub_row , lub_col , fs_core_char( Code( "a" ) + i ) + ") " + fs_core_text_at( A_CHARACTER_RACES + Cast( UInteger , i ) * UB_CHARACTER_RECORD_SIZE ) )
         lub_col = lub_col + 15
         If lub_col > 70 Then
             lub_col = 2
@@ -210,13 +210,13 @@ Sub s_pl_choose_race()
 
     Do
         s_core_get_key()
-        If gub_key_char >= 97 And gub_key_char < 97 + UB_PLAYER_MAX_RACES Then lub_chosen = gub_key_char - 97
+        If gub_key_char >= Code( "a" ) And gub_key_char < Code( "a" ) + UB_PLAYER_MAX_RACES Then lub_chosen = gub_key_char - Code( "a" )
         If gub_key_char = Code( "?" ) Then s_pl_welcome()
-    Loop Until lub_chosen <> 255
+    Loop Until lub_chosen <> UB_PL_NOT_CHOSEN
 
     gub_player_race = lub_chosen
     s_core_swap_paged_data( UB_SLOT_DB_MAPS , UB_PAGE_CHARACTER_DB )
-    s_core_ram_copy( A_CHARACTER_RACES + Cast( UInteger , lub_chosen ) * 64 , A_RACE , 64 )
+    s_core_ram_copy( A_CHARACTER_RACES + Cast( UInteger , lub_chosen ) * UB_CHARACTER_RECORD_SIZE , A_RACE , UB_CHARACTER_RECORD_SIZE )
     s_pl_put( 3 , 15 , fs_core_text_at( A_RACE ) )
 End Sub
 
@@ -245,14 +245,6 @@ Sub s_pl_choose_sex()
 End Sub
 
 
-' NOT Moria's, ours, and a cheeky one: the auto roller. A capital R at "Hit space to re-roll" asks for the least the
-' player will take for each of the six stats, and then rolls again and again, every roll shown, until a character
-' comes up with all of them, or a key is pressed. Each roll is an ordinary one, Moria's dice and Moria's rules, so
-' nothing can be had this way that patience with the space bar would not bring, N.B: and so asking for more than
-' the race can have just rolls for ever, a Halfling's strength, say, is never more than 15
-' the six least values are kept at the far end of the text buffer, clear of the dice and of the history
-#define A_PL_AUTO_LEAST     A_TEXT_BUFFER + 248     ' 6 bytes, the auto roller's least for each stat
-
 Function fub_pl_ask_least( pub_stat As UByte ) As UByte
     ' asks for the least that will do for one stat, typed as the player sees stats, 15 or 18/50...
     ' ...gives back the stat as it is held (18/50 is 68), 0 if anything will do, or 255 if ESC was pressed
@@ -267,14 +259,14 @@ Function fub_pl_ask_least( pub_stat As UByte ) As UByte
     lub_length = 0
     Do
         s_core_get_key()
-        If gub_key_char = 27 Then Return 255
-        If gub_key_char = 13 Then Exit Do
-        If gub_key_char = 8 Then
+        If gub_key_char = UC_ESCAPE Then Return UB_PL_LEAST_ESCAPED
+        If gub_key_char = UC_ENTER Then Exit Do
+        If gub_key_char = UC_BACKSPACE Then
             If lub_length > 0 Then
                 lub_length = lub_length - 1
-                s_core_print_char_at( 21 , lub_col + lub_length , 32 , UB_WHITE )
+                s_core_print_char_at( 21 , lub_col + lub_length , UC_SPACE , UB_WHITE )
             End If
-        ElseIf lub_length < 6 And ( gub_key_char = Code( "/" ) Or ( gub_key_char >= Code( "0" ) And gub_key_char <= Code( "9" ) ) ) Then
+        ElseIf lub_length < UB_PL_LEAST_DIGITS And ( gub_key_char = Code( "/" ) Or ( gub_key_char >= Code( "0" ) And gub_key_char <= Code( "9" ) ) ) Then
             Poke A_TEXT_BUFFER + lub_length , gub_key_char
             s_core_print_char_at( 21 , lub_col + lub_length , gub_key_char , UB_BRIGHT_WHITE )
             lub_length = lub_length + 1
@@ -309,7 +301,7 @@ Function fub_pl_ask_all_least() As UByte
     s_pl_put( 20 , 2 , "Roll until the stats are at least what you ask for (ESC to go back)." )
     For i = 0 To 5
         lub_least = fub_pl_ask_least( i )
-        If lub_least = 255 Then Return false
+        If lub_least = UB_PL_LEAST_ESCAPED Then Return false
         Poke A_PL_AUTO_LEAST + i , lub_least
     Next
     s_pl_clear_to_bottom( 20 )
@@ -336,7 +328,7 @@ Sub s_stage_player()
     Dim lul_rolls               As ULong
 
     ' a blank character, every part of it, as Moria's starts out
-    For luw_i = 0 To 767
+    For luw_i = 0 To UW_PLAYER_SIZE - 1
         Poke A_PLAYER + luw_i , 0
     Next
 
@@ -365,7 +357,7 @@ Sub s_stage_player()
             ' while it rolls only the stats are rolled and shown, a roll with all the rest takes a quarter of a second,
             ' the background, age, height and weight are made up for the character it stops at
             ' ...and they are shown one roll in eight, showing them is most of the time a roll takes
-            If lub_auto And ( lul_rolls bAnd 7 ) = 0 Then
+            If lub_auto And ( lul_rolls bAnd UB_PL_SHOW_ROLLS ) = 0 Then
                 s_pl_print_stats()
                 s_pl_put( 20 , 26 , fs_core_number( lul_rolls ) )
             End If
@@ -384,7 +376,7 @@ Sub s_stage_player()
             lub_was_auto = false
             Do
                 s_core_get_key()
-                If gub_key_char = 27 Then lub_done = true
+                If gub_key_char = UC_ESCAPE Then lub_done = true
                 If gub_key_char = Code( "R" ) Then
                     If fub_pl_ask_all_least() Then
                         lub_auto   = true
@@ -397,7 +389,7 @@ Sub s_stage_player()
                         gub_key_char = 0
                     End If
                 End If
-            Loop Until gub_key_char = 27 Or gub_key_char = 32 Or lub_auto
+            Loop Until gub_key_char = UC_ESCAPE Or gub_key_char = UC_SPACE Or lub_auto
         End If
     End While
 

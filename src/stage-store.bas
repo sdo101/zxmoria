@@ -26,9 +26,6 @@ End Asm
 '   - nothing that is known of, ^R draws the store again, see s_stage_store()
 
 
-Dim gub_store_top   As UByte    At A_TEXT_BUFFER + 240      ' which item is at the top of the list on screen, 0 or 12 (current_top_item_id)
-
-
 '##################################################################################################################################
 ' --- small helpers ---
 
@@ -189,9 +186,9 @@ Function fsw_store_choose( ps_prompt As String , pub_last As UByte ) As Integer
     s_store_put( 0 , 0 , "(Items a-" + fs_core_char( 97 + pub_last ) + ", ESC to exit) " + ps_prompt )
     Do
         s_core_get_key()
-        If gub_key_char = 27 Or guw_key_code = 0 Then Exit Do
-        If gub_key_char >= 97 And gub_key_char <= 97 + pub_last Then
-            lsw_item = gub_key_char - 97
+        If gub_key_char = UC_ESCAPE Or guw_key_code = 0 Then Exit Do
+        If gub_key_char >= Code( "a" ) And gub_key_char <= Code( "a" ) + pub_last Then
+            lsw_item = gub_key_char - Code( "a" )
             Exit Do
         End If
     Loop
@@ -379,22 +376,13 @@ End Sub
 
 
 Sub s_store_say_item( ps_before As String , ps_after As String )
-    ' a message with the description of the working item in the middle of it, e.g. "Selling a Flask of Oil. (c)"
-    Dim lub_rows , lub_length As UByte
-
+    ' a message with the description of the working item in the middle of it, e.g. "Selling a Flask of Oil. (c)",
+    ' Moria's printMessage(): put after the message showing if the two fit, -more- if not, and remembered for Ctrl-P
+    ' N.B: until 21 October 2026 it was printed straight on to the top row and never reached the history, the
+    ' regression's selling comparison found it once the histories were compared
     gub_lib_param_1 = true
     s_core_call_library( UB_PAGED_CODE_LIB_ITEMS , UB_LIB_ITEMS_DESCRIBE )
-    s_msg_flush()
-    s_msg_clear()
-    s_core_print_string_at( 0 , 0 , ps_before , UB_BRIGHT_WHITE )
-    lub_length = Len( ps_before )
-    Poke A_TEXT_BUFFER + 60 , 0                     ' the description is cut to fit on the one row
-    lub_rows = fub_core_print_text_at( 0 , lub_length , A_TEXT_BUFFER , UB_BRIGHT_WHITE )
-    While Peek( A_TEXT_BUFFER + lub_length - Len( ps_before ) ) <> 0
-        lub_length = lub_length + 1
-    End While
-    s_core_print_string_at( 0 , lub_length , ps_after , UB_BRIGHT_WHITE )
-    gub_message_length = lub_length + Len( ps_after )
+    s_msg( ps_before + fs_core_text_at( A_TEXT_BUFFER ) + ps_after )
 End Sub
 
 
@@ -505,35 +493,6 @@ Function fub_store_sell() As UByte
 End Function
 
 
-Sub s_store_beep()
-    ' Moria's terminalBellSound(), for a key that is no command here, if the player has "beep for invalid character"
-    ' on: the walking stage's beep, s_cr_beep() in stage-crawl.bas, about a tenth of a second at about 800Hz
-    ' N.B: the speaker is bit 4 of port $FE, whose low three bits are the border, which is black and stays black
-    If ( guw_game_options bAnd MW_OPTION_BEEP ) = 0 Then Return
-    Asm
-        ld hl, 160              ; how many times the speaker is flipped
-        ld e, 0
-store_beep_flip:
-        ld a, e
-        xor 16
-        ld e, a
-        out ($FE), a
-        ld bc, 670              ; 26 clock cycles each time round
-store_beep_wait:
-        dec bc
-        ld a, b
-        or c
-        jr nz, store_beep_wait
-        dec hl
-        ld a, h
-        or l
-        jr nz, store_beep_flip
-        xor a
-        out ($FE), a
-    End Asm
-End Sub
-
-
 '##################################################################################################################################
 ' --- the stage itself, Moria's storeEnter() ---
 
@@ -558,13 +517,13 @@ Sub s_stage_store()
         lub_key = gub_key_char
         ' the inventory commands may be capitals too, as in Moria's, whose inventoryExecuteCommand() makes them small
         If ( gub_key_modifiers bAnd MB_KEY_CTRL ) = 0 Then
-            If lub_key = Code( "E" ) Or lub_key = Code( "I" ) Or lub_key = Code( "T" ) Or lub_key = Code( "W" ) Or lub_key = Code( "X" ) Then lub_key = lub_key + 32
+            If lub_key = Code( "E" ) Or lub_key = Code( "I" ) Or lub_key = Code( "T" ) Or lub_key = Code( "W" ) Or lub_key = Code( "X" ) Then lub_key = lub_key + UC_LOWER_TO_UPPER
         End If
         ' a message left by the last command is finished with once the next command is given, Moria's storeEnter()
         ' "clear the msg flag just like we do in dungeon.c", and as the walking stage does: without this the next
         ' command's message was put after it on the same row, as if the two were one
         If gub_message_length > 0 Then s_msg_clear()
-        If gub_key_char = 27 Or guw_key_code = 0 Then
+        If gub_key_char = UC_ESCAPE Or guw_key_code = 0 Then
             lub_exit = true
 
         ElseIf gub_key_char = Code( "b" ) Then
@@ -602,7 +561,7 @@ Sub s_stage_store()
 
         ElseIf guw_key_code <> 0 Then
             ' anything else, Moria's "default: terminalBellSound()", N.B: a modifier on its own is no key at all
-            s_store_beep()
+            s_core_beep()
 
         End If
     End While

@@ -138,7 +138,7 @@ Sub s_ft_bash_door( pub_direction As UByte , pub_item As UByte )
         For i = 0 To 31
             Poke A_ITEM + i , 0
         Next
-        s_core_ram_copy( A_OBJECT + 32 , A_ITEM + 32 , 32 )
+        s_core_ram_copy( A_OBJECT + UB_ITEM_OBJECT_FIELDS , A_ITEM + UB_ITEM_OBJECT_FIELDS , UB_RECORD_SIZE - UB_ITEM_OBJECT_FIELDS )
         guw_item_object   = UW_OBJ_OPEN_DOOR
         gsw_item_misc_use = 1 - Cast( Integer , fuw_cb_random( 2 ) )
         s_core_store_record( UB_SLOT_ITEMS , gub_level_items_page , pub_item , A_ITEM )
@@ -146,7 +146,7 @@ Sub s_ft_bash_door( pub_direction As UByte , pub_item As UByte )
         If gsw_player_confused = 0 Then
             ' the player goes through with it, the walking stage does the step
             gub_game_step_direction = pub_direction
-            gub_game_step_code      = 2
+            gub_game_step_code      = UB_STEP_SET_OFF
         End If
         s_cr_put( gub_ft_y , gub_ft_x )
         Return
@@ -282,7 +282,7 @@ Sub s_lib_fight()
     ElseIf gub_lib_function = UB_LIB_FIGHT_SPIKE Then
         s_ft_spike()
     End If
-    If lub_saved_page_0 <> 255 Then s_core_swap_paged_data( UB_SLOT_MONSTERS , lub_saved_page_0 )
-    If lub_saved_page_1 <> 255 Then s_core_swap_paged_data( UB_SLOT_ITEMS , lub_saved_page_1 )
-    If lub_saved_page_2 <> 255 Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved_page_2 )
+    If lub_saved_page_0 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_MONSTERS , lub_saved_page_0 )
+    If lub_saved_page_1 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_ITEMS , lub_saved_page_1 )
+    If lub_saved_page_2 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved_page_2 )
 End Sub

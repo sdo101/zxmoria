@@ -34,7 +34,7 @@ Sub s_splash_show( pub_screen As UByte )
         luw_at     = luw_at + 1
         For lub_col = 0 To UB_SCREEN_COLS - 1
             lub_char = Peek( luw_at )
-            If lub_char <> 32 Then s_core_print_char_at( lub_row , lub_col , lub_char , lub_colour )
+            If lub_char <> UC_SPACE Then s_core_print_char_at( lub_row , lub_col , lub_char , lub_colour )
             luw_at = luw_at + 1
         Next
     Next
@@ -78,7 +78,7 @@ Sub s_stage_splash()
         If fub_splash_is_blank( lub_screen ) = false Then
             s_splash_show( lub_screen )
             s_core_get_key()
-            If gub_key_char = Code( "q" ) Or gub_key_char = Code( "Q" ) Or gub_key_char = 27 Then Exit While      ' Q, or escape (break)
+            If gub_key_char = Code( "q" ) Or gub_key_char = Code( "Q" ) Or gub_key_char = UC_ESCAPE Then Exit While      ' Q, or escape (break)
             ' Ctrl-W, Moria's -w: the game is started as a wizard, straight away
             If gub_key_char = 23 And ( gub_key_modifiers bAnd MB_KEY_CTRL ) <> 0 Then
                 gub_core_to_be_wizard = true

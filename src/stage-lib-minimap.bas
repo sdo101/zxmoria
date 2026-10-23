@@ -40,12 +40,6 @@ End Asm
 ' they were, so the memory monitor does not count them: it counts what the game itself does
 ' N.B: nothing here asks for a random number or changes the game, only the screen and the font
 
-#define A_MM_FONT       A_MMU_SLOT_1 + 1024     ' characters 128 to 255 of the font, page 10, while it is in MMU 1
-#define A_MM_BITS       A_MMU_SLOT_0            ' the bitmap, while its page is in MMU 0
-' ...and in this page's own storage: which of the 128 cells is the green one, the player's, 255 for none, see s_mm_player()
-#define A_MM_GREEN      A_LIB_PRIVATE
-#define UW_MM_BITS_SIZE 2176                    ' 68 rows of 32 bytes
-
 
 Function fub_mm_slot( pub_reg As UByte ) As UByte
     ' the page that is in a slot now, read from its Next register, $50 for MMU 0
@@ -91,7 +85,7 @@ Sub s_mm_row( puw_square As UInteger , puw_bits As UInteger , pub_cols As UByte 
         ld c, $80                       ; the bit for the first square of the byte, the leftmost
     mm_row_square:
         ld a, (hl)                      ; what the square is made of
-        cp 12                           ; UB_TILE_MIN_WALL, a Const, which Asm cannot see
+        cp UB_TILE_MIN_WALL
         jr c, mm_row_next
         inc hl
         ld a, (hl)                      ; its flags
@@ -102,7 +96,7 @@ Sub s_mm_row( puw_square As UInteger , puw_bits As UInteger , pub_cols As UByte 
         or c
         ld (de), a
     mm_row_next:
-        ld a, 8                         ; a square is 8 bytes
+        ld a, UB_MAP_SQUARE_SIZE
         add hl, a                       ; a Next instruction
         rrc c
         jr nc, mm_row_same
@@ -118,7 +112,7 @@ Sub s_mm_rebuild()
     Dim lub_slot_0 , lub_slot_2 , y As UByte
 
     lub_slot_0 = fub_mm_slot( MMU_SLOT_0 )
-    lub_slot_2 = fub_mm_slot( MMU_SLOT_0 + 2 )
+    lub_slot_2 = fub_mm_slot( MMU_SLOT_2 )
     s_mm_map( MMU_SLOT_0 , UB_PAGE_MINIMAP )
     Asm
         ld hl, A_MM_BITS
@@ -129,11 +123,11 @@ Sub s_mm_rebuild()
     End Asm
     y = 0
     While y < gub_dungeon_rows
-        If ( y bAnd 3 ) = 0 Then s_mm_map( MMU_SLOT_0 + 2 , gub_level_map_page + ( y >> 2 ) )
-        s_mm_row( A_MMU_SLOT_2 + Cast( UInteger , y bAnd 3 ) * 2048 , A_MM_BITS + Cast( UInteger , y ) * 32 , gub_dungeon_cols )
+        If ( y bAnd ( UB_MAP_ROWS_PER_PAGE - 1 ) ) = 0 Then s_mm_map( MMU_SLOT_2 , gub_level_map_page + ( y >> UB_MAP_ROWS_SHIFT ) )
+        s_mm_row( A_MMU_SLOT_2 + Cast( UInteger , y bAnd ( UB_MAP_ROWS_PER_PAGE - 1 ) ) * UW_MAP_ROW_SIZE , A_MM_BITS + Cast( UInteger , y ) * UB_MM_BITS_ROW , gub_dungeon_cols )
         y = y + 1
     End While
-    s_mm_map( MMU_SLOT_0 + 2 , lub_slot_2 )
+    s_mm_map( MMU_SLOT_2 , lub_slot_2 )
     s_mm_map( MMU_SLOT_0 , lub_slot_0 )
     gub_minimap_rebuild = false
 End Sub
@@ -147,19 +141,19 @@ Sub s_mm_copy( puw_from As UInteger )
         ld l, (ix+4)
         ld h, (ix+5)
         ld de, A_MM_FONT
-        ld b, 8                         ; rows of characters
+        ld b, UB_MM_CHARS_DOWN
     mm_copy_char_row:
         push bc
         push hl
-        ld c, 16                        ; characters across
+        ld c, UB_MM_CHARS_ACROSS
     mm_copy_char:
         push hl
-        ld b, 8                         ; the character's eight rows
+        ld b, UB_FONT_CHAR_SIZE
     mm_copy_byte:
         ld a, (hl)
         ld (de), a
         inc de
-        ld a, 32                        ; the bitmap's next row
+        ld a, UB_MM_BITS_ROW
         add hl, a                       ; a Next instruction
         djnz mm_copy_byte
         pop hl
@@ -190,7 +184,7 @@ Sub s_mm_half( puw_from As UInteger , puw_to As UInteger , pub_rows As UByte )
         ld b, (hl)                      ; the first row's two bytes...
         inc hl
         ld c, (hl)
-        ld a, 31                        ; ...and the second row's
+        ld a, UB_MM_BITS_ROW - 1        ; ...and the second row's
         add hl, a
         ld a, (hl)
         or b
@@ -244,7 +238,7 @@ Sub s_mm_half( puw_from As UInteger , puw_to As UInteger , pub_rows As UByte )
         ld (de), a
         inc de
         pop hl
-        ld a, 64                        ; two rows of the bitmap down
+        ld a, UB_MM_BITS_ROW * 2        ; two rows of the bitmap down
         add hl, a                       ; a Next instruction
         pop bc
         djnz mm_half_row
@@ -256,23 +250,23 @@ Sub s_mm_dot( pub_y As UByte , pub_x As UByte )
     ' the player, a pixel of the 128 by 64 that the 16 by 8 characters make
     Dim luw_at As UInteger
 
-    luw_at = A_MM_FONT + ( Cast( UInteger , pub_y >> 3 ) * 16 + Cast( UInteger , pub_x >> 3 ) ) * 8 + ( pub_y bAnd 7 )
-    Poke luw_at , Peek( luw_at ) bOr ( 128 >> ( pub_x bAnd 7 ) )
+    luw_at = A_MM_FONT + ( Cast( UInteger , pub_y >> 3 ) * UB_MM_CHARS_ACROSS + Cast( UInteger , pub_x >> 3 ) ) * UB_FONT_CHAR_SIZE + ( pub_y bAnd 7 )
+    Poke luw_at , Peek( luw_at ) bOr ( MB_FONT_LEFT_PIXEL >> ( pub_x bAnd 7 ) )
 End Sub
 
 
 Sub s_mm_cells( pub_on As UByte )
-    ' the 16 by 8 cells of the screen, showing characters 128 to 255 in dark grey, or rubbed out, the author's colours of 16
+    ' the 16 by 8 cells of the screen, showing characters 128 to 255 in dark grey, or rubbed out, sdo's colours of 16
     ' October 2026, the player's cell is made green by s_mm_player() afterwards, so none is green now
     Dim y , x As UByte
 
-    Poke A_MM_GREEN , 255
-    For y = 0 To 7
-        For x = 0 To 15
+    Poke A_MM_GREEN , UB_MM_NO_CELL
+    For y = 0 To UB_MM_CHARS_DOWN - 1
+        For x = 0 To UB_MM_CHARS_ACROSS - 1
             If pub_on Then
-                s_core_print_char_at( UB_MINIMAP_ROW + y , x , UB_MINIMAP_CHAR + y * 16 + x , UB_DARK_GREY )
+                s_core_print_char_at( UB_MINIMAP_ROW + y , x , UB_MINIMAP_CHAR + y * UB_MM_CHARS_ACROSS + x , UB_DARK_GREY )
             Else
-                s_core_print_char_at( UB_MINIMAP_ROW + y , x , 32 , UB_BLACK )
+                s_core_print_char_at( UB_MINIMAP_ROW + y , x , UC_SPACE , UB_BLACK )
             End If
         Next
     Next
@@ -281,14 +275,18 @@ End Sub
 
 Sub s_mm_player( pub_y As UByte , pub_x As UByte )
     ' the cell with the player in it is green, the pixel at pub_y, pub_x, and the one that was green before is dark grey
-    ' again, N.B: only the two cells are written, and only when the player has moved into another cell
-    Dim lub_cell , lub_old As UByte
+    ' again, N.B: only the two cells are written, and only when the player has moved into another cell, or the cell
+    ' is not the colour it should be (the second byte of the screen cell), the plain map having been turned on or off
+    ' (white then, not green, sdo, 22 October)
+    Dim lub_cell , lub_old , lub_colour As UByte
 
-    lub_cell = ( pub_y >> 3 ) * 16 + ( pub_x >> 3 )
-    lub_old  = Peek( A_MM_GREEN )
-    If lub_cell = lub_old Then Return
-    If lub_old <> 255 Then s_core_print_char_at( UB_MINIMAP_ROW + ( lub_old >> 4 ) , lub_old bAnd 15 , UB_MINIMAP_CHAR + lub_old , UB_DARK_GREY )
-    s_core_print_char_at( UB_MINIMAP_ROW + ( lub_cell >> 4 ) , lub_cell bAnd 15 , UB_MINIMAP_CHAR + lub_cell , UB_GREEN )
+    lub_cell   = ( pub_y >> 3 ) * UB_MM_CHARS_ACROSS + ( pub_x >> 3 )
+    lub_old    = Peek( A_MM_GREEN )
+    lub_colour = UB_GREEN
+    If ( guw_game_options bAnd MW_OPTION_PLAIN_MAP ) <> 0 Then lub_colour = UB_WHITE
+    If lub_cell = lub_old And Peek( A_SCREEN_BASE + Cast( UInteger , UB_MINIMAP_ROW + ( lub_cell >> 4 ) ) * UB_SCREEN_ROW_SIZE + ( lub_cell bAnd 15 ) * 2 + 1 ) = lub_colour Then Return
+    If lub_old <> UB_MM_NO_CELL Then s_core_print_char_at( UB_MINIMAP_ROW + ( lub_old >> 4 ) , lub_old bAnd 15 , UB_MINIMAP_CHAR + lub_old , UB_DARK_GREY )
+    s_core_print_char_at( UB_MINIMAP_ROW + ( lub_cell >> 4 ) , lub_cell bAnd 15 , UB_MINIMAP_CHAR + lub_cell , lub_colour )
     Poke A_MM_GREEN , lub_cell
 End Sub
 
@@ -299,31 +297,31 @@ Sub s_mm_draw()
     Dim lub_left , lub_top , y , x  As UByte
     Dim lub_dot_y , lub_dot_x       As UByte
 
-    If gub_minimap_mode = 0 Then Return
+    If gub_minimap_mode = UB_MM_MODE_OFF Then Return
     If gub_minimap_rebuild Then s_mm_rebuild()
     lub_slot_0 = fub_mm_slot( MMU_SLOT_0 )
-    lub_slot_1 = fub_mm_slot( MMU_SLOT_0 + 1 )
+    lub_slot_1 = fub_mm_slot( MMU_SLOT_1 )
     s_mm_map( MMU_SLOT_0 , UB_PAGE_MINIMAP )
-    s_mm_map( MMU_SLOT_0 + 1 , UB_PAGE_FONT )
-    If gub_minimap_mode = 1 Then
+    s_mm_map( MMU_SLOT_1 , UB_PAGE_FONT )
+    If gub_minimap_mode = UB_MM_MODE_FULL Then
         ' the window: 128 squares across, in steps of 8, and 64 down, with the player as near its middle as the
         ' edges of the level allow
         ' N.B: the furthest it goes is the first step of 8 at which the window reaches the level's last column, 72 for 198
         lub_left = 0
-        If gub_player_col > 64 Then lub_left = ( gub_player_col - 64 ) bAnd $F8
-        If gub_dungeon_cols <= 128 Then
+        If gub_player_col > UB_MM_WINDOW_COLS / 2 Then lub_left = ( gub_player_col - UB_MM_WINDOW_COLS / 2 ) bAnd MB_MM_WINDOW_STEP
+        If gub_dungeon_cols <= UB_MM_WINDOW_COLS Then
             lub_left = 0
-        ElseIf lub_left > ( ( gub_dungeon_cols - 121 ) bAnd $F8 ) Then
-            lub_left = ( gub_dungeon_cols - 121 ) bAnd $F8
+        ElseIf lub_left > ( ( gub_dungeon_cols - ( UB_MM_WINDOW_COLS - 7 ) ) bAnd MB_MM_WINDOW_STEP ) Then
+            lub_left = ( gub_dungeon_cols - ( UB_MM_WINDOW_COLS - 7 ) ) bAnd MB_MM_WINDOW_STEP
         End If
         lub_top = 0
-        If gub_player_row > 32 Then lub_top = gub_player_row - 32
-        If gub_dungeon_rows <= 64 Then
+        If gub_player_row > UB_MM_WINDOW_ROWS / 2 Then lub_top = gub_player_row - UB_MM_WINDOW_ROWS / 2
+        If gub_dungeon_rows <= UB_MM_WINDOW_ROWS Then
             lub_top = 0
-        ElseIf lub_top > gub_dungeon_rows - 64 Then
-            lub_top = gub_dungeon_rows - 64
+        ElseIf lub_top > gub_dungeon_rows - UB_MM_WINDOW_ROWS Then
+            lub_top = gub_dungeon_rows - UB_MM_WINDOW_ROWS
         End If
-        s_mm_copy( A_MM_BITS + Cast( UInteger , lub_top ) * 32 + ( lub_left >> 3 ) )
+        s_mm_copy( A_MM_BITS + Cast( UInteger , lub_top ) * UB_MM_BITS_ROW + ( lub_left >> 3 ) )
         lub_dot_y = gub_player_row - lub_top
         lub_dot_x = gub_player_col - lub_left
     Else
@@ -331,17 +329,17 @@ Sub s_mm_draw()
         Asm
             ld hl, A_MM_FONT
             ld de, A_MM_FONT + 1
-            ld bc, 1023
+            ld bc, UW_MM_FONT_SIZE - 1
             ld (hl), 0
             ldir
         End Asm
-        For y = 0 To 4
-            For x = 0 To 12
+        For y = 0 To UB_MM_HALF_DOWN - 1
+            For x = 0 To UB_MM_HALF_ACROSS - 1
                 ' 8 rows of pixels to a character, 16 rows of squares, except the last: 66 rows of squares make 33 of pixels
-                If y < 4 Then
-                    s_mm_half( A_MM_BITS + Cast( UInteger , y ) * 512 + Cast( UInteger , x ) * 2 , A_MM_FONT + ( Cast( UInteger , y ) * 16 + x ) * 8 , 8 )
+                If y < UB_MM_HALF_DOWN - 1 Then
+                    s_mm_half( A_MM_BITS + Cast( UInteger , y ) * ( UB_MM_BITS_ROW * 2 * UB_FONT_CHAR_SIZE ) + Cast( UInteger , x ) * 2 , A_MM_FONT + ( Cast( UInteger , y ) * UB_MM_CHARS_ACROSS + x ) * UB_FONT_CHAR_SIZE , UB_FONT_CHAR_SIZE )
                 Else
-                    s_mm_half( A_MM_BITS + Cast( UInteger , y ) * 512 + Cast( UInteger , x ) * 2 , A_MM_FONT + ( Cast( UInteger , y ) * 16 + x ) * 8 , 1 )
+                    s_mm_half( A_MM_BITS + Cast( UInteger , y ) * ( UB_MM_BITS_ROW * 2 * UB_FONT_CHAR_SIZE ) + Cast( UInteger , x ) * 2 , A_MM_FONT + ( Cast( UInteger , y ) * UB_MM_CHARS_ACROSS + x ) * UB_FONT_CHAR_SIZE , 1 )
                 End If
             Next
         Next
@@ -349,12 +347,12 @@ Sub s_mm_draw()
         lub_dot_x = gub_player_col >> 1
     End If
     s_mm_dot( lub_dot_y , lub_dot_x )
-    s_mm_map( MMU_SLOT_0 + 1 , lub_slot_1 )
+    s_mm_map( MMU_SLOT_1 , lub_slot_1 )
     s_mm_map( MMU_SLOT_0 , lub_slot_0 )
     ' the 128 cells are written only when they need to be, when the mini map has just been turned on or the screen
     ' drawn afresh: its first and last cells say whether they still show the mini map's characters, writing them all
     ' each time was more than half of the 1:1 drawing (4.3 ms of 6.7, measured in the emulator)
-    If Peek( A_SCREEN_BASE + UB_MINIMAP_ROW * 160 ) <> UB_MINIMAP_CHAR Or Peek( A_SCREEN_BASE + ( UB_MINIMAP_ROW + 7 ) * 160 + 30 ) <> 255 Then s_mm_cells( true )
+    If Peek( A_SCREEN_BASE + UB_MINIMAP_ROW * UB_SCREEN_ROW_SIZE ) <> UB_MINIMAP_CHAR Or Peek( A_SCREEN_BASE + ( UB_MINIMAP_ROW + UB_MM_CHARS_DOWN - 1 ) * UB_SCREEN_ROW_SIZE + ( UB_MM_CHARS_ACROSS - 1 ) * 2 ) <> UB_MINIMAP_CHAR + UB_MM_CHARS_ACROSS * UB_MM_CHARS_DOWN - 1 Then s_mm_cells( true )
     s_mm_player( lub_dot_y , lub_dot_x )
 End Sub
 
@@ -362,8 +360,8 @@ End Sub
 Sub s_mm_cycle()
     ' the [ key: off, 1:1, 1:2, and round again, the next time the game waits for a command the map is drawn
     gub_minimap_mode = gub_minimap_mode + 1
-    If gub_minimap_mode > 2 Then gub_minimap_mode = 0
-    If gub_minimap_mode = 0 Then s_mm_cells( false )
+    If gub_minimap_mode > UB_MM_MODE_HALF Then gub_minimap_mode = UB_MM_MODE_OFF
+    If gub_minimap_mode = UB_MM_MODE_OFF Then s_mm_cells( false )
 End Sub
 
 

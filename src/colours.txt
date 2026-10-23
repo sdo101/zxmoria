@@ -1,0 +1,413 @@
+# the colours of things on the map, ours, not Moria's: create-data.ps1 reads this and gives every colour used a pair of
+# its own in the tilemap's palette (from pair 16 up, the first 16 are the screen's own, see load.bas), and each
+# creature and object the attribute byte of its colour (byte 50 of a creature's record, 59 of an object's), and each
+# flavour (the shuffled names of potions, mushrooms, staffs, wands, rings and amulets) one in the game tables page
+# sdo's rules (21 October 2026): every object coloured on its own wherever its name gives a colour, the others a colour
+# for their class; every creature coloured from its name wherever there is one, the others red as before; an
+# invisible creature, when it can be seen at all, pale grey; nothing here changes how the game plays
+# the lines, fields between | marks, case does not matter, # starts a comment:
+#   colour   | name | red green blue, each 0 to 7, the Next's 9 bit colour
+#   creature | a word or words in a creature's name | colour            the longest that is in the name wins
+#   object   | category (TV_...) or * | a word or words in its name | colour    the longest wins, a category first
+#   class    | category (TV_...) | colour                              for an object no word above names
+#   flavour  | list | flavour | colour                                 every flavour of the six lists must be here
+#   invisible| colour
+# the colour "none" leaves a thing to the map's own rules in s_core_map_put() (core.bas), a # white as the walls
+
+# --- the colours -------------------------------------------------------------------------------------------------
+colour | red            | 700
+colour | dark red       | 500
+colour | crimson        | 602
+colour | vermilion      | 730
+colour | rust           | 530
+colour | orange         | 740
+colour | tangerine      | 750
+colour | amber          | 650
+colour | gold           | 760
+colour | yellow         | 770
+colour | brass          | 660
+colour | bronze         | 640
+colour | copper         | 631
+colour | tan            | 653
+colour | ecru           | 765
+colour | light brown    | 542
+colour | brown          | 420
+colour | umber          | 310
+colour | light wood     | 642
+colour | wood           | 531
+colour | dark wood      | 410
+colour | green          | 070
+colour | dark green     | 040
+colour | light green    | 575
+colour | icky green     | 473
+colour | chartreuse     | 570
+colour | jade           | 052
+colour | emerald        | 061
+colour | metallic green | 064
+colour | cyan           | 077
+colour | turquoise      | 066
+colour | aquamarine     | 167
+colour | azure          | 157
+colour | light blue     | 357
+colour | blue           | 027
+colour | dark blue      | 014
+colour | metallic blue  | 136
+colour | sapphire       | 015
+colour | indigo         | 205
+colour | violet         | 516
+colour | purple         | 404
+colour | metallic purple| 525
+colour | grape          | 403
+colour | amethyst       | 515
+colour | magenta        | 707
+colour | pink           | 745
+colour | puce           | 524
+colour | metallic red   | 721
+colour | white          | 777
+colour | ivory          | 776
+colour | pearl          | 766
+colour | silver         | 666
+colour | light grey     | 555
+colour | pale grey      | 556
+colour | grey           | 444
+colour | steel          | 555
+colour | iron           | 433
+colour | dark grey      | 333
+colour | black          | 222
+colour | clear          | 567
+colour | misty          | 456
+colour | fire           | 731
+colour | frost          | 477
+colour | lightning      | 775
+colour | multi-hued     | 506
+colour | iridescent     | 576
+colour | glowing        | 772
+colour | static         | 557
+colour | crystal        | 677
+colour | mithril        | 567
+colour | diamond        | 777
+colour | ruby           | 701
+colour | garnet         | 501
+colour | opal           | 667
+colour | coral          | 744
+colour | bone           | 765
+colour | leather        | 531
+colour | flesh          | 634
+
+# --- creatures ---------------------------------------------------------------------------------------------------
+invisible | pale grey
+creature | red            | red
+creature | crimson        | crimson
+creature | bloodshot      | red
+creature | orange         | orange
+creature | yellow         | yellow
+creature | gold           | gold
+creature | golden         | gold
+creature | copper         | copper
+creature | copperhead     | copper
+creature | brown          | brown
+creature | tan            | tan
+creature | umber          | umber
+creature | green          | green
+creature | blue           | blue
+creature | violet         | violet
+creature | purple         | purple
+creature | grape          | grape
+creature | white          | white
+creature | silver         | silver
+creature | grey           | grey
+creature | black          | black
+creature | ebony          | black
+creature | metallic green | metallic green
+creature | metallic blue  | metallic blue
+creature | metallic red   | metallic red
+creature | multi-hued     | multi-hued
+creature | shimmering     | silver
+creature | iridescent     | iridescent
+creature | fire           | fire
+creature | frost          | frost
+creature | ice            | frost
+creature | lightning      | lightning
+creature | static         | static
+creature | glowing        | glowing
+creature | crystal        | crystal
+creature | water          | blue
+creature | earth          | brown
+creature | stone          | grey
+creature | iron           | iron
+creature | clay           | tan
+creature | flesh          | flesh
+creature | wooden         | wood
+
+# --- objects, by a word in the name ------------------------------------------------------------------------------
+object | *              | rusty          | rust
+object | *              | golden         | gold
+object | *              | silver         | silver
+object | *              | jewel-encrusted| gold
+object | *              | leather        | leather
+object | *              | wooden         | wood
+object | *              | iron           | iron
+object | *              | steel          | steel
+object | *              | metal          | steel
+object | *              | lead-filled    | grey
+object | *              | brass          | brass
+object | *              | filthy         | umber
+object | *              | cat-o'-nine-tails | leather
+object | TV_FOOD        | slime mold     | green
+object | TV_FOOD        | waybread       | ecru
+object | TV_FOOD        | ale            | amber
+object | TV_FOOD        | wine           | dark red
+object | TV_FOOD        | biscuit        | tan
+object | TV_FOOD        | mush           | tan
+object | TV_SLING_AMMO  | pebble         | grey
+object | TV_CHEST       | ruined         | brown
+object | TV_MISC        | skeleton       | bone
+object | TV_MISC        | teeth          | ivory
+object | TV_MISC        | bone           | bone
+object | TV_MISC        | stick          | wood
+object | TV_MISC        | bottle         | clear
+object | TV_MISC        | pottery        | tan
+object | TV_GOLD        | copper         | copper
+object | TV_GOLD        | silver         | silver
+object | TV_GOLD        | gold           | gold
+object | TV_GOLD        | mithril        | mithril
+object | TV_GOLD        | diamonds       | diamond
+object | TV_GOLD        | emeralds       | emerald
+object | TV_GOLD        | garnets        | garnet
+object | TV_GOLD        | opals          | opal
+object | TV_GOLD        | rubies         | ruby
+object | TV_GOLD        | sapphires      | sapphire
+# the traps, found or not (a trap keeps its colour when it is found)
+object | TV_INVIS_TRAP  | pit            | brown
+object | TV_INVIS_TRAP  | rune           | violet
+object | TV_INVIS_TRAP  | gas trap       | chartreuse
+object | TV_INVIS_TRAP  | dart trap      | red
+object | TV_INVIS_TRAP  | arrow trap     | red
+object | TV_INVIS_TRAP  | loose rock     | grey
+object | TV_INVIS_TRAP  | trap door      | brown
+object | TV_INVIS_TRAP  | blackened spot | fire
+object | TV_INVIS_TRAP  | corroded rock  | green
+object | TV_VIS_TRAP    | pit            | brown
+object | TV_VIS_TRAP    | rune           | violet
+object | TV_VIS_TRAP    | gas trap       | chartreuse
+object | TV_VIS_TRAP    | dart trap      | red
+object | TV_VIS_TRAP    | arrow trap     | red
+object | TV_VIS_TRAP    | loose rock     | grey
+object | TV_VIS_TRAP    | trap door      | brown
+object | TV_VIS_TRAP    | blackened spot | fire
+object | TV_VIS_TRAP    | corroded rock  | green
+object | TV_GLOVES      | gauntlets      | steel
+object | TV_LIGHT       | torch          | orange
+object | TV_SOFT_ARMOR  | robe           | light brown
+object | TV_SOFT_ARMOR  | woven cord     | light brown
+
+# --- objects, by their class -------------------------------------------------------------------------------------
+class | TV_SWORD        | steel
+class | TV_HAFTED       | steel
+class | TV_POLEARM      | steel
+class | TV_DIGGING      | steel
+class | TV_BOW          | wood
+class | TV_ARROW        | light wood
+class | TV_BOLT         | light wood
+class | TV_SLING_AMMO   | iron
+class | TV_SPIKE        | iron
+class | TV_LIGHT        | yellow
+class | TV_FLASK        | amber
+class | TV_BOOTS        | leather
+class | TV_GLOVES       | leather
+class | TV_HELM         | steel
+class | TV_SHIELD       | steel
+class | TV_SOFT_ARMOR   | leather
+class | TV_HARD_ARMOR   | steel
+class | TV_CLOAK        | dark green
+class | TV_FOOD         | brown
+class | TV_SCROLL1      | ivory
+class | TV_SCROLL2      | ivory
+class | TV_MAGIC_BOOK   | red
+class | TV_PRAYER_BOOK  | green
+class | TV_CHEST        | wood
+class | TV_MISC         | grey
+class | TV_OPEN_DOOR    | wood
+class | TV_CLOSED_DOOR  | wood
+class | TV_SECRET_DOOR  | none        # drawn as a wall, as Moria does, a colour of its own would give it away
+class | TV_UP_STAIR     | magenta
+class | TV_DOWN_STAIR   | magenta
+class | TV_STORE_DOOR   | dark green  # sdo, 22 October
+class | TV_VIS_TRAP     | red
+class | TV_INVIS_TRAP   | red
+class | TV_RUBBLE       | grey
+class | TV_GOLD         | gold
+class | TV_NOTHING      | grey
+# the flavoured kinds take their flavour's colour, see below, the class colour is never used for them
+class | TV_POTION1      | white
+class | TV_POTION2      | white
+class | TV_WAND         | steel
+class | TV_STAFF        | wood
+class | TV_RING         | gold
+class | TV_AMULET       | gold
+
+# --- the flavours ------------------------------------------------------------------------------------------------
+flavour | colors | Icky Green       | icky green
+flavour | colors | Light Brown      | light brown
+flavour | colors | Clear            | clear
+flavour | colors | Azure            | azure
+flavour | colors | Blue             | blue
+flavour | colors | Blue Speckled    | blue
+flavour | colors | Black            | black
+flavour | colors | Brown            | brown
+flavour | colors | Brown Speckled   | brown
+flavour | colors | Bubbling         | clear
+flavour | colors | Chartreuse       | chartreuse
+flavour | colors | Cloudy           | light grey
+flavour | colors | Copper Speckled  | copper
+flavour | colors | Crimson          | crimson
+flavour | colors | Cyan             | cyan
+flavour | colors | Dark Blue        | dark blue
+flavour | colors | Dark Green       | dark green
+flavour | colors | Dark Red         | dark red
+flavour | colors | Gold Speckled    | gold
+flavour | colors | Green            | green
+flavour | colors | Green Speckled   | green
+flavour | colors | Grey             | grey
+flavour | colors | Grey Speckled    | grey
+flavour | colors | Hazy             | misty
+flavour | colors | Indigo           | indigo
+flavour | colors | Light Blue       | light blue
+flavour | colors | Light Green      | light green
+flavour | colors | Magenta          | magenta
+flavour | colors | Metallic Blue    | metallic blue
+flavour | colors | Metallic Red     | metallic red
+flavour | colors | Metallic Green   | metallic green
+flavour | colors | Metallic Purple  | metallic purple
+flavour | colors | Misty            | misty
+flavour | colors | Orange           | orange
+flavour | colors | Orange Speckled  | orange
+flavour | colors | Pink             | pink
+flavour | colors | Pink Speckled    | pink
+flavour | colors | Puce             | puce
+flavour | colors | Purple           | purple
+flavour | colors | Purple Speckled  | purple
+flavour | colors | Red              | red
+flavour | colors | Red Speckled     | red
+flavour | colors | Silver Speckled  | silver
+flavour | colors | Smoky            | dark grey
+flavour | colors | Tangerine        | tangerine
+flavour | colors | Violet           | violet
+flavour | colors | Vermilion        | vermilion
+flavour | colors | White            | white
+flavour | colors | Yellow           | yellow
+flavour | mushrooms | Blue          | blue
+flavour | mushrooms | Black         | black
+flavour | mushrooms | Black Spotted | black
+flavour | mushrooms | Brown         | brown
+flavour | mushrooms | Dark Blue     | dark blue
+flavour | mushrooms | Dark Green    | dark green
+flavour | mushrooms | Dark Red      | dark red
+flavour | mushrooms | Ecru          | ecru
+flavour | mushrooms | Furry         | light brown
+flavour | mushrooms | Green         | green
+flavour | mushrooms | Grey          | grey
+flavour | mushrooms | Light Blue    | light blue
+flavour | mushrooms | Light Green   | light green
+flavour | mushrooms | Plaid         | tangerine
+flavour | mushrooms | Red           | red
+flavour | mushrooms | Slimy         | icky green
+flavour | mushrooms | Tan           | tan
+flavour | mushrooms | White         | white
+flavour | mushrooms | White Spotted | white
+flavour | mushrooms | Wooden        | wood
+flavour | mushrooms | Wrinkled      | umber
+flavour | mushrooms | Yellow        | yellow
+flavour | woods | Aspen             | light wood
+flavour | woods | Balsa             | light wood
+flavour | woods | Banyan            | wood
+flavour | woods | Birch             | light wood
+flavour | woods | Cedar             | wood
+flavour | woods | Cottonwood        | light wood
+flavour | woods | Cypress           | wood
+flavour | woods | Dogwood           | wood
+flavour | woods | Elm               | wood
+flavour | woods | Eucalyptus        | light wood
+flavour | woods | Hemlock           | wood
+flavour | woods | Hickory           | wood
+flavour | woods | Ironwood          | dark wood
+flavour | woods | Locust            | wood
+flavour | woods | Mahogany          | dark wood
+flavour | woods | Maple             | light wood
+flavour | woods | Mulberry          | wood
+flavour | woods | Oak               | wood
+flavour | woods | Pine              | light wood
+flavour | woods | Redwood           | rust
+flavour | woods | Rosewood          | dark wood
+flavour | woods | Spruce            | light wood
+flavour | woods | Sycamore          | light wood
+flavour | woods | Teak              | wood
+flavour | woods | Walnut            | dark wood
+flavour | metals | Aluminum         | light grey
+flavour | metals | Cast Iron        | dark grey
+flavour | metals | Chromium         | silver
+flavour | metals | Copper           | copper
+flavour | metals | Gold             | gold
+flavour | metals | Iron             | iron
+flavour | metals | Magnesium        | silver
+flavour | metals | Molybdenum       | grey
+flavour | metals | Nickel           | light grey
+flavour | metals | Rusty            | rust
+flavour | metals | Silver           | silver
+flavour | metals | Steel            | steel
+flavour | metals | Tin              | light grey
+flavour | metals | Titanium         | pale grey
+flavour | metals | Tungsten         | grey
+flavour | metals | Zirconium        | pale grey
+flavour | metals | Zinc             | light grey
+flavour | metals | Aluminum-Plated  | light grey
+flavour | metals | Copper-Plated    | copper
+flavour | metals | Gold-Plated      | gold
+flavour | metals | Nickel-Plated    | light grey
+flavour | metals | Silver-Plated    | silver
+flavour | metals | Steel-Plated     | steel
+flavour | metals | Tin-Plated       | light grey
+flavour | metals | Zinc-Plated      | light grey
+flavour | rocks | Alexandrite       | multi-hued
+flavour | rocks | Amethyst          | amethyst
+flavour | rocks | Aquamarine        | aquamarine
+flavour | rocks | Azurite           | blue
+flavour | rocks | Beryl             | aquamarine
+flavour | rocks | Bloodstone        | dark red
+flavour | rocks | Calcite           | ivory
+flavour | rocks | Carnelian         | vermilion
+flavour | rocks | Corundum          | puce
+flavour | rocks | Diamond           | diamond
+flavour | rocks | Emerald           | emerald
+flavour | rocks | Fluorite          | violet
+flavour | rocks | Garnet            | garnet
+flavour | rocks | Granite           | grey
+flavour | rocks | Jade              | jade
+flavour | rocks | Jasper            | rust
+flavour | rocks | Lapis Lazuli      | dark blue
+flavour | rocks | Malachite         | jade
+flavour | rocks | Marble            | silver
+flavour | rocks | Moonstone         | opal
+flavour | rocks | Onyx              | black
+flavour | rocks | Opal              | opal
+flavour | rocks | Pearl             | pearl
+flavour | rocks | Quartz            | crystal
+flavour | rocks | Quartzite         | pale grey
+flavour | rocks | Rhodonite         | pink
+flavour | rocks | Ruby              | ruby
+flavour | rocks | Sapphire          | sapphire
+flavour | rocks | Tiger Eye         | amber
+flavour | rocks | Topaz             | gold
+flavour | rocks | Turquoise         | turquoise
+flavour | rocks | Zircon            | static
+flavour | amulets | Amber           | amber
+flavour | amulets | Driftwood       | light brown
+flavour | amulets | Coral           | coral
+flavour | amulets | Agate           | rust
+flavour | amulets | Ivory           | ivory
+flavour | amulets | Obsidian        | black
+flavour | amulets | Bone            | bone
+flavour | amulets | Brass           | brass
+flavour | amulets | Bronze          | bronze
+flavour | amulets | Pewter          | grey
+flavour | amulets | Tortoise Shell  | brown

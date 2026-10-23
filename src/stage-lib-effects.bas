@@ -101,7 +101,7 @@ Sub s_ef_display_experience()
     ' Moria's displayCharacterExperience() and playerGainLevel()
     Dim lsl_new_exp As Long
 
-    If gsl_player_exp > 9999999 Then gsl_player_exp = 9999999
+    If gsl_player_exp > UL_PLAYER_MAX_EXP Then gsl_player_exp = UL_PLAYER_MAX_EXP
     While guw_player_level < 40 And fsl_ef_level_exp( guw_player_level ) <= gsl_player_exp
         guw_player_level = guw_player_level + 1
         s_msg( "Welcome to level " + fs_core_number( guw_player_level ) + "." )
@@ -209,7 +209,7 @@ Sub s_ef_lose_stat( pub_stat As UByte )
     Dim lub_sustained As UByte
 
     lub_sustained = Peek( @ef_sustain_table + pub_stat )
-    lub_sustained = Peek( A_PLAYER + 437 + lub_sustained )      ' the six "sustain" flags, gub_player_sustain_str and the five after it
+    lub_sustained = Peek( A_PLAYER_SUSTAIN + lub_sustained )      ' the six "sustain" flags, gub_player_sustain_str and the five after it
     If lub_sustained = false Then gub_shared_1 = fub_ef_stat_decrease( pub_stat )
 
     If pub_stat = UB_STAT_STR Or pub_stat = UB_STAT_CON Then
@@ -291,22 +291,22 @@ Sub s_ef_ingest_food( psw_amount As Integer )
 
     If gsw_player_food < 0 Then gsw_player_food = 0
     lsl_food = Cast( Long , gsw_player_food ) + psw_amount
-    If lsl_food > 15000 Then                        ' PLAYER_FOOD_MAX
+    If lsl_food > UW_PLAYER_FOOD_MAX Then
         s_core_message( UW_MSG_YOU_ARE_BLOATED_FROM_OVEREATING )
         ' calculate how much of amount is responsible for the bloating, give the player food credit for 1/50,
         ' and slow them for that many turns also
-        lsw_extra = lsl_food - 15000
+        lsw_extra = lsl_food - UW_PLAYER_FOOD_MAX
         If lsw_extra > psw_amount Then lsw_extra = psw_amount
         lsw_penalty = lsw_extra / 50
         gsw_player_slow = gsw_player_slow + lsw_penalty
         If lsw_extra = psw_amount Then
             gsw_player_food = lsl_food - psw_amount + lsw_penalty
         Else
-            gsw_player_food = 15000 + lsw_penalty
+            gsw_player_food = UW_PLAYER_FOOD_MAX + lsw_penalty
         End If
     Else
         gsw_player_food = lsl_food
-        If lsl_food > 10000 Then s_core_message( UW_MSG_YOU_ARE_FULL )       ' PLAYER_FOOD_FULL
+        If lsl_food > UW_PLAYER_FOOD_FULL Then s_core_message( UW_MSG_YOU_ARE_FULL )
     End If
 End Sub
 

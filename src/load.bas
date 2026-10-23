@@ -1,6 +1,7 @@
 #PRAGMA push(case_insensitive)
 #PRAGMA case_insensitive = True
 #define STANDALONE  ' remove ROM initialization and SysVars...
+#include "constants.bas"
 
 ' the loader starts here, at $C000 (the --org given to the compiler in build.ps1, and the start address in sjasmplus.cfg)...
 ' ...the stack is already set up for us: the nex file header carries a stack address of $DFFE, near the top of MMU 6,
@@ -20,9 +21,6 @@ End Asm
     ' into the same scene as the Next can show it, and held there for a while... BREAK (Caps Shift and Space, the PC's Escape in
     ' the emulator) at any point skips the rest of it, then the font is put back where the 48K picture was, see
     ' tools\make-splash.py, and the loader goes on to the text screen
-    ' N.B: the loader has none of the game's constants, these two are as constants.bas has them
-    Const true  As UByte = 1
-    Const false As UByte = 0
     Declare Function fub_load_splash_48k() As UByte
     Declare Function fub_load_splash_blend() As UByte
     Declare Function fub_load_splash_hold() As UByte
@@ -49,9 +47,9 @@ Sub s_load_1_map_pages()
     ' ...MMU 3 is the paged code slot, the core maps each stage into it as needed
     ' ...MMU 6 is where this loader is running, so the core maps its own data page (32) there as its very first act
     Asm
-        nextreg $54, 30                                 ; MMU 4 = first page of core.bin
-        nextreg $55, 31                                 ; MMU 5 = second page of core.bin, the interrupt handler will go at the top of this
-        nextreg $57, 11                                 ; MMU 7 = page 11, the screen cells (from $E000) and above them the core's stack
+        nextreg MMU_SLOT_4, UB_PAGE_CORE_CODE                  ; MMU 4 = first page of core.bin
+        nextreg MMU_SLOT_5, UB_PAGE_CORE_CODE + 1              ; MMU 5 = second page of core.bin, the interrupt handler will go at the top of this
+        nextreg MMU_SLOT_7, UB_PAGE_CORE_SCREEN                ; MMU 7 = page 11, the screen cells (from $E000) and above them the core's stack
     End Asm
 End Sub
 
@@ -129,7 +127,7 @@ Sub FastCall s_load_palette_entry( pub_colour As UByte )
     ' one entry of the palette chosen by $43, RRRGGGBB, in the 8 bit Palette Data register, $41, which moves the index on
     ' by itself (pub_colour arrives in A)
     Asm
-        nextreg $41, a
+        nextreg NEXTREG_PALETTE_VALUE, a
     End Asm
 End Sub
 
@@ -139,8 +137,8 @@ Sub s_load_ula_palette( pub_step As UByte )
     ' border (16 to 31), N.B: bright magenta is $E7, not $E3, which is the colour that is shown as see-through
     Dim i As UByte
     Asm
-        nextreg $43, %00000000                          ; Palette Control: write to the ULA's first palette
-        nextreg $40, 0                                  ; Palette Index: from 0
+        nextreg NEXTREG_PALETTE_CONTROL, %00000000                          ; Palette Control: write to the ULA's first palette
+        nextreg NEXTREG_PALETTE_INDEX, 0                                  ; Palette Index: from 0
     End Asm
     For i = 0 To 31
         s_load_palette_entry( fub_load_scale( Peek( @load_ula_colours + ( i bAnd 15 ) ) , pub_step ) )
@@ -159,8 +157,8 @@ Sub s_load_l2_palette( pub_step As UByte )
     ' pub_step sixteenths of their brightness
     Dim luw_colour As UInteger
     Asm
-        nextreg $43, %00010000                          ; Palette Control: write to Layer 2's first palette
-        nextreg $40, 0
+        nextreg NEXTREG_PALETTE_CONTROL, %00010000                          ; Palette Control: write to Layer 2's first palette
+        nextreg NEXTREG_PALETTE_INDEX, 0
     End Asm
     For luw_colour = 0 To 255
         s_load_palette_entry( fub_load_scale( luw_colour , pub_step ) )
@@ -175,29 +173,29 @@ Function fub_load_splash_48k() As UByte
     ' ...true if BREAK was pressed
     ' N.B: the sounds are timed by counting T states, so the CPU runs at 3.5MHz, as a 48K did
     Asm
-        nextreg $07, 0                                  ; CPU Speed Register: 3.5MHz
-        nextreg $69, 0                                  ; Display Control 1: Layer 2 off, the normal ULA screen
-        nextreg $6B, 0                                  ; Tilemap Control: off
-        nextreg $68, 0                                  ; ULA Control: on
-        nextreg $15, 0                                  ; Sprite and Layers System: no sprites, the usual order
-        nextreg $1C, %00000100                          ; Clip Window Control: restart the ULA's clip window writes...
-        nextreg $1A, 0                                  ; ...and set it to the whole screen
-        nextreg $1A, 255
-        nextreg $1A, 0
-        nextreg $1A, 191
-        nextreg $14, $E3                                ; Global Transparency: $E3, which neither picture uses
+        nextreg NEXTREG_CPU_SPEED, 0                                  ; CPU Speed Register: 3.5MHz
+        nextreg NEXTREG_DISPLAY_CONTROL_1, 0                                  ; Display Control 1: Layer 2 off, the normal ULA screen
+        nextreg NEXTREG_TILEMAP_CONTROL, 0                                  ; Tilemap Control: off
+        nextreg NEXTREG_ULA_CONTROL, 0                                  ; ULA Control: on
+        nextreg NEXTREG_SPRITES_LAYERS, 0                                  ; Sprite and Layers System: no sprites, the usual order
+        nextreg NEXTREG_CLIP_CONTROL, %00000100                          ; Clip Window Control: restart the ULA's clip window writes...
+        nextreg NEXTREG_CLIP_ULA, 0                                  ; ...and set it to the whole screen
+        nextreg NEXTREG_CLIP_ULA, 255
+        nextreg NEXTREG_CLIP_ULA, 0
+        nextreg NEXTREG_CLIP_ULA, 191
+        nextreg NEXTREG_TRANSPARENCY, $E3                                ; Global Transparency: $E3, which neither picture uses
     End Asm
     s_load_ula_palette( 16 )                        ' the 48K's colours, at full brightness
     Asm
-        ld bc, $243B                                    ; nextreg can only write, so the register is read through the ports
-        ld a, $08
+        ld bc, A_NEXTREG_SELECT                         ; nextreg can only write, so the register is read through the ports
+        ld a, NEXTREG_PERIPHERAL_3
         out (c), a
-        inc b                                           ; $253B
+        inc b                                           ; A_NEXTREG_DATA
         in a, (c)
         or %00011000
-        nextreg $08, a                                  ; Peripheral 3: the internal speaker and the DACs on
+        nextreg NEXTREG_PERIPHERAL_3, a                                  ; Peripheral 3: the internal speaker and the DACs on
     End Asm
-    Out $FE, 0                                      ' border, black
+    Out UB_ULA_PORT, UB_BORDER_BLACK                                      ' border, black
 
     ' the picture on its own for a moment, then the tape, then the picture held for five seconds
     If fub_load_frames( 30 ) Then Return true
@@ -222,7 +220,7 @@ Function FastCall fub_load_tape() As UByte
         ld a, e
         xor $12                 ; magenta (3) and blue (1) differ by 2, and $10 flips the speaker
         ld e, a
-        out ($FE), a
+        out (UB_ULA_PORT), a
         ld b, 161               ; 161 turns of djnz and the rest of the loop: about 2170 T states
     splash_pilot_wait:
         djnz splash_pilot_wait
@@ -230,12 +228,12 @@ Function FastCall fub_load_tape() As UByte
         ld a, l
         or a
         jr nz, splash_pilot_on
-        ld a, $7F               ; BREAK? Space is bit 0 of $7FFE...
-        in a, ($FE)
+        ld a, UB_KEY_HALF_ROW_SPACE            ; BREAK? Space is bit 0 of $7FFE...
+        in a, (UB_ULA_PORT)
         and 1
         jr nz, splash_pilot_on
-        ld a, $FE               ; ...and Caps Shift bit 0 of $FEFE
-        in a, ($FE)
+        ld a, UB_KEY_HALF_ROW_CAPS     ; ...and Caps Shift bit 0 of $FEFE
+        in a, (UB_ULA_PORT)
         and 1
         jr z, splash_break
     splash_pilot_on:
@@ -246,14 +244,14 @@ Function FastCall fub_load_tape() As UByte
         ld a, e                 ; the sync pulses, 667 and 735 T states
         xor $12
         ld e, a
-        out ($FE), a
+        out (UB_ULA_PORT), a
         ld b, 48
     splash_sync_1:
         djnz splash_sync_1
         ld a, e
         xor $12
         ld e, a
-        out ($FE), a
+        out (UB_ULA_PORT), a
         ld b, 53
     splash_sync_2:
         djnz splash_sync_2
@@ -285,14 +283,14 @@ Function FastCall fub_load_tape() As UByte
         ld a, e
         xor $17                 ; blue (1) and yellow (6) differ by 7, and $10 flips the speaker
         ld e, a
-        out ($FE), a
+        out (UB_ULA_PORT), a
         ld b, d
     splash_half_1:
         djnz splash_half_1
         ld a, e
         xor $17
         ld e, a
-        out ($FE), a
+        out (UB_ULA_PORT), a
         ld b, d
     splash_half_2:
         djnz splash_half_2
@@ -300,12 +298,12 @@ Function FastCall fub_load_tape() As UByte
         dec b
         exx
         jr nz, splash_bit
-        ld a, $7F               ; BREAK, after each byte
-        in a, ($FE)
+        ld a, UB_KEY_HALF_ROW_SPACE            ; BREAK, after each byte
+        in a, (UB_ULA_PORT)
         and 1
         jr nz, splash_byte_on
-        ld a, $FE
-        in a, ($FE)
+        ld a, UB_KEY_HALF_ROW_CAPS
+        in a, (UB_ULA_PORT)
         and 1
         jr z, splash_break
     splash_byte_on:
@@ -317,11 +315,11 @@ Function FastCall fub_load_tape() As UByte
         jr nz, splash_byte
 
         xor a                   ; border black, speaker still, and BREAK was not pressed
-        out ($FE), a
+        out (UB_ULA_PORT), a
         jr splash_tape_end
     splash_break:
         xor a
-        out ($FE), a
+        out (UB_ULA_PORT), a
         inc a                   ; BREAK was pressed
     splash_tape_end:
     End Asm
@@ -337,20 +335,20 @@ Function fub_load_splash_blend() As UByte
     Dim lub_step As UByte
 
     Asm
-        nextreg $07, %00000011                          ; CPU Speed Register: 28MHz
+        nextreg NEXTREG_CPU_SPEED, %00000011                          ; CPU Speed Register: 28MHz
     End Asm
     s_load_l2_palette( 0 )                          ' Layer 2 all black to start with, so only the 48K's picture shows
     Asm
-        nextreg $12, 33                                 ; Layer 2 RAM Page: in 16KB banks, bank 33 is pages 66 and 67
-        nextreg $70, %00010000                          ; Layer 2 Control: 320 x 256, palette offset 0
-        nextreg $1C, %00000001                          ; Clip Window Control: restart Layer 2's clip window writes...
-        nextreg $18, 0                                  ; ...and set it to the whole of it, x in pairs of pixels
-        nextreg $18, 159
-        nextreg $18, 0
-        nextreg $18, 255
-        nextreg $4A, 0                                  ; Transparency Fallback: black
-        nextreg $15, %00011000                          ; Sprite and Layers System: the ULA and Layer 2 added together
-        nextreg $69, %10000000                          ; Display Control 1: Layer 2 on
+        nextreg NEXTREG_LAYER2_BANK, UB_BANK_LOADER_PICTURE             ; Layer 2 RAM Page: in 16KB banks, bank 33 is pages 66 and 67
+        nextreg NEXTREG_LAYER2_CONTROL, %00010000                          ; Layer 2 Control: 320 x 256, palette offset 0
+        nextreg NEXTREG_CLIP_CONTROL, %00000001                          ; Clip Window Control: restart Layer 2's clip window writes...
+        nextreg NEXTREG_CLIP_LAYER2, 0                                  ; ...and set it to the whole of it, x in pairs of pixels
+        nextreg NEXTREG_CLIP_LAYER2, 159
+        nextreg NEXTREG_CLIP_LAYER2, 0
+        nextreg NEXTREG_CLIP_LAYER2, 255
+        nextreg NEXTREG_FALLBACK_COLOUR, 0                                  ; Transparency Fallback: black
+        nextreg NEXTREG_SPRITES_LAYERS, %00011000                          ; Sprite and Layers System: the ULA and Layer 2 added together
+        nextreg NEXTREG_DISPLAY_CONTROL_1, %10000000                          ; Display Control 1: Layer 2 on
     End Asm
 
     For lub_step = 1 To 16
@@ -361,8 +359,8 @@ Function fub_load_splash_blend() As UByte
 
     ' only Layer 2 now: the ULA off and the layers in their usual order
     Asm
-        nextreg $68, %10000000                          ; ULA Control: off
-        nextreg $15, 0                                  ; Sprite and Layers System: the usual order
+        nextreg NEXTREG_ULA_CONTROL, %10000000                          ; ULA Control: off
+        nextreg NEXTREG_SPRITES_LAYERS, 0                                  ; Sprite and Layers System: the usual order
     End Asm
     Return false
 End Function
@@ -378,13 +376,13 @@ Sub s_load_splash_end()
     ' however the opening ended, all of it put away: silence, a black border, Layer 2 off, MMU 1 to 3 as the nex loader
     ' left them, the palettes as they were, and then, if BREAK ended it, a wait until it is let go, so that the same
     ' press does not go on to skip the game's first screen as well
-    Out $FE, 0                                      ' border black, speaker still
+    Out UB_ULA_PORT, UB_BORDER_BLACK                                      ' border black, speaker still
     Asm
-        nextreg $69, 0                                  ; Display Control 1: Layer 2 off
-        nextreg $15, 0                                  ; Sprite and Layers System: the usual order
-        nextreg $51, $FF                                ; MMU 1 back to the ROM, as the nex loader left it
-        nextreg $52, 10                                 ; MMU 2 and 3 back to bank 5
-        nextreg $53, 11
+        nextreg NEXTREG_DISPLAY_CONTROL_1, 0                                  ; Display Control 1: Layer 2 off
+        nextreg NEXTREG_SPRITES_LAYERS, 0                                  ; Sprite and Layers System: the usual order
+        nextreg MMU_SLOT_1, UB_PAGE_ROM                        ; MMU 1 back to the ROM, as the nex loader left it
+        nextreg MMU_SLOT_2, UB_PAGE_FONT                       ; MMU 2 and 3 back to bank 5
+        nextreg MMU_SLOT_3, UB_PAGE_CORE_SCREEN
     End Asm
     s_load_ula_palette( 16 )
     s_load_l2_palette( 16 )
@@ -398,8 +396,8 @@ Sub s_load_font()
     ' the font back where the tilemap reads it, the first 2KB of page 10, which held the top of the 48K picture: the nex
     ' file keeps it in page 76 (where the dungeon map goes later), see sjasmplus.cfg
     Asm
-        nextreg $52, 10                                 ; MMU 2 = page 10
-        nextreg $53, 76                                 ; MMU 3 = the font
+        nextreg MMU_SLOT_2, UB_PAGE_FONT                       ; MMU 2 = page 10
+        nextreg MMU_SLOT_3, UB_PAGE_LOADER_FONT                ; MMU 3 = the font
     End Asm
     Asm
         ld hl, $6000
@@ -408,7 +406,7 @@ Sub s_load_font()
         ldir
     End Asm
     Asm
-        nextreg $53, 11                                 ; MMU 3 back to page 11
+        nextreg MMU_SLOT_3, UB_PAGE_CORE_SCREEN                ; MMU 3 back to page 11
     End Asm
 End Sub
 
@@ -420,16 +418,16 @@ Sub s_load_3_set_hardware()
     ' ...register $1B takes four writes in turn: x1, x2, y1, y2, and writing bit 3 of $1C first makes sure we start at x1...
     ' ...the x values are doubled by the hardware, so 159 means pixel 319, the right hand edge, in both 40 and 80 column modes
     Asm
-        nextreg $1C, %00001000                          ; Clip Window Control Register, restart the tilemap clip writes at x1
-        nextreg $1B, 0                                  ; x1 = 0
-        nextreg $1B, 159                                ; x2 = 159
-        nextreg $1B, 0                                  ; y1 = 0
-        nextreg $1B, 255                                ; y2 = 255
+        nextreg NEXTREG_CLIP_CONTROL, %00001000                          ; Clip Window Control Register, restart the tilemap clip writes at x1
+        nextreg NEXTREG_CLIP_TILEMAP, 0                                  ; x1 = 0
+        nextreg NEXTREG_CLIP_TILEMAP, 159                                ; x2 = 159
+        nextreg NEXTREG_CLIP_TILEMAP, 0                                  ; y1 = 0
+        nextreg NEXTREG_CLIP_TILEMAP, 255                                ; y2 = 255
     End Asm
 
     s_load_sleep()
     Asm
-        nextreg $68, %10100000                          ; ULA Control Register
+        nextreg NEXTREG_ULA_CONTROL, %10100000                          ; ULA Control Register
     End Asm
     ' bit 7     = Disable ULA output (0 on reset)
     ' bit 6-5   = Color blending control for layering modes 6 & 7 (3.01.01)
@@ -448,7 +446,7 @@ Sub s_load_3_set_hardware()
     s_load_sleep()
     ' N.B: bit 5 must be 0 here, core.bas writes two bytes per cell (character, then colour attribute)
     Asm
-        nextreg $6B, %11001001                          ; Layer 3 Tilemap Control Register
+        nextreg NEXTREG_TILEMAP_CONTROL, MB_TILEMAP_ENABLE | MB_TILEMAP_80_COLS | MB_TILEMAP_TEXT_MODE | MB_TILEMAP_ON_TOP
     End Asm
     ' bit 7     = 1 to enable the tilemap
     ' bit 6     = 0 for 40x32, 1 for 80x32
@@ -462,7 +460,7 @@ Sub s_load_3_set_hardware()
     s_load_sleep()
     ' N.B: this register is only used when bit 5 of $6B is 1, it has no effect while every cell carries its own attribute byte
     Asm
-        nextreg $6C, %01000000                          ; Default Tilemap Attribute Register
+        nextreg NEXTREG_TILEMAP_ATTRIBUTE, %01000000                          ; Default Tilemap Attribute Register
     End Asm
     ' bits 7-4  = Palette Offset
     ' bit 3     = X mirror
@@ -479,7 +477,7 @@ Sub s_load_3_set_hardware()
     ' N.B: in Boriel "Or" is the logical (true/false) operator, to combine bits it has to be "bOr"
     ' page 11 is the second half of bank 5, so it starts 8KB into the bank, i.e. at offset $2000, and the register holds the high byte, $20
     Asm
-        nextreg $6E, %00100000                          ; Tilemap Base Address Register = page 11 (bank 5 + 8KB), i.e. the screen cells
+        nextreg NEXTREG_TILEMAP_BASE, %00100000                          ; Tilemap Base Address Register = page 11 (bank 5 + 8KB), i.e. the screen cells
     End Asm
     ' bit 7     = 1 to select bank 7, 0 to select bank 5
     ' bit 6     = reserved, must be 0
@@ -488,7 +486,7 @@ Sub s_load_3_set_hardware()
     s_load_sleep()
     ' page 10 is the first half of bank 5, and the font is at its very start, so the offset is 0
     Asm
-        nextreg $6F, %00000000                          ; Tile Definitions Base Address Register = page 10 (bank 5), at offset 0, i.e. the font
+        nextreg NEXTREG_TILE_DEFINITIONS, %00000000                          ; Tile Definitions Base Address Register = page 10 (bank 5), at offset 0, i.e. the font
     End Asm
     ' bit 7     = 1 to select bank 7, 0 to select bank 5
     ' bit 6     = reserved, must be 0
@@ -497,7 +495,7 @@ Sub s_load_3_set_hardware()
     s_load_sleep()
     ' N.B: bits 4-2 were %111 (the U+L-5 blend mode), we want the plain S L U ordering
     Asm
-        nextreg $15, %00000000                          ; Sprite and Layers System Register
+        nextreg NEXTREG_SPRITES_LAYERS, %00000000                          ; Sprite and Layers System Register
     End Asm
     ' bit 7     = LoRes mode (0 on reset)
     ' bit 6     = Sprite priority (0 on reset)
@@ -517,17 +515,17 @@ Sub s_load_3_set_hardware()
     ' bit 0     = Enable Sprites (0 on reset)
 
     s_load_sleep()
-    Out $E3,   $00                                  ' divMMC control port, clear the two manual mapping bits so divMMC memory is paged out
+    Out UB_DIVMMC_PORT, $00                         ' divMMC control port, clear the two manual mapping bits so divMMC memory is paged out
     ' N.B: this does not switch off divMMC automapping, that is a separate mechanism which this port does not control
 
     s_load_sleep()
     Asm
-        nextreg $62, $00                                ; Copper Control Register, stop the copper (and zero the top bits of its address)
+        nextreg NEXTREG_COPPER_CONTROL, $00                                ; Copper Control Register, stop the copper (and zero the top bits of its address)
     End Asm
 
     s_load_sleep()
     Asm
-        nextreg $0B, $00                                ; Joystick I/O Mode Register, switch joystick i/o mode off (N.B: nothing to do with the DMA)
+        nextreg NEXTREG_JOYSTICK_IO, $00                                ; Joystick I/O Mode Register, switch joystick i/o mode off (N.B: nothing to do with the DMA)
     End Asm
 
     s_load_sleep()
@@ -544,18 +542,18 @@ Sub s_load_3_set_hardware()
     ' we set joystick 1 to Cursor, i.e. bit 7 on, so that it arrives as the cursor keys, which fub_core_scan_key() in core.bas understands...
     ' ...N.B: this is also what makes the PC's arrow keys work in ZEsarUX, it treats them as joystick 1 and obeys this mode,
     ' with any of the other modes the arrow keys go somewhere that our keyboard routine does not look...
-    ' ...(on a real Next the arrow keys do not depend on this, they are read from nextreg $B0)
-    ' joystick 2 is left as mode 000, and 50Hz is selected, the countdown in core.bas counts 50 frames to the second...
+    ' ...(on a real Next the arrow keys do not depend on this, they are read from nextreg NEXTREG_EXT_KEYS_0)
+    ' joystick 2 is left as mode 000, and 50Hz is selected, s_core_get_key() counts 50 frames to the second for its hour...
     ' ...but bit 0 is kept exactly as we found it, switching the scandoubler off can lose the picture on a real Next using VGA
     Asm
-        ld bc, $243B                                    ; nextreg can only write, so the register is read through the ports
-        ld a, $05
+        ld bc, A_NEXTREG_SELECT                         ; nextreg can only write, so the register is read through the ports
+        ld a, NEXTREG_PERIPHERAL_1
         out (c), a
-        inc b                                           ; $253B
+        inc b                                           ; A_NEXTREG_DATA
         in a, (c)
         and %00000001                                   ; bit 0, the scandoubler, kept as we found it...
         or %10000000                                    ; ...and joystick 1 to Cursor
-        nextreg $05, a                                  ; Peripheral 1 Settings Register
+        nextreg NEXTREG_PERIPHERAL_1, a                                  ; Peripheral 1 Settings Register
     End Asm
 
     s_load_sleep()
@@ -571,21 +569,21 @@ Sub s_load_3_set_hardware()
     ' ...those two buttons cause a non maskable interrupt, which makes the Z80 jump to $0066 whatever it is doing,
     ' and in our memory map $0066 is inside the first paged data slot, so it would be running data as code
     Asm
-        ld bc, $243B                                    ; nextreg can only write, so the register is read through the ports
-        ld a, $06
+        ld bc, A_NEXTREG_SELECT                         ; nextreg can only write, so the register is read through the ports
+        ld a, NEXTREG_PERIPHERAL_2
         out (c), a
-        inc b                                           ; $253B
+        inc b                                           ; A_NEXTREG_DATA
         in a, (c)
         and %11100111
-        nextreg $06, a                                  ; Peripheral 2 Settings Register
+        nextreg NEXTREG_PERIPHERAL_2, a                                  ; Peripheral 2 Settings Register
     End Asm
 
     s_load_sleep()
     ' Video Timing Register ($11), left alone...
     ' ...it selects the display timing (VGA settings 0 to 6, or HDMI) and can only be written in config mode...
-    ' ...it has nothing to do with the CPU or ULA clock speed, the CPU speed is nextreg $07 (see the end of this routine)...
+    ' ...it has nothing to do with the CPU or ULA clock speed, the CPU speed is nextreg NEXTREG_CPU_SPEED (see the end of this routine)...
     ' ...writing it here crashed the speccy inside zesarux, so it stays commented out
-    'nextreg $11, %00000010
+    'nextreg NEXTREG_VIDEO_TIMING, %00000010
 
     s_load_sleep()
     ' Peripheral 3 Settings Register (N.B: nothing to do with interrupts)
@@ -599,40 +597,40 @@ Sub s_load_3_set_hardware()
     ' bit 0     = enable issue 2 keyboard
     ' writing 0 switches all of these off, so the internal speaker is silent and contention is on
     Asm
-        nextreg $08, 0
+        nextreg NEXTREG_PERIPHERAL_3, 0
     End Asm
 
     s_load_sleep()
     Asm
-        nextreg $22, 0                                  ; Line Interrupt Control Register, disable line interrupts...
+        nextreg NEXTREG_LINE_INTERRUPT, 0                                  ; Line Interrupt Control Register, disable line interrupts...
     End Asm
-    ' ...N.B: bit 2 is also 0, which leaves the normal 50Hz frame interrupt enabled, the countdown in core.bas relies on it
+    ' ...N.B: bit 2 is also 0, which leaves the normal 50Hz frame interrupt enabled, s_core_wait_for_vblank() in core.bas relies on it
 
     's_load_sleep()
-    'nextreg $8F, 0                                  ' unlock and map ram
+    'nextreg NEXTREG_MEMORY_MAPPING, 0                                  ' unlock and map ram
 
     's_load_sleep()
-    'nextreg $8E, 3                                  ' allow writing to ram in slots 0 and 1
+    'nextreg NEXTREG_MEMORY_128K, 3                                  ' allow writing to ram in slots 0 and 1
 
     's_load_sleep()
-    'nextreg $12, 0                                  ' N.B: $12 chooses which RAM Layer 2 uses, it does not disable it, to disable Layer 2 clear bit 7 of $69
+    'nextreg NEXTREG_LAYER2_BANK, 0                                  ' N.B: $12 chooses which RAM Layer 2 uses, it does not disable it, to disable Layer 2 clear bit 7 of $69
 
     s_load_sleep()
     ' reset the tilemap scroll, both ways (N.B: the y scroll is $31, not $6D which is not a documented register)
     Asm
-        nextreg $2F, 0                                  ; Tilemap Horizontal Scroll MSB
-        nextreg $30, 0                                  ; Tilemap Horizontal Scroll LSB
-        nextreg $31, 0                                  ; Tilemap Vertical Scroll
+        nextreg NEXTREG_TILEMAP_X_MSB, 0                                  ; Tilemap Horizontal Scroll MSB
+        nextreg NEXTREG_TILEMAP_X_LSB, 0                                  ; Tilemap Horizontal Scroll LSB
+        nextreg NEXTREG_TILEMAP_Y, 0                                  ; Tilemap Vertical Scroll
     End Asm
 
     's_load_sleep()
-    'nextreg $4B, 1                                  ' N.B: $4B is the sprite transparency index, the background (fallback) colour is $4A
+    'nextreg NEXTREG_SPRITE_TRANSPARENCY, 1                                  ' N.B: $4B is the sprite transparency index, the background (fallback) colour is $4A
 
     s_load_sleep()
     ' CPU Speed Register: 28 MHz, eight times the speed of an original Spectrum...
     ' ...N.B: nothing of ours is timed by counting instructions, the waits in the core count 50Hz frame interrupts, so they do not change
     Asm
-        nextreg $07, %00000011
+        nextreg NEXTREG_CPU_SPEED, %00000011
     End Asm
 
     s_load_sleep()
@@ -642,7 +640,7 @@ End Sub
 Sub s_load_4_set_palette()
     ' select tilemap palette 0 and start at index 0
     Asm
-        nextreg $43, %00110000                          ; Palette Control Register (it covers all the layers, not just the ULA)
+        nextreg NEXTREG_PALETTE_CONTROL, %00110000                          ; Palette Control Register (it covers all the layers, not just the ULA)
     End Asm
     ' bit 7: '1' to disable palette write auto-increment.
     ' bits 6-4: Select palette for reading or writing:
@@ -660,11 +658,11 @@ Sub s_load_4_set_palette()
     ' bit 0: Enable Enhanced ULA mode if 1 (0 after a reset)
 
     Asm
-        nextreg $40, 0                                  ; Palette Index Select, start writing at index 0
+        nextreg NEXTREG_PALETTE_INDEX, 0                                  ; Palette Index Select, start writing at index 0
     End Asm
 
     ' 8-bit Palette Data ($41) takes ONE write per entry (RRRGGGBB) and then auto-increments the index,
-    ' so each entry is one nextreg $41...
+    ' so each entry is one nextreg NEXTREG_PALETTE_VALUE...
     ' (it is the 9-bit register $44 that needs two writes per entry)
 
     ' how the colours work in text mode:
@@ -676,75 +674,75 @@ Sub s_load_4_set_palette()
 
     Asm
         ; pair 0: black ink on black paper (attribute byte 0)
-        nextreg $41, $00 ; index 0 (paper)
-        nextreg $41, $00 ; index 1 (ink)
+        nextreg NEXTREG_PALETTE_VALUE, $00 ; index 0 (paper)
+        nextreg NEXTREG_PALETTE_VALUE, $00 ; index 1 (ink)
 
         ; pair 1: blue ink on black paper (attribute byte 2)
-        nextreg $41, $00 ; index 2 (paper)
-        nextreg $41, $02 ; index 3 (ink)   %000 000 10
+        nextreg NEXTREG_PALETTE_VALUE, $00 ; index 2 (paper)
+        nextreg NEXTREG_PALETTE_VALUE, $02 ; index 3 (ink)   %000 000 10
 
         ; pair 2: red ink on black paper (attribute byte 4)
-        nextreg $41, $00 ; index 4 (paper)
-        nextreg $41, $A0 ; index 5 (ink)   %101 000 00
+        nextreg NEXTREG_PALETTE_VALUE, $00 ; index 4 (paper)
+        nextreg NEXTREG_PALETTE_VALUE, $A0 ; index 5 (ink)   %101 000 00
 
         ; pair 3: magenta ink on black paper (attribute byte 6)
-        nextreg $41, $00 ; index 6 (paper)
-        nextreg $41, $A2 ; index 7 (ink)   %101 000 10
+        nextreg NEXTREG_PALETTE_VALUE, $00 ; index 6 (paper)
+        nextreg NEXTREG_PALETTE_VALUE, $A2 ; index 7 (ink)   %101 000 10
 
         ; pair 4: green ink on black paper (attribute byte 8)
-        nextreg $41, $00 ; index 8 (paper)
-        nextreg $41, $14 ; index 9 (ink)   %000 101 00
+        nextreg NEXTREG_PALETTE_VALUE, $00 ; index 8 (paper)
+        nextreg NEXTREG_PALETTE_VALUE, $14 ; index 9 (ink)   %000 101 00
 
         ; pair 5: cyan ink on black paper (attribute byte 10)
-        nextreg $41, $00 ; index 10 (paper)
-        nextreg $41, $16 ; index 11 (ink)   %000 101 10
+        nextreg NEXTREG_PALETTE_VALUE, $00 ; index 10 (paper)
+        nextreg NEXTREG_PALETTE_VALUE, $16 ; index 11 (ink)   %000 101 10
 
         ; pair 6: yellow ink on black paper (attribute byte 12)
-        nextreg $41, $00 ; index 12 (paper)
-        nextreg $41, $B4 ; index 13 (ink)   %101 101 00
+        nextreg NEXTREG_PALETTE_VALUE, $00 ; index 12 (paper)
+        nextreg NEXTREG_PALETTE_VALUE, $B4 ; index 13 (ink)   %101 101 00
 
         ; pair 7: white ink on black paper (attribute byte 14)
-        nextreg $41, $00 ; index 14 (paper)
-        nextreg $41, $B6 ; index 15 (ink)   %101 101 10
+        nextreg NEXTREG_PALETTE_VALUE, $00 ; index 14 (paper)
+        nextreg NEXTREG_PALETTE_VALUE, $B6 ; index 15 (ink)   %101 101 10
 
         ; pair 8: dark grey ink on black paper (attribute byte 16)
-        nextreg $41, $00 ; index 16 (paper)
-        nextreg $41, $49 ; index 17 (ink)   %010 010 01
+        nextreg NEXTREG_PALETTE_VALUE, $00 ; index 16 (paper)
+        nextreg NEXTREG_PALETTE_VALUE, $49 ; index 17 (ink)   %010 010 01
 
         ; pair 9: bright blue ink on black paper (attribute byte 18)
-        nextreg $41, $00 ; index 18 (paper)
-        nextreg $41, $03 ; index 19 (ink)   %000 000 11
+        nextreg NEXTREG_PALETTE_VALUE, $00 ; index 18 (paper)
+        nextreg NEXTREG_PALETTE_VALUE, $03 ; index 19 (ink)   %000 000 11
 
         ; pair 10: bright red ink on black paper (attribute byte 20)
-        nextreg $41, $00 ; index 20 (paper)
-        nextreg $41, $E0 ; index 21 (ink)   %111 000 00
+        nextreg NEXTREG_PALETTE_VALUE, $00 ; index 20 (paper)
+        nextreg NEXTREG_PALETTE_VALUE, $E0 ; index 21 (ink)   %111 000 00
 
         ; pair 11: bright magenta ink on black paper (attribute byte 22)
-        nextreg $41, $00 ; index 22 (paper)
-        nextreg $41, $E3 ; index 23 (ink)   %111 000 11
+        nextreg NEXTREG_PALETTE_VALUE, $00 ; index 22 (paper)
+        nextreg NEXTREG_PALETTE_VALUE, $E3 ; index 23 (ink)   %111 000 11
 
         ; pair 12: bright green ink on black paper (attribute byte 24)
-        nextreg $41, $00 ; index 24 (paper)
-        nextreg $41, $1C ; index 25 (ink)   %000 111 00
+        nextreg NEXTREG_PALETTE_VALUE, $00 ; index 24 (paper)
+        nextreg NEXTREG_PALETTE_VALUE, $1C ; index 25 (ink)   %000 111 00
 
         ; pair 13: bright cyan ink on black paper (attribute byte 26)
-        nextreg $41, $00 ; index 26 (paper)
-        nextreg $41, $1F ; index 27 (ink)   %000 111 11
+        nextreg NEXTREG_PALETTE_VALUE, $00 ; index 26 (paper)
+        nextreg NEXTREG_PALETTE_VALUE, $1F ; index 27 (ink)   %000 111 11
 
         ; pair 14: bright yellow ink on black paper (attribute byte 28)
-        nextreg $41, $00 ; index 28 (paper)
-        nextreg $41, $FC ; index 29 (ink)   %111 111 00
+        nextreg NEXTREG_PALETTE_VALUE, $00 ; index 28 (paper)
+        nextreg NEXTREG_PALETTE_VALUE, $FC ; index 29 (ink)   %111 111 00
 
         ; pair 15: bright white ink on black paper (attribute byte 30)
-        nextreg $41, $00 ; index 30 (paper)
-        nextreg $41, $FF ; index 31 (ink)   %111 111 11
+        nextreg NEXTREG_PALETTE_VALUE, $00 ; index 30 (paper)
+        nextreg NEXTREG_PALETTE_VALUE, $FF ; index 31 (ink)   %111 111 11
     End Asm
 
     ' Global Transparency Colour Register...
     ' ...in text mode any pixel whose final colour equals this value is treated as transparent, and it is $E3 after a reset...
     ' ...$E3 is exactly our bright magenta, so we move the transparent colour to a value that the palette above does not use
     Asm
-        nextreg $14, $E7
+        nextreg NEXTREG_TRANSPARENCY, $E7
     End Asm
 End Sub
 
@@ -752,16 +750,16 @@ End Sub
 Sub s_load_5_clear_screen()
     Asm
         ; fill all 80 x 32 cells with a two byte pair, an ASCII code and an attribute
-        ld hl, $E000
+        ld hl, A_SCREEN_BASE
         ld (hl), 65     ; ASCII A
         inc hl
         ld (hl), 14     ; attribute white ink on black paper
-        ld hl, $E000
-        ld de, $E002
-        ld bc, 5118
+        ld hl, A_SCREEN_BASE
+        ld de, A_SCREEN_BASE + 2
+        ld bc, UW_SCREEN_CELLS_SIZE - 2
         ldir
     End Asm
-    Out $FE, 0          ' border, black
+    Out UB_ULA_PORT, UB_BORDER_BLACK          ' border, black
 End Sub
 
 
@@ -838,12 +836,12 @@ Sub s_load_sleep()
     ' ...to make every delay in the loader shorter or longer just change the two loop limits below (they cannot go lower than 1)
     Dim i As UByte
 
-    Out $FE, 2          ' border, red
+    Out UB_ULA_PORT, UB_BORDER_RED          ' border, red
     For i = 1 To 1
         s_load_wait_frame()
     Next
 
-    Out $FE, 3          ' border, magenta
+    Out UB_ULA_PORT, UB_BORDER_MAGENTA          ' border, magenta
     For i = 1 To 1
         s_load_wait_frame()
     Next

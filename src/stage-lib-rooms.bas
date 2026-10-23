@@ -214,12 +214,12 @@ Sub s_rm_inner( psw_y As Integer , psw_x As Integer )
 
     ' inner room variations
     luw_kind = fuw_gen_random( 5 )
-    If luw_kind = 1 Then
+    If luw_kind = UB_INNER_ROOM_PLAIN Then
         ' just an inner room with one door
         s_rm_random_secret_door( psw_y , psw_x , lsw_depth , lsw_height , lsw_left , lsw_right )
         s_rm_monsters( psw_y , psw_x , 1 )
 
-    ElseIf luw_kind = 2 Then
+    ElseIf luw_kind = UB_INNER_ROOM_TREASURE_VAULT Then
         ' a treasure vault, an inner room within the inner room, Moria's dungeonPlaceTreasureVault()
         s_rm_random_secret_door( psw_y , psw_x , lsw_depth , lsw_height , lsw_left , lsw_right )
         s_rm_vault( psw_y , psw_x )
@@ -238,7 +238,7 @@ Sub s_rm_inner( psw_y As Integer , psw_x As Integer )
         ' if the monsters don't get 'em
         s_rm_traps( psw_y , psw_x , 4 , 10 , 2 + fuw_gen_random( 3 ) )
 
-    ElseIf luw_kind = 3 Then
+    ElseIf luw_kind = UB_INNER_ROOM_PILLARS Then
         ' an inner room with pillars, Moria's dungeonPlaceInnerPillars()
         s_rm_random_secret_door( psw_y , psw_x , lsw_depth , lsw_height , lsw_left , lsw_right )
         s_rm_block( psw_y - 1 , psw_y + 1 , psw_x - 1 , psw_x + 1 , UB_TILE_TMP1_WALL )
@@ -265,7 +265,7 @@ Sub s_rm_inner( psw_y As Integer , psw_x As Integer )
             s_rm_monsters( psw_y , psw_x + 2 , fuw_gen_random( 2 ) )
         End If
 
-    ElseIf luw_kind = 4 Then
+    ElseIf luw_kind = UB_INNER_ROOM_MAZE Then
         ' the inner room has a maze, Moria's dungeonPlaceMazeInsideRoom()
         s_rm_random_secret_door( psw_y , psw_x , lsw_depth , lsw_height , lsw_left , lsw_right )
         For lsw_i = lsw_height To lsw_depth
@@ -401,6 +401,6 @@ Sub s_lib_rooms()
     ElseIf gub_lib_function = UB_LIB_ROOMS_CROSS Then
         s_rm_cross( lub_y , lub_x )
     End If
-    If lub_saved_page_0 <> 255 Then s_core_swap_paged_data( UB_SLOT_CORRIDORS , lub_saved_page_0 )
-    If lub_saved_page_2 <> 255 Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved_page_2 )
+    If lub_saved_page_0 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_CORRIDORS , lub_saved_page_0 )
+    If lub_saved_page_2 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved_page_2 )
 End Sub

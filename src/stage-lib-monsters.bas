@@ -146,6 +146,7 @@ Function fub_mon_place_new( pub_y As UByte , pub_x As UByte , puw_creature As UI
     gub_monster_distance = fub_mon_distance( gub_player_row , gub_player_col , pub_y , pub_x )
     ' ours, not Moria's: what it looks like, kept with the monster so that drawing the map need not look the creature up
     gub_monster_sprite   = gub_creature_sprite
+    gub_monster_colour   = gub_creature_colour
 
     If pub_sleeping And gub_creature_sleep <> 0 Then
         gsw_monster_sleep = Cast( Integer , gub_creature_sleep ) * 2 + fuw_mon_random( Cast( UInteger , gub_creature_sleep ) * 10 )
@@ -512,7 +513,10 @@ Sub s_mon_update_visibility( pub_monster As UByte )
     ' changes the copy in the level's list is changed too, because drawing the square reads it from there
     Dim lub_visible As UByte = false
 
-    If gub_monster_distance <= UB_MON_MAX_SIGHT And gsw_player_blind < 1 Then
+    ' N.B: blind is the PY_BLIND status, as in Moria, not the blind counter: the counter goes up the moment the player
+    ' is blinded, the status only at the end of that turn (until 21 October 2026 ours went by the counter, and the
+    ' monsters were unseen a turn early, which put the random numbers out of step, the blind running comparison)
+    If gub_monster_distance <= UB_MON_MAX_SIGHT And ( gul_player_status bAnd UL_PY_BLIND ) = 0 Then
         If fub_cr_inside_panel( gub_monster_row , gub_monster_col ) Then
             If gub_game_wizard Then
                 ' wizard sight
@@ -606,7 +610,7 @@ Sub s_lib_monsters()
     ElseIf gub_lib_function = UB_LIB_MONSTERS_LOS Then
         gsw_lib_result = fub_mon_los( guw_lib_param_2 >> 8 , guw_lib_param_2 bAnd 255 , Cast( UInteger , gsw_lib_result ) >> 8 , Cast( UInteger , gsw_lib_result ) bAnd 255 )
     End If
-    If lub_saved_page_0 <> 255 Then s_core_swap_paged_data( UB_SLOT_MONSTERS , lub_saved_page_0 )
-    If lub_saved_page_1 <> 255 Then s_core_swap_paged_data( UB_SLOT_ITEMS , lub_saved_page_1 )
-    If lub_saved_page_2 <> 255 Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved_page_2 )
+    If lub_saved_page_0 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_MONSTERS , lub_saved_page_0 )
+    If lub_saved_page_1 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_ITEMS , lub_saved_page_1 )
+    If lub_saved_page_2 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , lub_saved_page_2 )
 End Sub

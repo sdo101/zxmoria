@@ -240,7 +240,7 @@ Function fub_rc_rest() As UByte
     ' do we know what it might carry? Moria's memoryLootCarried()
     If ( lul_move bAnd ( UL_CM_CARRY_OBJ bOr UL_CM_CARRY_GOLD ) ) <> 0 Then
         s_rc_print( " It may" )
-        lub_carry = ( lul_move bAnd UL_CM_TREASURE ) >> 26
+        lub_carry = ( lul_move bAnd UL_CM_TREASURE ) >> UB_CM_TR_SHIFT
         lul_value = gul_creature_movement bAnd UL_CM_TREASURE
         If lub_carry = 1 Then
             If lul_value = UL_CM_60_RANDOM Then

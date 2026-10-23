@@ -49,7 +49,7 @@ Sub s_mg_gain_spells()
         s_core_message( UW_MSG_YOU_ARE_TOO_CONFUSED )
         Return
     End If
-    If gub_class_spell_type = 1 Then
+    If gub_class_spell_type = UB_SPELL_TYPE_MAGE Then
         ' a mage must read, Moria's playerCanRead()
         If gsw_player_blind > 0 Then
             s_core_message( UW_MSG_YOU_CANT_SEE_TO_READ_YOUR_SPELL )
@@ -68,7 +68,7 @@ Sub s_mg_gain_spells()
     lsw_last = 0
     lsw_i = 0
     While lsw_i < 32
-        If Peek( A_PLAYER_SPELL_ORDER + lsw_i ) = 99 Then
+        If Peek( A_PLAYER_SPELL_ORDER + lsw_i ) = UB_SPELL_ORDER_END Then
             lsw_last = lsw_i
             lsw_i = 32
         End If
@@ -83,7 +83,7 @@ Sub s_mg_gain_spells()
 
     ' determine which spells the player can learn: mages need the book to learn a spell, priests do not need the book
     lul_flags = $7FFFFFFF
-    If gub_class_spell_type = 1 Then
+    If gub_class_spell_type = UB_SPELL_TYPE_MAGE Then
         lul_flags = 0
         If gsw_player_pack_unique > 0 Then
             For lsw_i = 0 To gsw_player_pack_unique - 1
@@ -118,7 +118,7 @@ Sub s_mg_gain_spells()
     End If
 
     If lsw_new <> 0 Then
-        If gub_class_spell_type = 1 Then
+        If gub_class_spell_type = UB_SPELL_TYPE_MAGE Then
             ' the mage picks from the list
             s_msg_flush()
             s_mg_screen_save()
@@ -127,7 +127,7 @@ Sub s_mg_gain_spells()
                 s_msg_clear()
                 s_core_print_string_at( 0 , 0 , "Learn which spell?" , UB_BRIGHT_WHITE )
                 s_core_get_key()
-                If gub_key_char = 27 Or guw_key_code = 0 Then
+                If gub_key_char = UC_ESCAPE Or guw_key_code = 0 Then
                     lsw_i = lsw_new
                     lsw_missing = lsw_missing + lsw_new
                     lsw_new = 0
@@ -221,7 +221,7 @@ Function fsw_mg_choose( pub_place As UByte ) As Integer
         s_core_print_string_at( 0 , 0 , ls_prompt , UB_BRIGHT_WHITE )
         s_core_get_key()
         lub_key = gub_key_char
-        If lub_key = 27 Or guw_key_code = 0 Then
+        If lub_key = UC_ESCAPE Or guw_key_code = 0 Then
             lub_done = true
         ElseIf lub_key = Code( "*" ) Then
             If lub_listed = false Then
@@ -260,7 +260,7 @@ Function fsw_mg_choose( pub_place As UByte ) As Integer
     gsl_lib_long_1 = fsw_mg_chance( lsw_found )
     ' not enough mana for it? the player may still try
     If Peek( fuw_mg_spell( lsw_found ) + 1 ) > gsw_player_current_mana Then
-        If gub_class_spell_type = 1 Then
+        If gub_class_spell_type = UB_SPELL_TYPE_MAGE Then
             s_core_print_string_at( 0 , 0 , "You summon your limited strength to cast this one! Confirm? [y/n]" , UB_BRIGHT_WHITE )
         Else
             s_core_print_string_at( 0 , 0 , "The gods may think you presumptuous for this! Confirm? [y/n]" , UB_BRIGHT_WHITE )
@@ -328,8 +328,8 @@ Sub s_mg_browse()
 
     lub_category = Peek( A_INVENTORY + Cast( UInteger , lsw_i ) * UB_RECORD_SIZE + UB_ITEM_CATEGORY_OFFSET )
     lub_can_read = false
-    If gub_class_spell_type = 1 And lub_category = UB_TV_MAGIC_BOOK Then lub_can_read = true
-    If gub_class_spell_type = 2 And lub_category = UB_TV_PRAYER_BOOK Then lub_can_read = true
+    If gub_class_spell_type = UB_SPELL_TYPE_MAGE And lub_category = UB_TV_MAGIC_BOOK Then lub_can_read = true
+    If gub_class_spell_type = UB_SPELL_TYPE_PRIEST And lub_category = UB_TV_PRAYER_BOOK Then lub_can_read = true
     If lub_can_read = false Then
         s_core_message( UW_MSG_YOU_DO_NOT_UNDERSTAND_THE_LANGUAGE )
         Return
@@ -366,7 +366,7 @@ Sub s_lib_books()
     gub_mg_screen_saved = false
     gub_mg_saved_page_2 = gub_core_MMU2_page_number
     If gub_lib_function = UB_LIB_BOOKS_GAIN Then
-        If gub_class_spell_type = 0 Then
+        If gub_class_spell_type = UB_SPELL_TYPE_NONE Then
             s_core_message( UW_MSG_YOU_CANT_LEARN_ANY_NEW_SPELLS )
             gub_game_free_turn = true
         Else
@@ -377,6 +377,6 @@ Sub s_lib_books()
     ElseIf gub_lib_function = UB_LIB_BOOKS_BROWSE Then
         s_mg_browse()
     End If
-    If gub_mg_saved_page_2 <> 255 Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , gub_mg_saved_page_2 )
+    If gub_mg_saved_page_2 <> UB_PAGE_NONE Then s_core_swap_paged_data( UB_SLOT_DB_MAPS , gub_mg_saved_page_2 )
     gsw_lib_result = lsw_answer
 End Sub

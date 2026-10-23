@@ -50,15 +50,6 @@ End Asm
 ' N.B: the order things are done in matters, each random number must be asked for exactly when Moria asks for it
 
 
-Dim gub_m2_quiet            As UByte    At A_LIB_PRIVATE + 16       ' true when the damage is a trap's, which has said its own piece
-
-#define UB_SET_FLAMMABLE    1       ' which things in the pack a kind of damage can destroy, Moria's setFlammableItems()...
-#define UB_SET_ACID         2
-#define UB_SET_CORRODABLE   3
-#define UB_SET_FROST        4
-#define UB_SET_LIGHTNING    5
-
-
 Function fuw_m2_random( puw_max As UInteger ) As UInteger
     ' a random number from 1 to puw_max, Moria's randomNumber(), the core has the routine, see fuw_core_random_word()
     Asm
