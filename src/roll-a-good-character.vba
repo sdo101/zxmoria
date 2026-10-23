@@ -102,7 +102,7 @@ Sub modulea()
       Session.WaitForString ("Town level")
       Session.Transmit (Chr(26))
       Session.WaitForString ("Filename:")
-      Session.Transmit ("dave" & ll_char & ".chr" & vbCr)
+      Session.Transmit ("sdo" & ll_char & ".chr" & vbCr)
       Session.WaitForString ("VAX1::SDO>")
       ll_char = ll_char + 1
     Else
