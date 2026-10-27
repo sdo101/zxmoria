@@ -1142,6 +1142,8 @@ Const   UB_LIB_MONSTERS_VISIBILITY      As UByte    = 5
 Const   UB_LIB_MONSTERS_LOS             As UByte    = 6
 Const   UB_LIB_MONSTERS_SUMMON          As UByte    = 7
 Const   UB_LIB_MONSTERS_SUMMON_UNDEAD   As UByte    = 8
+#define UB_MON_KEPT             128     ' the monsters library's own: from here in its private storage, 64 bytes, the working
+                                        ' monster, kept while a monster's spell summons
 Const   UB_LIB_MONSTERS_MULTIPLY        As UByte    = 9
 Const   UB_LIB_MONSTERS_POLYMORPH_AT    As UByte    = 10
 Const   UB_LIB_MONSTERS_CLONE           As UByte    = 11

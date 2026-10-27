@@ -1223,6 +1223,14 @@ The one list of them is umoria-oddities.md, beside this file: what Moria does, w
 
 ## Faults found and put right
 
+- 27 October, **a monster that cast a summoning spell turned into a copy of what it summoned,** since the start.
+  The new monster is made in the working monster (A_MONSTER), which is the caster's own record while it casts, and
+  the monsters' turn then stored that back over the caster, so the summoner vanished and the summoned one was there
+  twice, once in each record. Umoria works on the list itself, so its summoner stays. Found in zxcrawl, where Sauron
+  disappeared on summoning; the monsters library now keeps the caster and puts it back, as breeding always did
+  (UB_MON_KEPT), and fetches its creature again. Checked with a summoner made beside the player: before, a Green
+  Jelly's record held the Grape Jelly it summoned from the next turn; after, a Red Worm mass summoned four times and
+  was itself throughout. Not compared with Umoria yet, no comparison has had a summoner cast.
 - 22 October, **the new game wiped only 595 of the player record's 768 bytes,** since the morning of 21 October.
   Naming 767 as UW_PLAYER_SIZE - 1 met a UW_PLAYER_SIZE already in globals.bas, 595, how much of the record is
   used, and the later definition won; the check that day was by module sizes, and ld bc, 594 is as long as ld bc,

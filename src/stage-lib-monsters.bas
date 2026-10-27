@@ -592,9 +592,20 @@ Sub s_lib_monsters()
         luw_creature = fuw_mon_random( fuw_mon_levels( UB_MON_MAX_LEVELS ) - luw_creature ) - 1 + luw_creature
         s_core_fetch_record( UB_SLOT_CREATURES , UB_PAGE_CREATURES_DB , luw_creature , A_CREATURE )
         gsw_lib_result = fub_mon_place_new( lub_y , lub_x , luw_creature , false )
-    ElseIf gub_lib_function = UB_LIB_MONSTERS_SUMMON Then
-        ' Moria's monsterSummon(): something from a little deeper than here (MON_SUMMONED_LEVEL_ADJUST), awake
-        gsw_lib_result = fub_mon_place_adjacent( gub_player_row , gub_player_col , fuw_mon_suitable( guw_dungeon_level + 2 ) , false )
+    ElseIf gub_lib_function = UB_LIB_MONSTERS_SUMMON Or gub_lib_function = UB_LIB_MONSTERS_SUMMON_UNDEAD Then
+        ' Moria's monsterSummon(): something from a little deeper than here (MON_SUMMONED_LEVEL_ADJUST), awake, or
+        ' monsterSummonUndead()
+        ' N.B: the caster is the working monster and creature, which making the new one uses, so the monster is kept
+        ' and put back, as breeding does, and its creature fetched again, or the caster became a copy of what it
+        ' summoned (27 October 2026)
+        s_core_ram_copy( A_MONSTER , A_LIB_PRIVATE + UB_MON_KEPT , UB_RECORD_SIZE )
+        If gub_lib_function = UB_LIB_MONSTERS_SUMMON Then
+            gsw_lib_result = fub_mon_place_adjacent( gub_player_row , gub_player_col , fuw_mon_suitable( guw_dungeon_level + 2 ) , false )
+        Else
+            gsw_lib_result = fub_mon_summon_undead()
+        End If
+        s_core_ram_copy( A_LIB_PRIVATE + UB_MON_KEPT , A_MONSTER , UB_RECORD_SIZE )
+        s_core_fetch_record( UB_SLOT_CREATURES , UB_PAGE_CREATURES_DB , guw_monster_creature , A_CREATURE )
     ElseIf gub_lib_function = UB_LIB_MONSTERS_SUMMON_AT Then
         ' the same beside any square, and asleep, for the level maker's guarded rooms
         lub_y = gub_lib_param_1
@@ -605,8 +616,6 @@ Sub s_lib_monsters()
         Else
             gsw_lib_result = fub_mon_place_adjacent( lub_y , lub_x , fuw_mon_suitable( guw_dungeon_level + 2 ) , true )
         End If
-    ElseIf gub_lib_function = UB_LIB_MONSTERS_SUMMON_UNDEAD Then
-        gsw_lib_result = fub_mon_summon_undead()
     ElseIf gub_lib_function = UB_LIB_MONSTERS_LOS Then
         gsw_lib_result = fub_mon_los( guw_lib_param_2 >> 8 , guw_lib_param_2 bAnd 255 , Cast( UInteger , gsw_lib_result ) >> 8 , Cast( UInteger , gsw_lib_result ) bAnd 255 )
     End If
