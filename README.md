@@ -3,7 +3,10 @@
 ZXMoria is a port of *Umoria* 5.7.15, *The Dungeons of Moria*, to the ZX Spectrum Next.
 It aims to play exactly as Umoria plays: the same dungeon, monsters, objects, spells and rules.
 
-> **This is version 1.0.** The whole game can be played, from the town to the depths, saved and reloaded, and it has
+> **This is version 1.0.1**, which mends one fault in 1.0: a monster that cast a summoning spell turned into a copy of
+> what it summoned, where in Umoria it stays itself (see "Faults found and put right" in `not-yet.md`).
+>
+> The whole game can be played, from the town to the depths, saved and reloaded, and it has
 > been compared turn for turn with the real Umoria (see "Fidelity and testing" below). **It has not yet been tested on
 > a real ZX Spectrum Next**: so far it has only been run in the ZEsarUX emulator. A test on real hardware is coming
 > soon. `not-yet.md` lists what has not been tested yet and the ideas for later, and `umoria-oddities.md` lists the
